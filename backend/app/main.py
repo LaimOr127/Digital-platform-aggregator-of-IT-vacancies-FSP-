@@ -13,7 +13,9 @@ from app.core.errors import register_error_handlers
 from app.core.logging import setup_logging
 from app.core.ratelimit import RateLimiter, build_limits
 from app.core.security import TokenService
+from app.core.signing import PassportSigner
 from app.db.session import get_database
+from app.integrations.fsp import HttpFspClient
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -21,8 +23,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     setup_logging(settings.log_level)
 
     @asynccontextmanager
-    async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         yield
+        await app.state.fsp_client.aclose()
         await get_database().dispose()
 
     app = FastAPI(
@@ -46,12 +49,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.settings = settings
     app.state.tokens = TokenService(settings)
     app.state.cipher = FieldCipher(settings.secret("field_encryption_key"))
+    app.state.signer = PassportSigner(settings.secret("passport_signing_key"))
+    app.state.fsp_client = HttpFspClient(settings)
     app.state.rate_limiter = RateLimiter()
     app.state.rate_limits = build_limits(
         {
             "auth": settings.auth_rate_limit,
             "login_email": settings.login_email_rate_limit,
             "refresh": settings.refresh_rate_limit,
+            "fsp": settings.fsp_rate_limit,
         }
     )
     register_error_handlers(app)

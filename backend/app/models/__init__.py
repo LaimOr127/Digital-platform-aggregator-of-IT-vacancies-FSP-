@@ -3,7 +3,10 @@
 from app.models.audit import AuditLog
 from app.models.base import Base
 from app.models.candidate import CandidateProfile, Skill, profile_skills
+from app.models.category import Category, candidate_categories
 from app.models.company import CompanyMember, EmployerCompany
+from app.models.fsp import FspAchievement, FspLink, FspVerification
+from app.models.passport import Passport
 from app.models.user import RefreshToken, User
 from app.models.vacancy import Vacancy, vacancy_skills
 
@@ -11,12 +14,18 @@ __all__ = [
     "AuditLog",
     "Base",
     "CandidateProfile",
+    "Category",
     "CompanyMember",
     "EmployerCompany",
+    "FspAchievement",
+    "FspLink",
+    "FspVerification",
+    "Passport",
     "RefreshToken",
     "Skill",
     "User",
     "Vacancy",
+    "candidate_categories",
     "profile_skills",
     "vacancy_skills",
 ]
