@@ -1,19 +1,29 @@
-import { useEffect, useState } from "react";
-import { apiGet } from "./api";
+import { lazy, Suspense } from "react";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router";
+import { RequireRole } from "./auth/RequireRole";
+import { Landing } from "./features/landing/Landing";
+import { FullScreenSpinner } from "./ui/Spinner";
+
+// Порталы и формы грузятся лениво: лендинг открывается быстро, кандидат не скачивает код админки
+const AuthPage = lazy(() => import("./features/auth/AuthPage"));
+const CandidatePortal = lazy(() => import("./features/candidate/CandidatePortal"));
+const EmployerPortal = lazy(() => import("./features/employer/EmployerPortal"));
+const AdminPortal = lazy(() => import("./features/admin/AdminPortal"));
 
 export function App() {
-  const [status, setStatus] = useState<string>("проверка…");
-
-  useEffect(() => {
-    apiGet<{ status: string }>("/health")
-      .then((d) => setStatus(d.status))
-      .catch(() => setStatus("недоступно"));
-  }, []);
-
   return (
-    <main style={{ fontFamily: "system-ui, sans-serif", padding: 32 }}>
-      <h1>IT Match · ФСП</h1>
-      <p>Каркас платформы. API: {status}</p>
-    </main>
+    <BrowserRouter>
+      <Suspense fallback={<FullScreenSpinner />}>
+        <Routes>
+          <Route path="/" element={<Landing />} />
+          <Route path="/login" element={<AuthPage mode="login" />} />
+          <Route path="/register" element={<AuthPage mode="register" />} />
+          <Route path="/app/*" element={<RequireRole role="candidate"><CandidatePortal /></RequireRole>} />
+          <Route path="/company/*" element={<RequireRole role="employer"><EmployerPortal /></RequireRole>} />
+          <Route path="/admin/*" element={<RequireRole role="admin"><AdminPortal /></RequireRole>} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
+    </BrowserRouter>
   );
 }

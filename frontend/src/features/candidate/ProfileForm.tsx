@@ -1,0 +1,129 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Save } from "lucide-react";
+import type { ReactNode } from "react";
+import { Controller, useForm } from "react-hook-form";
+import type { Profile, Skill } from "../../api/types";
+import { labels, options } from "../../lib/format";
+import { applyServerErrors } from "../../lib/forms";
+import { Button } from "../../ui/Button";
+import { Card, CardTitle } from "../../ui/Card";
+import { Field, Input, Select, Switch, Textarea } from "../../ui/form";
+import { SkillPicker } from "../../ui/SkillPicker";
+import { useToast } from "../../ui/Toast";
+import { useUpdateProfile } from "./hooks";
+import { formToUpdate, profileSchema, profileToForm, type ProfileFormInput, type ProfileFormOutput } from "./schemas";
+
+const FIELDS = ["full_name", "title", "about", "grade", "work_format", "city", "salary_min", "salary_max", "skills", "is_hidden"];
+
+function Section({ title, text, children }: { title: string; text?: string; children: ReactNode }) {
+  return (
+    <Card>
+      <CardTitle>{title}</CardTitle>
+      {text && <p className="mt-1 text-sm text-muted">{text}</p>}
+      <div className="mt-5 grid gap-5 sm:grid-cols-2">{children}</div>
+    </Card>
+  );
+}
+
+export function ProfileForm({ profile, skills }: { profile: Profile; skills: Skill[] }) {
+  const notify = useToast();
+  const update = useUpdateProfile();
+  const form = useForm<ProfileFormInput, unknown, ProfileFormOutput>({
+    resolver: zodResolver(profileSchema),
+    values: profileToForm(profile),
+  });
+  const { register, control, formState } = form;
+  const { errors, isDirty } = formState;
+
+  const onSubmit = form.handleSubmit(async (values) => {
+    try {
+      await update.mutateAsync(formToUpdate(values));
+      notify("Профиль сохранён");
+    } catch (err) {
+      const message = applyServerErrors(err, form.setError, FIELDS);
+      if (message) notify(message, "error");
+    }
+  });
+
+  return (
+    <form onSubmit={onSubmit} noValidate className="flex flex-col gap-6 pb-24">
+      <Section title="Основное" text="По этим данным вы попадаете в категории, которые видят работодатели.">
+        <Field label="Имя и фамилия" error={errors.full_name?.message} hint="Видно только после принятого оффера">
+          <Input autoComplete="name" {...register("full_name")} />
+        </Field>
+        <Field label="Должность" error={errors.title?.message}>
+          <Input placeholder="Backend-разработчик" {...register("title")} />
+        </Field>
+        <Field label="Грейд" error={errors.grade?.message}>
+          <Select placeholder="Не выбран" options={options(labels.grade)} {...register("grade")} />
+        </Field>
+        <Field label="Формат работы" error={errors.work_format?.message}>
+          <Select placeholder="Не выбран" options={options(labels.workFormat)} {...register("work_format")} />
+        </Field>
+        <Field label="Город" error={errors.city?.message}>
+          <Input autoComplete="address-level2" {...register("city")} />
+        </Field>
+      </Section>
+
+      <Section title="Ожидания по зарплате" text="Рубли в месяц до вычета налогов. Компании предлагают оффер с вилкой.">
+        <Field label="От" error={errors.salary_min?.message}>
+          <Input type="number" inputMode="numeric" min={0} step={5000} className="tabular" {...register("salary_min")} />
+        </Field>
+        <Field label="До" error={errors.salary_max?.message}>
+          <Input type="number" inputMode="numeric" min={0} step={5000} className="tabular" {...register("salary_max")} />
+        </Field>
+      </Section>
+
+      <Card>
+        <CardTitle>Навыки</CardTitle>
+        <p className="mt-1 text-sm text-muted">Из общего справочника — так работодатели находят вас по стеку.</p>
+        <div className="mt-5">
+          <Controller
+            control={control}
+            name="skills"
+            render={({ field }) => <SkillPicker skills={skills} value={field.value} onChange={field.onChange} max={50} />}
+          />
+          {errors.skills && <p className="mt-2 text-xs text-danger">{errors.skills.message}</p>}
+        </div>
+      </Card>
+
+      <Section title="О себе">
+        <Field label="Опыт и проекты" error={errors.about?.message} className="sm:col-span-2">
+          <Textarea rows={5} placeholder="Чем занимались, какие задачи решали, чем гордитесь" {...register("about")} />
+        </Field>
+      </Section>
+
+      <Section title="Контакты" text="Работодатель получит их только после того, как вы примете его оффер.">
+        <Field label="Telegram" error={errors.telegram?.message}>
+          <Input placeholder="@username" {...register("telegram")} />
+        </Field>
+        <Field label="Телефон" error={errors.phone?.message}>
+          <Input type="tel" autoComplete="tel" {...register("phone")} />
+        </Field>
+        <Field label="Email для связи" error={errors.contact_email?.message}>
+          <Input type="email" {...register("contact_email")} />
+        </Field>
+      </Section>
+
+      <Card>
+        <Switch
+          label="Скрыть профиль от работодателей"
+          description="Вы пропадёте из каталога, новые офферы приходить не будут"
+          {...register("is_hidden")}
+        />
+      </Card>
+
+      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-bg/90 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl items-center justify-end gap-3 px-4 py-3 sm:px-6">
+          <span className="text-sm text-muted" aria-live="polite">
+            {isDirty ? "Есть несохранённые изменения" : "Все изменения сохранены"}
+          </span>
+          <Button type="submit" loading={update.isPending} disabled={!isDirty}>
+            <Save className="size-4" aria-hidden />
+            Сохранить
+          </Button>
+        </div>
+      </div>
+    </form>
+  );
+}
