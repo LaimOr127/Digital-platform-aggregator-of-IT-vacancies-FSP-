@@ -8,8 +8,11 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.router import api_router
 from app.core.config import Settings, get_settings
+from app.core.crypto import FieldCipher
 from app.core.errors import register_error_handlers
 from app.core.logging import setup_logging
+from app.core.ratelimit import RateLimiter, build_limits
+from app.core.security import TokenService
 from app.db.session import get_database
 
 
@@ -22,7 +25,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         yield
         await get_database().dispose()
 
-    is_prod = settings.app_env == "prod"
     app = FastAPI(
         title=settings.app_name,
         version="0.1.0",
@@ -31,7 +33,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         docs_url=None,
         redoc_url=None,
         openapi_url="/api/openapi.json",
-        debug=not is_prod,
+        debug=False,  # иначе Starlette отдаёт клиенту traceback вместо единого формата ошибки
     )
     if settings.cors_origins:
         app.add_middleware(
@@ -41,6 +43,17 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
             allow_headers=["Authorization", "Content-Type", "Idempotency-Key", "X-CSRF-Token"],
         )
+    app.state.settings = settings
+    app.state.tokens = TokenService(settings)
+    app.state.cipher = FieldCipher(settings.secret("field_encryption_key"))
+    app.state.rate_limiter = RateLimiter()
+    app.state.rate_limits = build_limits(
+        {
+            "auth": settings.auth_rate_limit,
+            "login_email": settings.login_email_rate_limit,
+            "refresh": settings.refresh_rate_limit,
+        }
+    )
     register_error_handlers(app)
     app.include_router(api_router)
     return app

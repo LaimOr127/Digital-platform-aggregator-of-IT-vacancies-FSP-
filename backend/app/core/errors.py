@@ -3,6 +3,7 @@
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from sqlalchemy.exc import IntegrityError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.core.logging import get_logger
@@ -29,6 +30,18 @@ class ForbiddenError(AppError):
     status_code, code = 403, "forbidden"
 
 
+class UnauthorizedError(AppError):
+    status_code, code = 401, "unauthorized"
+
+
+class ConflictError(AppError):
+    status_code, code = 409, "conflict"
+
+
+class RateLimitedError(AppError):
+    status_code, code = 429, "rate_limited"
+
+
 class ServiceUnavailableError(AppError):
     status_code, code = 503, "service_unavailable"
 
@@ -53,6 +66,12 @@ def register_error_handlers(app: FastAPI) -> None:
     async def _validation(_: Request, exc: RequestValidationError) -> JSONResponse:
         details = [{"loc": e["loc"], "msg": e["msg"]} for e in exc.errors()]
         return JSONResponse(_body("validation_error", "Некорректные данные", details), 422)
+
+    @app.exception_handler(IntegrityError)
+    async def _integrity(_: Request, exc: IntegrityError) -> JSONResponse:
+        # страховка: нарушение ограничения БД — конфликт данных, а не 500; детали SQL не отдаём
+        log.warning("integrity error: %s", type(exc.orig).__name__)
+        return JSONResponse(_body("conflict", "Конфликт данных"), status_code=409)
 
     @app.exception_handler(Exception)
     async def _unhandled(_: Request, exc: Exception) -> JSONResponse:
