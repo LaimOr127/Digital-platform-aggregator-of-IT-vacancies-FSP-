@@ -5,13 +5,13 @@
 #   make dev               всё локально (http://localhost:8088, порт: HTTP_PORT в .env)
 #   make prod              всё на сервере
 SHELL := /bin/sh
-ALL   := db api worker fsp-mock web proxy
+ALL   := db migrate api worker fsp-mock web proxy
 S     ?= $(ALL)
 MODE  ?= dev
 COMPOSE_FILES = -f deploy/compose.base.yml $(foreach s,$(ALL),-f deploy/compose.$(s).yml) -f deploy/compose.$(MODE).yml
 DC = docker compose --env-file .env $(COMPOSE_FILES)
 
-.PHONY: env up down stop logs logs-dump ps build dev prod test test-backend test-frontend smoke check-db verify config secrets-check clean
+.PHONY: env up down stop logs logs-dump ps build dev prod test test-backend test-frontend smoke check-db verify config secrets-check clean migrate create-admin
 
 env:            ## создать .env со случайными секретами
 	@./scripts/gen-env.sh
@@ -48,8 +48,8 @@ prod:
 
 test: test-backend test-frontend
 
-test-backend:   ## линт + тесты в изолированном контейнере (ничего не ставится на ПК)
-	docker build -q --target test -t itmatch/api:test backend && docker run --rm itmatch/api:test
+test-backend:   ## линт + тесты в контейнерах: SQLite и одноразовый PostgreSQL с RLS
+	./scripts/test-backend.sh
 
 test-frontend:  ## сборка фронта в контейнере (node_modules на ПК не появляются)
 	docker build -q --target build -t itmatch/web:build frontend
@@ -63,6 +63,13 @@ check-db:       ## проверка прав роли приложения в р
 	@DC="$(DC)" ./scripts/check-db.sh
 
 verify: smoke check-db  ## всё сразу после make dev
+
+migrate:        ## применить миграции вручную (обычно выполняются сами при make dev/prod)
+	$(DC) run --rm migrate
+
+create-admin:   ## создать суперадмина: make create-admin EMAIL=admin@example.org (пароль спросит)
+	@test -n "$(EMAIL)" || { echo "укажите EMAIL=..."; exit 1; }
+	$(DC) exec api python -m app.cli create-admin --email "$(EMAIL)" --superadmin
 
 secrets-check:  ## поиск утёкших секретов в файлах и истории git
 	docker run --rm -v "$$PWD:/repo" zricethezav/gitleaks:latest git /repo --no-banner

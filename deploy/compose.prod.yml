@@ -1,6 +1,9 @@
 # Сервер: автоперезапуск, лимиты ресурсов, 80/443 наружу, egress для реального API ФСП.
+# APP_ENV=prod задаётся здесь явно: prod-режим не зависит от значения в .env
 x-limits: &limits
   restart: unless-stopped
+x-prod-env: &prod-env
+  APP_ENV: prod
 
 services:
   proxy:
@@ -10,12 +13,16 @@ services:
   web:
     <<: *limits
     deploy: { resources: { limits: { cpus: "0.25", memory: 64M } } }
+  migrate:
+    environment: *prod-env
   api:
     <<: *limits
+    environment: *prod-env
     networks: [edge, internal, egress]
     deploy: { resources: { limits: { cpus: "1.0", memory: 384M } } }
   worker:
     <<: *limits
+    environment: *prod-env
     networks: [internal, egress]
     deploy: { resources: { limits: { cpus: "0.5", memory: 256M } } }
   db:

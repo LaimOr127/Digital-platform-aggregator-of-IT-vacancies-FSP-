@@ -22,6 +22,21 @@ check "Главная страница"                     200 "$(code "$BASE/"
 check "SPA-маршрут портала (/company/x)"     200 "$(code "$BASE/company/x")"
 check "Страница содержит приложение"         1   "$(curl -s "$BASE/" | grep -c 'id="root"')"
 
+# Сквозной сценарий через Caddy -> api -> PostgreSQL (миграции, RLS, шифрование)
+EMAIL="smoke-$(date +%s)-$$@example.org"
+PW="Smoke-pass-$(openssl rand -hex 4)"
+J='Content-Type: application/json'
+# JSON собираем через printf: фигурные скобки внутри $(...) оболочка может раскрыть
+body() { printf '{"email":"%s","password":"%s"%s}' "$EMAIL" "$1" "${2:-}"; }
+REG="$(curl -s -H "$J" -d "$(body "$PW" ',"full_name":"Смоук Тест"')" "$BASE/api/v1/auth/register/candidate")"
+TOKEN="$(printf '%s' "$REG" | sed -n 's/.*"access_token":"\([^"]*\)".*/\1/p')"
+check "Регистрация кандидата выдаёт токен"    1   "$([ -n "$TOKEN" ] && echo 1 || echo 0)"
+check "Профиль кандидата (RLS + расшифровка)" 1   "$(curl -s -H "Authorization: Bearer $TOKEN" "$BASE/api/v1/candidate/profile" | grep -c 'Смоук Тест')"
+check "Вход с верным паролем"                 200 "$(code -H "$J" -d "$(body "$PW")" "$BASE/api/v1/auth/login")"
+check "Вход с неверным паролем"               401 "$(code -H "$J" -d "$(body Wrong-pass-42)" "$BASE/api/v1/auth/login")"
+check "Кабинет работодателя закрыт кандидату" 403 "$(code -H "Authorization: Bearer $TOKEN" "$BASE/api/v1/employer/vacancies")"
+check "Без токена — 401"                      401 "$(code "$BASE/api/v1/candidate/profile")"
+
 H="$(curl -sI "$BASE/")"
 for h in Content-Security-Policy Strict-Transport-Security X-Content-Type-Options X-Frame-Options Referrer-Policy Permissions-Policy; do
   check "Заголовок $h" 1 "$(printf '%s' "$H" | grep -ic "^$h:")"

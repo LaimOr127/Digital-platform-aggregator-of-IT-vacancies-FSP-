@@ -3,5 +3,7 @@ services:
   proxy:
     ports: ["127.0.0.1:${HTTP_PORT:-8088}:80"]   # порт меняется в .env (HTTP_PORT)
   api:
-    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    # --proxy-headers: реальный IP клиента за Caddy (иначе у всех один лимит запросов)
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload",
+              "--proxy-headers", "--forwarded-allow-ips", "*"]
     volumes: ["../backend/app:/app/app:ro"]
