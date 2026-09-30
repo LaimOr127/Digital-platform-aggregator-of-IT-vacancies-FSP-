@@ -11,12 +11,12 @@ MODE  ?= dev
 COMPOSE_FILES = -f deploy/compose.base.yml $(foreach s,$(ALL),-f deploy/compose.$(s).yml) -f deploy/compose.$(MODE).yml
 DC = docker compose --env-file .env $(COMPOSE_FILES)
 
-.PHONY: env up down stop logs logs-dump ps build dev prod test test-backend test-frontend smoke check-db verify config secrets-check clean migrate create-admin
+.PHONY: env up down stop logs logs-dump ps build dev prod test test-backend test-frontend smoke check-db verify config secrets-check clean migrate create-admin check-dupes
 
 env:            ## создать .env со случайными секретами
 	@./scripts/gen-env.sh
 
-up: env         ## поднять сервисы S
+up: env check-dupes  ## поднять сервисы S
 	$(DC) up -d --build $(S)
 
 down:           ## остановить и удалить сервисы S (тома сохраняются)
@@ -70,6 +70,9 @@ migrate:        ## применить миграции вручную (обыч�
 create-admin:   ## создать суперадмина: make create-admin EMAIL=admin@example.org (пароль спросит)
 	@test -n "$(EMAIL)" || { echo "укажите EMAIL=..."; exit 1; }
 	$(DC) exec api python -m app.cli create-admin --email "$(EMAIL)" --superadmin
+
+check-dupes:    ## копии файлов от iCloud/Finder ("file 2.py") ломают сборку — проверяем заранее
+	@./scripts/check-dupes.sh
 
 secrets-check:  ## поиск утёкших секретов в файлах и истории git
 	docker run --rm -v "$$PWD:/repo" zricethezav/gitleaks:latest git /repo --no-banner
