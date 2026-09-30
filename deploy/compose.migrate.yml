@@ -1,0 +1,22 @@
+services:
+  # One-shot под владельцем схемы: миграции + идемпотентная настройка роли приложения
+  # (создать/синхронизировать пароль, выдать только DML). api и worker ждут успешного завершения.
+  migrate:
+    image: itmatch/api:local      # тот же образ, что api: собирается один раз
+    build: { context: ../backend, target: runtime }
+    extends: { file: common.yml, service: hardened }
+    user: "10001:10001"
+    command: ["sh", "-c", "alembic upgrade head && python -m app.db.provision"]
+    environment:
+      APP_ENV: ${APP_ENV:-dev}
+      DB_HOST: db
+      DB_NAME: ${DB_NAME:?}
+      DB_OWNER_USER: ${DB_OWNER_USER:?}
+      DB_OWNER_PASSWORD: ${DB_OWNER_PASSWORD:?}
+      APP_DB_USER: ${APP_DB_USER:?}
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:?}
+    healthcheck: { disable: true }
+    restart: "no"
+    networks: [internal]
+    depends_on:
+      db: { condition: service_healthy }

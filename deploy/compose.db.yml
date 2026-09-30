@@ -6,14 +6,12 @@ services:
     cap_add: [CHOWN, DAC_OVERRIDE, FOWNER, SETGID, SETUID]  # нужно entrypoint для смены пользователя
     environment:
       POSTGRES_DB: ${DB_NAME:?}
-      POSTGRES_USER: ${DB_OWNER_USER:?}          # владелец схемы, только для миграций
+      POSTGRES_USER: ${DB_OWNER_USER:?}          # владелец схемы, только для migrate
       POSTGRES_PASSWORD: ${DB_OWNER_PASSWORD:?}
-      APP_DB_USER: ${APP_DB_USER:?}              # роль приложения: только DML, без DDL
-      APP_DB_PASSWORD: ${APP_DB_PASSWORD:?}
+      # роль приложения (только DML) создаёт migrate: app/db/provision.py
       POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
     volumes:
       - pgdata:/var/lib/postgresql/data
-      - ./db/init:/docker-entrypoint-initdb.d:ro
     networks: [internal]          # портов наружу нет
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]

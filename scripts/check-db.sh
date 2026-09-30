@@ -15,4 +15,12 @@ out="$(q postgres "SELECT 1")"
 echo "$out" | grep -q "permission denied" && echo "  OK   нет доступа к служебной БД postgres" || { echo "  FAIL доступ к postgres: $out"; fail=1; }
 out="$($DC exec -T -e PGPASSWORD=wrong db psql -h 127.0.0.1 -U "$U" -d "$DB" -tAc "SELECT 1" 2>&1)"
 echo "$out" | grep -q "password authentication failed" && echo "  OK   неверный пароль отклоняется" || { echo "  FAIL неверный пароль: $out"; fail=1; }
+out="$(q "$DB" "SELECT count(*) FROM alembic_version")"
+[ "$out" = "1" ] && echo "  OK   миграции применены" || { echo "  FAIL миграции: $out"; fail=1; }
+out="$(q "$DB" "SELECT count(*) FROM pg_class WHERE relrowsecurity AND relname IN ('candidate_profiles','profile_skills','vacancies','vacancy_skills')")"
+[ "$out" = "4" ] && echo "  OK   RLS включён на таблицах профилей и вакансий" || { echo "  FAIL RLS: $out"; fail=1; }
+out="$(q "$DB" "SELECT count(*) FROM candidate_profiles")"
+[ "$out" = "0" ] && echo "  OK   без контекста пользователя профили не видны (RLS)" || { echo "  FAIL RLS пропускает: $out"; fail=1; }
+out="$(q "$DB" "DELETE FROM audit_log")"
+echo "$out" | grep -q "permission denied" && echo "  OK   аудит нельзя удалить" || { echo "  FAIL аудит изменяем: $out"; fail=1; }
 exit $fail
