@@ -1,8 +1,9 @@
-"""Корневой роутер v1. Порталы (candidate/employer/admin) подключаются здесь в следующих фазах."""
+"""Корневой роутер v1: подключает порталы кандидата, работодателя и админа."""
 
 from fastapi import APIRouter
 
-from app.api.v1 import health
+from app.api.v1 import admin, auth, candidate, employer, health, public
 
 api_router = APIRouter(prefix="/api/v1")
-api_router.include_router(health.router)
+for module in (health, auth, candidate, employer, admin, public):
+    api_router.include_router(module.router)

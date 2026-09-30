@@ -12,8 +12,17 @@ select = ["E", "F", "I", "B", "UP", "S", "SIM", "RUF"]
 ignore = ["RUF001", "RUF002", "RUF003"]  # кириллица в строках/комментариях
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["S101"]
+"tests/*" = ["S101", "S105", "S106", "S603"]  # тестовые пароли и фиксированные команды
+"migrations/*" = ["S608", "E501"]  # статический SQL политик RLS, без пользовательского ввода
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+
+[tool.coverage.run]
+source = ["app"]
+concurrency = ["greenlet", "thread"]  # SQLAlchemy async исполняет код в greenlet
+
+[tool.coverage.report]
+fail_under = 80
+skip_empty = true
