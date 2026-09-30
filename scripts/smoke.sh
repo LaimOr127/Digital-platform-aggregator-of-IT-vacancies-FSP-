@@ -2,7 +2,7 @@
 # Смоук-тест работающего стека: ./scripts/smoke.sh [BASE_URL]
 # Проверяет API, связь с БД, SPA, заголовки безопасности. Код выхода != 0 при любой ошибке.
 set -u
-BASE="${1:-http://localhost:8080}"
+BASE="${1:-http://localhost:8088}"
 fail=0
 check() { # имя, ожидаемое, фактическое
   if [ "$2" = "$3" ]; then echo "  OK   $1"; else echo "  FAIL $1 (ожидалось: $2, получено: $3)"; fail=1; fi

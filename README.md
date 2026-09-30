@@ -11,13 +11,17 @@
 Нужны только Docker (Docker Desktop / colima) и `make`. Python и Node на ПК ставить не нужно.
 
 ```bash
-make env     # создаёт .env со случайными секретами (права 600, в git не попадает)
-make dev     # собирает и поднимает всё: http://localhost:8080
-make verify  # смоук-тест (API, БД, страницы, заголовки) + проверка прав роли БД
-make test    # линт и тесты бэка, сборка фронта — в контейнерах
+make env
+make dev
+make verify
+make test
 ```
 
-Открыть в браузере: http://localhost:8080 (приложение), http://localhost:8080/api-docs/ (документация API).
+`make env` создаёт .env со случайными секретами, `make dev` собирает и поднимает всё,
+`make verify` — смоук-тест и проверка прав БД, `make test` — линт и тесты в контейнерах.
+Если порт 8088 занят, поменяйте `HTTP_PORT` в `.env`.
+
+Открыть в браузере: http://localhost:8088 (приложение), http://localhost:8088/api-docs/ (документация API).
 Остановить: `make down`; удалить вместе с данными БД: `make clean`.
 
 ## Управление сервисами по отдельности

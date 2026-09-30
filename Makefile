@@ -2,7 +2,7 @@
 #   make up S="db api"     поднять только выбранные (зависимости compose подтянет сам)
 #   make down S=web        остановить сервис
 #   make logs S=api        логи
-#   make dev               всё локально (http://localhost:8080)
+#   make dev               всё локально (http://localhost:8088, порт: HTTP_PORT в .env)
 #   make prod              всё на сервере
 SHELL := /bin/sh
 ALL   := db api worker fsp-mock web proxy
@@ -54,8 +54,10 @@ test-backend:   ## линт + тесты в изолированном конт�
 test-frontend:  ## сборка фронта в контейнере (node_modules на ПК не появляются)
 	docker build -q --target build -t itmatch/web:build frontend
 
+HTTP_PORT ?= $(or $(shell grep -s '^HTTP_PORT=' .env | cut -d= -f2),8088)
+
 smoke:          ## смоук-тест работающего стека
-	./scripts/smoke.sh http://localhost:8080
+	./scripts/smoke.sh http://localhost:$(HTTP_PORT)
 
 check-db:       ## проверка прав роли приложения в работающей БД
 	@DC="$(DC)" ./scripts/check-db.sh
