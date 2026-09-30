@@ -51,7 +51,7 @@ test: test-backend test-frontend
 test-backend:   ## линт + тесты в контейнерах: SQLite и одноразовый PostgreSQL с RLS
 	./scripts/test-backend.sh
 
-test-frontend:  ## сборка фронта в контейнере (node_modules на ПК не появляются)
+test-frontend:  ## тесты и сборка фронта в контейнере (node_modules на ПК не появляются)
 	docker build -q --target build -t itmatch/web:build frontend
 
 HTTP_PORT ?= $(or $(shell grep -s '^HTTP_PORT=' .env | cut -d= -f2),8088)

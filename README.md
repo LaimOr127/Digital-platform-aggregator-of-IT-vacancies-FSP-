@@ -23,6 +23,10 @@ make test
 Если порт 8088 занят, поменяйте `HTTP_PORT` в `.env`.
 
 Открыть в браузере: http://localhost:8088 (приложение), http://localhost:8088/api-docs/ (документация API).
+
+Что можно попробовать: зарегистрироваться кандидатом и заполнить профиль (`/app`), зарегистрировать
+компанию и создать вакансию (`/company`). Модерация (`/admin`) — после `make create-admin EMAIL=...`:
+одобрите компанию, и работодатель сможет опубликовать вакансию.
 Остановить: `make down`; удалить вместе с данными БД: `make clean`.
 
 ## Управление сервисами по отдельности
@@ -58,6 +62,13 @@ make test
 Access-токен (15 мин) приходит в теле ответа, refresh — в httpOnly-cookie; `refresh`/`logout`
 требуют заголовок `X-CSRF-Token` со значением cookie `csrf_token`. Публикация вакансии доступна
 после одобрения компании модератором. Первый администратор: `make create-admin EMAIL=...`.
+
+## Фронтенд
+Vite + React + TypeScript, TanStack Query, React Router, Tailwind CSS 4, Motion, react-hook-form + zod.
+Три портала (`/app`, `/company`, `/admin`) грузятся лениво. Access-токен хранится только в памяти,
+сессия восстанавливается по refresh-cookie. Типы API генерируются из OpenAPI бэка:
+`npm run gen:api` (при запущенном стеке). Тесты: `npm test` (Vitest), покрытие — `npm run coverage`.
+Цвета заданы токенами в `frontend/src/styles.css` — брендбук ФСП подменяется в одном месте.
 
 ## Структура
 ```
