@@ -1,0 +1,14 @@
+# Установка один раз: pip install pre-commit && pre-commit install
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.28.0
+    hooks:
+      - id: gitleaks
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.9
+    hooks:
+      - id: ruff
+        args: [--fix]
+        files: ^(backend|fsp-mock)/
+      - id: ruff-format
+        files: ^(backend|fsp-mock)/

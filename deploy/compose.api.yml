@@ -1,0 +1,8 @@
+services:
+  api:
+    build: { context: ../backend, target: runtime }
+    image: itmatch/api:local
+    extends: { file: common.yml, service: python-app }
+    networks: [edge, internal]
+    depends_on:
+      db: { condition: service_healthy }

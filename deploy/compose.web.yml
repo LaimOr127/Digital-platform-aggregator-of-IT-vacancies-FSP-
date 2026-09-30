@@ -1,0 +1,10 @@
+services:
+  web:
+    build: { context: ../frontend, target: runtime }
+    image: itmatch/web:local
+    extends: { file: common.yml, service: hardened }
+    user: "10001:10001"
+    tmpfs:
+      - /data:uid=10001,gid=10001,size=8m
+      - /config:uid=10001,gid=10001,size=8m
+    networks: [edge]

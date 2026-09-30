@@ -1,0 +1,7 @@
+services:
+  fsp-mock:
+    build: { context: ../fsp-mock }
+    image: itmatch/fsp-mock:local
+    extends: { file: common.yml, service: hardened }
+    user: "10001:10001"
+    networks: [internal]

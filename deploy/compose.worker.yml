@@ -1,0 +1,10 @@
+services:
+  worker:
+    image: itmatch/api:local      # тот же образ, что api: собирается один раз
+    build: { context: ../backend, target: runtime }
+    extends: { file: common.yml, service: python-app }
+    command: ["python", "-m", "app.worker"]
+    healthcheck: { disable: true }
+    networks: [internal]
+    depends_on:
+      db: { condition: service_healthy }

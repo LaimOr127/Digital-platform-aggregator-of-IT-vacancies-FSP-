@@ -1,0 +1,26 @@
+# Сервер: автоперезапуск, лимиты ресурсов, 80/443 наружу, egress для реального API ФСП.
+x-limits: &limits
+  restart: unless-stopped
+
+services:
+  proxy:
+    <<: *limits
+    ports: ["80:80", "443:443"]
+    deploy: { resources: { limits: { cpus: "0.25", memory: 64M } } }
+  web:
+    <<: *limits
+    deploy: { resources: { limits: { cpus: "0.25", memory: 64M } } }
+  api:
+    <<: *limits
+    networks: [edge, internal, egress]
+    deploy: { resources: { limits: { cpus: "1.0", memory: 384M } } }
+  worker:
+    <<: *limits
+    networks: [internal, egress]
+    deploy: { resources: { limits: { cpus: "0.5", memory: 256M } } }
+  db:
+    <<: *limits
+    deploy: { resources: { limits: { cpus: "1.0", memory: 512M } } }
+  fsp-mock:
+    <<: *limits
+    deploy: { resources: { limits: { cpus: "0.25", memory: 96M } } }
