@@ -11,15 +11,19 @@ import secrets
 os.environ.setdefault("APP_ENV", "test")
 os.environ.setdefault("JWT_SECRET", secrets.token_hex(32))
 os.environ.setdefault("FIELD_ENCRYPTION_KEY", secrets.token_hex(32))
+os.environ.setdefault("PASSPORT_SIGNING_KEY", secrets.token_hex(32))
+os.environ.setdefault("FSP_API_KEY", secrets.token_hex(16))
 
 import pytest
 from fastapi.testclient import TestClient
 from httpx import ASGITransport, AsyncClient
 
+from app.api.deps import get_fsp_client
 from app.core.config import Settings, get_settings
 from app.db.session import Database, get_database
 from app.main import create_app
 from tests import dbsetup
+from tests.fake_fsp import FakeFspClient
 
 POSTGRES_URL = os.environ.get("TEST_POSTGRES_URL", "")
 
@@ -68,9 +72,15 @@ async def db(pg_app_url: str | None):
 
 
 @pytest.fixture
-def app(db: Database, settings: Settings):
+def fsp() -> FakeFspClient:
+    return FakeFspClient()
+
+
+@pytest.fixture
+def app(db: Database, settings: Settings, fsp: FakeFspClient):
     application = create_app(settings)
     application.dependency_overrides[get_database] = lambda: db
+    application.dependency_overrides[get_fsp_client] = lambda: fsp
     return application
 
 

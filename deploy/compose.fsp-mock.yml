@@ -4,4 +4,7 @@ services:
     image: itmatch/fsp-mock:local
     extends: { file: common.yml, service: hardened }
     user: "10001:10001"
+    environment:
+      FSP_API_KEY: ${FSP_API_KEY:?}
+      FSP_MOCK_EXPOSE_CODES: ${FSP_DEMO_CODES:-false}
     networks: [internal]

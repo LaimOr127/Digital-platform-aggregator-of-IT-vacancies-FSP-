@@ -20,6 +20,7 @@ from app.core.security import (
     new_refresh_token,
     verify_password,
 )
+from app.core.timeutil import as_aware
 from app.db.session import set_rls_context
 from app.models import CandidateProfile, CompanyMember, EmployerCompany, RefreshToken, User
 from app.models.enums import MemberRole, UserRole
@@ -35,11 +36,6 @@ class TokenPair:
     access_token: str
     refresh_token: str
     expires_in: int
-
-
-def _as_aware(value: datetime) -> datetime:
-    """SQLite возвращает naive datetime; PostgreSQL — aware. Приводим к UTC."""
-    return value if value.tzinfo else value.replace(tzinfo=UTC)
 
 
 class AuthService:
@@ -91,7 +87,7 @@ class AuthService:
         if stored is None:
             raise UnauthorizedError("invalid refresh token")
         user = await self.users.get(stored.user_id)
-        if _as_aware(stored.expires_at) <= datetime.now(UTC) or user is None or not user.is_active:
+        if as_aware(stored.expires_at) <= datetime.now(UTC) or user is None or not user.is_active:
             raise UnauthorizedError("invalid refresh token")
         # Атомарно «погасить» токен: из двух одновременных запросов с одним токеном
         # выиграет один, второй считается повторным использованием и отзывает всю цепочку

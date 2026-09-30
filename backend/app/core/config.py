@@ -38,9 +38,17 @@ class Settings(BaseSettings):
 
     cors_origins: list[str] = Field(default_factory=list)
     fsp_base_url: str = "http://fsp-mock:8001"
+    fsp_api_key: SecretStr = SecretStr("")
+    fsp_timeout_seconds: float = 5.0
+    # только для демо с моком: код подтверждения ФСП возвращается в ответе API
+    fsp_demo_codes: bool = False
+    fsp_sync_interval_minutes: int = 360
+    # 32 байта в hex: seed ключа Ed25519 для подписи паспортов навыков
+    passport_signing_key: SecretStr = SecretStr("")
     auth_rate_limit: str = "10/minute"  # вход/регистрация с одного IP
     login_email_rate_limit: str = "5/minute"  # попытки входа в один аккаунт с любых IP
     refresh_rate_limit: str = "60/minute"
+    fsp_rate_limit: str = "10/minute"  # запросы кода подтверждения ФСП
 
     @property
     def is_prod(self) -> bool:
