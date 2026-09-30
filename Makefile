@@ -11,7 +11,7 @@ MODE  ?= dev
 COMPOSE_FILES = -f deploy/compose.base.yml $(foreach s,$(ALL),-f deploy/compose.$(s).yml) -f deploy/compose.$(MODE).yml
 DC = docker compose --env-file .env $(COMPOSE_FILES)
 
-.PHONY: env up down stop logs ps build dev prod test test-backend test-frontend config secrets-check clean
+.PHONY: env up down stop logs logs-dump ps build dev prod test test-backend test-frontend smoke check-db verify config secrets-check clean
 
 env:            ## создать .env со случайными секретами
 	@./scripts/gen-env.sh
@@ -27,6 +27,9 @@ stop:
 
 logs:
 	$(DC) logs -f --tail=100 $(S)
+
+logs-dump:      ## логи всех сервисов без -f (для CI)
+	$(DC) logs --no-color --tail=200
 
 ps:
 	$(DC) ps
@@ -48,8 +51,16 @@ test: test-backend test-frontend
 test-backend:   ## линт + тесты в изолированном контейнере (ничего не ставится на ПК)
 	docker build -q --target test -t itmatch/api:test backend && docker run --rm itmatch/api:test
 
-test-frontend:
-	docker run --rm -v "$$PWD/frontend:/app" -w /app node:22-alpine sh -c "npm ci --no-audit --no-fund && npm run build"
+test-frontend:  ## сборка фронта в контейнере (node_modules на ПК не появляются)
+	docker build -q --target build -t itmatch/web:build frontend
+
+smoke:          ## смоук-тест работающего стека
+	./scripts/smoke.sh http://localhost:8080
+
+check-db:       ## проверка прав роли приложения в работающей БД
+	@DC="$(DC)" ./scripts/check-db.sh
+
+verify: smoke check-db  ## всё сразу после make dev
 
 secrets-check:  ## поиск утёкших секретов в файлах и истории git
 	docker run --rm -v "$$PWD:/repo" zricethezav/gitleaks:latest git /repo --no-banner

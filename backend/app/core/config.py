@@ -10,7 +10,9 @@ _WEAK_MARKERS = ("change", "example", "secret", "password", "12345")
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=None, extra="ignore", case_sensitive=False)
+    model_config = SettingsConfigDict(
+        env_file=None, extra="ignore", case_sensitive=False, hide_input_in_errors=True
+    )
 
     app_env: Literal["dev", "test", "prod"] = "dev"
     app_name: str = "IT Match FSP"

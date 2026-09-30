@@ -27,8 +27,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         title=settings.app_name,
         version="0.1.0",
         lifespan=lifespan,
-        # В prod документацию API отдаём только по /api/docs (закроем для админов позже)
-        docs_url="/api/docs",
+        # Swagger UI отдаёт web по /api-docs/ (без CDN и inline-скриптов, совместим с CSP)
+        docs_url=None,
         redoc_url=None,
         openapi_url="/api/openapi.json",
         debug=not is_prod,

@@ -1,4 +1,3 @@
-# syntax=docker/dockerfile:1.7
 # ---- build: node нужен только здесь, в итоговый образ не попадает ----
 FROM node:22-alpine AS build
 WORKDIR /app

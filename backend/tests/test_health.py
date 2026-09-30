@@ -52,3 +52,23 @@ def test_log_redaction():
     rec = logging.LogRecord("t", 20, "", 0, "password=hunter2 token: abc", None, None)
     RedactingFilter().filter(rec)
     assert "hunter2" not in rec.msg and "abc" not in rec.msg
+
+
+def test_log_redaction_keeps_non_string_args():
+    import logging
+
+    from app.core.logging import RedactingFilter
+
+    rec = logging.LogRecord("t", 20, "", 0, "starting %d job(s), %s", (3, "token=abc"), None)
+    RedactingFilter().filter(rec)
+    assert rec.getMessage() == "starting 3 job(s), token=***"
+
+
+def test_settings_errors_do_not_leak_secrets():
+    with pytest.raises(ValidationError) as exc:
+        Settings(
+            app_env="prod",
+            app_db_password=SecretStr("leak-me-pw"),
+            jwt_secret=SecretStr("leak-me-jwt"),
+        )
+    assert "leak-me" not in str(exc.value)
