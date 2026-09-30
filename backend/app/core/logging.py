@@ -8,11 +8,16 @@ _SENSITIVE = re.compile(
 )
 
 
+def _redact(text: str) -> str:
+    return _SENSITIVE.sub(r"\1\2***", text)
+
+
 class RedactingFilter(logging.Filter):
     def filter(self, record: logging.LogRecord) -> bool:
-        record.msg = _SENSITIVE.sub(r"\1\2***", str(record.msg))
-        if record.args:
-            record.args = tuple(_SENSITIVE.sub(r"\1\2***", str(a)) for a in record.args)
+        record.msg = _redact(str(record.msg))
+        if isinstance(record.args, tuple):
+            # маскируем только строки: числа и объекты должны сохранить тип для %d/%s
+            record.args = tuple(_redact(a) if isinstance(a, str) else a for a in record.args)
         return True
 
 

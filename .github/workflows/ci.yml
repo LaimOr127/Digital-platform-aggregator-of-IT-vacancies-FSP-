@@ -37,9 +37,18 @@ jobs:
       - run: npm run build
       - run: npm audit --omit=dev --audit-level=high
 
-  compose:
+  e2e:
+    name: e2e (docker compose)
     runs-on: ubuntu-latest
+    needs: [backend, frontend]
     steps:
       - uses: actions/checkout@v4
-      - run: cp .env.example .env && sed -i 's/PASSWORD=$/PASSWORD=ci/; s/SECRET=$/SECRET=ci/; s/KEY=$/KEY=ci/' .env
+      - run: make env
       - run: make config MODE=dev && make config MODE=prod
+      - run: make dev
+      - run: make verify
+      - run: make test-backend
+      - if: failure()
+        run: make ps; make logs-dump
+      - if: always()
+        run: make clean
