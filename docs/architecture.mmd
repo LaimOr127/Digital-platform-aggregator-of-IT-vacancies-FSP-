@@ -1,0 +1,31 @@
+flowchart TB
+  user["Пользователь<br/>кандидат · работодатель · админ"]
+  fspReal["API ФСП<br/>(прод)"]
+
+  subgraph edge["Сеть edge"]
+    caddy["Caddy HTTPS<br/>TLS · заголовки · rate limit"]
+    web["web<br/>статика React<br/>/app · /company · /admin"]
+  end
+
+  subgraph backend["Сеть internal (без выхода наружу)"]
+    api["api · FastAPI<br/>роутеры + валидация"]
+    svc["services<br/>сценарии + AccessPolicy"]
+    repo["repositories<br/>фильтр owner / tenant"]
+    worker["worker<br/>синк ФСП · категории · резюме"]
+    mock["fsp-mock<br/>мок API ФСП"]
+    migrate["migrate<br/>one-shot"]
+    seed["seed<br/>one-shot"]
+    db[("PostgreSQL<br/>RLS · отдельные роли")]
+  end
+
+  user -->|HTTPS| caddy
+  caddy -->|"/"| web
+  caddy -->|"/api/*"| api
+  api --> svc
+  svc --> repo
+  repo --> db
+  worker --> svc
+  svc -->|FspClient: dev| mock
+  svc -.->|FspClient: прод| fspReal
+  migrate --> db
+  seed --> db

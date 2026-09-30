@@ -1,0 +1,12 @@
+# Базовый файл: сети и тома. Всегда подключается первым (Makefile делает это сам).
+name: itmatch
+
+networks:
+  edge: {}                       # proxy <-> web/api
+  internal: { internal: true }   # api/worker <-> db/fsp-mock, без выхода в интернет
+  egress: {}                     # только prod: api/worker -> реальный API ФСП
+
+volumes:
+  pgdata: {}
+  caddy_data: {}
+  caddy_config: {}

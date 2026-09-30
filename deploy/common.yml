@@ -1,0 +1,27 @@
+# Шаблоны сервисов. Не передаётся через -f: сервисы наследуют их через `extends`.
+# Общие настройки описаны ОДИН раз здесь.
+services:
+  hardened:
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    read_only: true
+    tmpfs: ["/tmp:size=64m"]
+    init: true
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+  python-app:
+    extends: { service: hardened }
+    user: "10001:10001"
+    # Явный список: сервис получает только свои секреты (пароль владельца БД сюда не попадает)
+    environment:
+      APP_ENV: ${APP_ENV:-dev}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      DB_HOST: db
+      DB_NAME: ${DB_NAME:?}
+      APP_DB_USER: ${APP_DB_USER:?}
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:?}
+      JWT_SECRET: ${JWT_SECRET:?}
+      FIELD_ENCRYPTION_KEY: ${FIELD_ENCRYPTION_KEY:?}
+      FSP_BASE_URL: ${FSP_BASE_URL:-http://fsp-mock:8001}
