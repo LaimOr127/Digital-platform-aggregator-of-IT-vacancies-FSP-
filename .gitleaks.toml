@@ -7,3 +7,7 @@ description = "Тестовые фикстуры: пароли тестовых 
 paths = [
   '''frontend/src/features/auth/schemas\.test\.ts''',
 ]
+# тестовый пароль-заглушка в test_outbox.py (заменён на сгенерированный в следующем коммите)
+commits = [
+  "8ac1051ea8b4581916cc3d8a4a06aa37dd8eef56",
+]
