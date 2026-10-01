@@ -1,10 +1,12 @@
-"""Точка входа worker: python -m app.worker. Запускает все задачи из JOBS по расписанию."""
+"""Точка входа worker: python -m app.worker. Запускает все задачи из build_jobs по расписанию."""
 
 import asyncio
 
 from app.core.config import get_settings
 from app.core.logging import get_logger, setup_logging
-from app.worker.jobs import JOBS, Job
+from app.db.session import get_database
+from app.integrations.fsp import HttpFspClient
+from app.worker.jobs import Job, build_jobs
 
 log = get_logger("worker")
 
@@ -19,9 +21,15 @@ async def _loop(job: Job) -> None:
 
 
 async def main() -> None:
-    setup_logging(get_settings().log_level)
-    log.info("starting %d job(s)", len(JOBS))
-    await asyncio.gather(*(_loop(j) for j in JOBS))
+    settings = get_settings()
+    setup_logging(settings.log_level)
+    client = HttpFspClient(settings)
+    jobs = build_jobs(settings, get_database(), client)
+    log.info("starting %d job(s)", len(jobs))
+    try:
+        await asyncio.gather(*(_loop(j) for j in jobs))
+    finally:
+        await client.aclose()
 
 
 if __name__ == "__main__":
