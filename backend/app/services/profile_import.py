@@ -17,7 +17,7 @@ from app.schemas.candidate import Contacts
 from app.schemas.common import SkillOut
 from app.schemas.profile_import import ProfileDraftOut
 from app.services.access import Action, Principal, policy
-from app.services.categorization import TIERS, describe, result_tier
+from app.services.categorization import TIERS, describe_anonymous, result_tier
 from app.services.fsp_sync import to_evidence
 from app.services.skill_matching import SkillDictionary
 
@@ -120,6 +120,7 @@ def _about(q: FspQuestionnaire, best: list[FspAchievement]) -> str | None:
     if q.organization:
         parts.append(f"Учёба/клуб: {q.organization}.")
     if best:
-        lines = "\n".join(f"• {describe(to_evidence(a))}" for a in best)
+        # «О себе» видно в анонимной карточке: без названий соревнований, как в каталоге
+        lines = "\n".join(f"• {describe_anonymous(to_evidence(a))}" for a in best)
         parts.append(f"Достижения ФСП:\n{lines}")
     return "\n\n".join(parts) or None

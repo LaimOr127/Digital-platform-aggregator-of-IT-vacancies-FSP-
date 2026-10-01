@@ -83,6 +83,7 @@ async def test_fsp_draft_after_confirmed_link(client: AsyncClient, db):
         "telegram": "@anna_dev",
     }
     assert "Достижения ФСП" in draft["about"] and "КФУ" in draft["about"]
+    assert "Соревнование" not in draft["about"]  # без названий: текст виден в анонимной карточке
     # черновик ничего не меняет в профиле сам
     profile = (await client.get("/api/v1/candidate/profile", headers=bearer(token))).json()
     assert profile["city"] is None
