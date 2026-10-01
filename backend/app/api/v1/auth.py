@@ -10,9 +10,20 @@ from fastapi import APIRouter, Cookie, Depends, Header, Request, Response, statu
 from app.api.deps import CipherDep, PrincipalDep, SessionDep, TokensDep
 from app.core.errors import ForbiddenError, UnauthorizedError
 from app.core.ratelimit import check_rate_limit
-from app.schemas.auth import CandidateRegisterIn, EmployerRegisterIn, LoginIn, MeOut, TokenOut
-from app.services.auth import AuthService, TokenPair
+from app.schemas.auth import (
+    CandidateRegisterIn,
+    EmployerRegisterIn,
+    LoginIn,
+    MeOut,
+    MfaChallengeOut,
+    MfaSetupOut,
+    MfaTokenIn,
+    MfaVerifyIn,
+    TokenOut,
+)
+from app.services.auth import AuthService, MfaChallenge, TokenPair
 from app.services.directory import current_user
+from app.services.mfa import MfaService
 
 REFRESH_COOKIE = "refresh_token"
 CSRF_COOKIE = "csrf_token"
@@ -42,7 +53,7 @@ AuthServiceDep = Annotated[AuthService, Depends(_service)]
 
 def _respond(request: Request, response: Response, pair: TokenPair) -> TokenOut:
     secure = request.app.state.settings.is_prod
-    max_age = int(request.app.state.tokens.refresh_ttl.total_seconds())
+    max_age = pair.refresh_max_age
     response.set_cookie(
         REFRESH_COOKIE,
         pair.refresh_token,
@@ -98,13 +109,46 @@ async def register_employer(
     return _respond(request, response, await service.register_employer(data))
 
 
-@router.post("/login", dependencies=[AuthLimited], summary="Вход")
+@router.post("/login", dependencies=[AuthLimited], summary="Вход (администратору — затем 2FA)")
 async def login(
     data: LoginIn, request: Request, response: Response, service: AuthServiceDep
-) -> TokenOut:
+) -> TokenOut | MfaChallengeOut:
     # второй лимит — по аккаунту: перебор пароля с пула IP упирается в него
     check_rate_limit(request, "login_email", key=data.email.lower())
-    return _respond(request, response, await service.login(data.email, data.password))
+    result = await service.login(data.email, data.password)
+    if isinstance(result, MfaChallenge):
+        return MfaChallengeOut(mfa_token=result.mfa_token, enrolled=result.enrolled)
+    return _respond(request, response, result)
+
+
+def _mfa(session: SessionDep, tokens: TokensDep, cipher: CipherDep) -> MfaService:
+    return MfaService(session, tokens, cipher)
+
+
+MfaServiceDep = Annotated[MfaService, Depends(_mfa)]
+
+
+def _mfa_limit(request: Request, mfa_token: str) -> None:
+    """Попытки кода 2FA ограничены на администратора (по токену шага), не только по IP."""
+    user_id = request.app.state.tokens.decode_mfa(mfa_token)
+    check_rate_limit(request, "mfa", key=str(user_id))
+
+
+@router.post(
+    "/2fa/setup", dependencies=[AuthLimited], summary="Настроить приложение-аутентификатор"
+)
+async def mfa_setup(data: MfaTokenIn, request: Request, service: MfaServiceDep) -> MfaSetupOut:
+    _mfa_limit(request, data.mfa_token)
+    secret, uri = await service.setup(data.mfa_token)
+    return MfaSetupOut(secret=secret, otpauth_uri=uri)
+
+
+@router.post("/2fa/verify", dependencies=[AuthLimited], summary="Подтвердить вход кодом 2FA")
+async def mfa_verify(
+    data: MfaVerifyIn, request: Request, response: Response, service: MfaServiceDep
+) -> TokenOut:
+    _mfa_limit(request, data.mfa_token)
+    return _respond(request, response, await service.verify(data.mfa_token, data.code))
 
 
 @router.post(

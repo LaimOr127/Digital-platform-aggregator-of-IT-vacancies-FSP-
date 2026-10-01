@@ -33,6 +33,7 @@ class Settings(BaseSettings):
     jwt_secret: SecretStr = SecretStr("")
     access_token_ttl_minutes: int = 15
     refresh_token_ttl_days: int = 14
+    admin_refresh_ttl_hours: int = 12
     # 32 байта в hex (64 символа): ключ AES-GCM для персональных данных
     field_encryption_key: SecretStr = SecretStr("")
 
@@ -54,6 +55,7 @@ class Settings(BaseSettings):
     fsp_confirm_rate_limit: str = "20/hour"
     fsp_sync_rate_limit: str = "10/minute"
     offer_send_rate_limit: str = "50/day"  # офферы одной компании: защита кандидатов от спама
+    mfa_rate_limit: str = "10/hour"  # попытки кода 2FA на администратора
 
     @property
     def is_prod(self) -> bool:

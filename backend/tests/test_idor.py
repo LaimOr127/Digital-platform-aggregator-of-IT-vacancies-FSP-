@@ -30,6 +30,8 @@ PUBLIC_PREFIXES = (
     "/api/v1/public/",
     "/api/v1/auth/register",
     "/api/v1/auth/login",
+    # шаг 2FA защищён одноразовым mfa-токеном в теле (проверяется в test_mfa)
+    "/api/v1/auth/2fa",
 )
 # refresh/logout защищены cookie + CSRF, а не access-токеном (проверяется в test_auth)
 COOKIE_AUTH = ("/api/v1/auth/refresh", "/api/v1/auth/logout")

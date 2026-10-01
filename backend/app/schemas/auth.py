@@ -47,3 +47,24 @@ class MeOut(BaseModel):
     role: UserRole
     is_superadmin: bool
     company_id: uuid.UUID | None = None
+
+
+class MfaChallengeOut(BaseModel):
+    """Ответ на вход администратора: нужен код 2FA (mfa_token действует 5 минут)."""
+
+    mfa_required: bool = True
+    mfa_token: str
+    enrolled: bool
+
+
+class MfaTokenIn(BaseModel):
+    mfa_token: str = Field(min_length=10, max_length=2048)
+
+
+class MfaVerifyIn(MfaTokenIn):
+    code: str = Field(pattern=r"^\d{6}$")
+
+
+class MfaSetupOut(BaseModel):
+    secret: str
+    otpauth_uri: str

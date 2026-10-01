@@ -45,37 +45,60 @@ class AccessClaims:
     role: str
 
 
+MFA_TTL = timedelta(minutes=5)
+
+
 class TokenService:
     def __init__(self, settings: Settings) -> None:
         self._secret = settings.secret("jwt_secret")
         self._access_ttl = timedelta(minutes=settings.access_token_ttl_minutes)
         self.refresh_ttl = timedelta(days=settings.refresh_token_ttl_days)
+        # администратор: короткая сессия — украденный refresh живёт недолго
+        self.admin_refresh_ttl = timedelta(hours=settings.admin_refresh_ttl_hours)
         if not self._secret:
             msg = "JWT_SECRET не задан"
             raise RuntimeError(msg)
 
+    def refresh_ttl_for(self, role: str) -> timedelta:
+        return self.admin_refresh_ttl if role == "admin" else self.refresh_ttl
+
     def issue_access(self, user_id: uuid.UUID, role: str) -> str:
-        now = datetime.now(UTC)
-        payload = {
-            "sub": str(user_id),
-            "role": role,
-            "iat": now,
-            "exp": now + self._access_ttl,
-            "typ": "access",
-        }
-        return jwt.encode(payload, self._secret, algorithm=_JWT_ALG)
+        return self._encode({"sub": str(user_id), "role": role}, "access", self._access_ttl)
+
+    def issue_mfa(self, user_id: uuid.UUID) -> str:
+        """Пароль верный, нужен второй фактор: токен годен только для шага 2FA, 5 минут."""
+        return self._encode({"sub": str(user_id)}, "mfa", MFA_TTL)
 
     def decode_access(self, token: str) -> AccessClaims:
+        data = self._decode(token, "access")
         try:
-            data = jwt.decode(
-                token, self._secret, algorithms=[_JWT_ALG], options={"require": ["exp", "sub"]}
-            )
-            if data.get("typ") != "access":
-                raise UnauthorizedError("invalid token")
             return AccessClaims(user_id=uuid.UUID(data["sub"]), role=str(data["role"]))
-        except (jwt.PyJWTError, ValueError, KeyError) as exc:
+        except (ValueError, KeyError) as exc:
             raise UnauthorizedError("invalid token") from exc
+
+    def decode_mfa(self, token: str) -> uuid.UUID:
+        try:
+            return uuid.UUID(self._decode(token, "mfa")["sub"])
+        except (ValueError, KeyError) as exc:
+            raise UnauthorizedError("сессия входа истекла — войдите заново") from exc
 
     @property
     def access_ttl_seconds(self) -> int:
         return int(self._access_ttl.total_seconds())
+
+    def _encode(self, claims: dict, typ: str, ttl: timedelta) -> str:
+        now = datetime.now(UTC)
+        payload = {**claims, "iat": now, "exp": now + ttl, "typ": typ}
+        return jwt.encode(payload, self._secret, algorithm=_JWT_ALG)
+
+    def _decode(self, token: str, typ: str) -> dict:
+        """Подпись, срок и тип: токен одного назначения не подходит для другого."""
+        try:
+            data = jwt.decode(
+                token, self._secret, algorithms=[_JWT_ALG], options={"require": ["exp", "sub"]}
+            )
+        except jwt.PyJWTError as exc:
+            raise UnauthorizedError("invalid token") from exc
+        if data.get("typ") != typ:
+            raise UnauthorizedError("invalid token")
+        return data

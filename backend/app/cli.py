@@ -1,6 +1,7 @@
 """Служебные команды. Первый суперадмин создаётся только так (через API — нельзя):
 
     make create-admin EMAIL=admin@example.org
+    make reset-admin-2fa EMAIL=admin@example.org
 
 Пароль запрашивается интерактивно (не попадает в историю shell и в логи).
 """
@@ -18,6 +19,7 @@ from app.core.security import TokenService
 from app.db.session import get_database
 from app.schemas.auth import PasswordMixin
 from app.services.auth import AuthService
+from app.services.mfa import reset_mfa
 
 
 async def create_admin(email: str, password: str, superadmin: bool) -> None:
@@ -34,6 +36,17 @@ async def create_admin(email: str, password: str, superadmin: bool) -> None:
     finally:
         await db.dispose()
     sys.stdout.write(f"admin created: {user.id}\n")
+
+
+async def reset_admin_mfa(email: str) -> None:
+    """Сброс 2FA администратора (потерян телефон): при следующем входе — новая настройка."""
+    db = get_database()
+    try:
+        async with db.sessionmaker() as session:
+            user = await reset_mfa(session, email)
+    finally:
+        await db.dispose()
+    sys.stdout.write(f"2fa reset: {user.id}\n")
 
 
 def _validate_email(email: str) -> str:
@@ -60,10 +73,14 @@ def main() -> None:
     admin = sub.add_parser("create-admin", help="создать администратора")
     admin.add_argument("--email", required=True)
     admin.add_argument("--superadmin", action="store_true")
+    reset = sub.add_parser("reset-2fa", help="сбросить 2FA администратора")
+    reset.add_argument("--email", required=True)
     args = parser.parse_args()
+    email = _validate_email(args.email)
     if args.command == "create-admin":
-        email = _validate_email(args.email)
         asyncio.run(create_admin(email, _read_password(), args.superadmin))
+    elif args.command == "reset-2fa":
+        asyncio.run(reset_admin_mfa(email))
 
 
 if __name__ == "__main__":

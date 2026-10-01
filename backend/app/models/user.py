@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, String
+from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base, IdMixin, TimestampMixin, str_enum
@@ -17,6 +17,10 @@ class User(IdMixin, TimestampMixin, Base):
     is_superadmin: Mapped[bool] = mapped_column(Boolean, default=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     email_verified: Mapped[bool] = mapped_column(Boolean, default=False)
+    # 2FA (TOTP) — обязательна для администраторов; секрет зашифрован (AES-GCM)
+    totp_secret_enc: Mapped[str | None] = mapped_column(Text, default=None)
+    totp_enabled: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    totp_last_step: Mapped[int | None] = mapped_column(BigInteger, default=None)
 
 
 class RefreshToken(IdMixin, TimestampMixin, Base):

@@ -1,10 +1,12 @@
 """Общие шаги сценариев: регистрация, вход, админ. Используются всеми API-тестами."""
 
 import secrets
+import time
 import uuid
 
-from httpx import AsyncClient
+from httpx import ASGITransport, AsyncClient
 
+from app.core import totp
 from app.db.session import Database
 from app.services.auth import AuthService
 
@@ -39,13 +41,33 @@ async def register_employer(client: AsyncClient, company: str = "ООО Рома
 
 
 async def create_admin(db: Database, app, superadmin: bool = False) -> str:
-    """Админ создаётся как в CLI (через сервис), затем входит через API."""
+    """Админ создаётся как в CLI и входит по-настоящему: пароль -> настройка 2FA -> код."""
     email = unique_email("admin")
     async with db.sessionmaker() as session:
-        service = AuthService(session, app.state.tokens, app.state.cipher)
-        await service.create_admin(email, PASSWORD, superadmin)
-        pair = await service.login(email, PASSWORD)
-    return pair.access_token
+        await AuthService(session, app.state.tokens, app.state.cipher).create_admin(
+            email, PASSWORD, superadmin
+        )
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        return await admin_login(client, email)
+
+
+async def admin_login(client: AsyncClient, email: str, secret: str | None = None) -> str:
+    challenge = (
+        await client.post("/api/v1/auth/login", json={"email": email, "password": PASSWORD})
+    ).json()
+    assert challenge["mfa_required"] is True, challenge
+    if secret is None:
+        setup = await client.post(
+            "/api/v1/auth/2fa/setup", json={"mfa_token": challenge["mfa_token"]}
+        )
+        secret = setup.json()["secret"]
+    code = totp.code_at(secret, int(time.time()) // totp.STEP_SECONDS)
+    r = await client.post(
+        "/api/v1/auth/2fa/verify", json={"mfa_token": challenge["mfa_token"], "code": code}
+    )
+    assert r.status_code == 200, r.text
+    return r.json()["access_token"]
 
 
 async def company_id(client: AsyncClient, token: str) -> str:

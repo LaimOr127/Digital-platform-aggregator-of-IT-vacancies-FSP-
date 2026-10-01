@@ -36,6 +36,15 @@ class TokenPair:
     access_token: str
     refresh_token: str
     expires_in: int
+    refresh_max_age: int
+
+
+@dataclass(frozen=True)
+class MfaChallenge:
+    """Пароль верный, но для администратора нужен второй фактор (TOTP)."""
+
+    mfa_token: str
+    enrolled: bool
 
 
 class AuthService:
@@ -72,11 +81,19 @@ class AuthService:
         await self.session.commit()
         return user
 
-    async def login(self, email: str, password: str) -> TokenPair:
+    async def login(self, email: str, password: str) -> TokenPair | MfaChallenge:
         user = await self.users.by_email(email)
         valid = verify_password(user.password_hash if user else None, password)
         if user is None or not valid or not user.is_active:
             raise UnauthorizedError(_INVALID_CREDENTIALS)
+        if user.role == UserRole.ADMIN:
+            await self.audit.record("auth.mfa_challenge", user.id)
+            await self.session.commit()
+            return MfaChallenge(self.tokens.issue_mfa(user.id), enrolled=user.totp_enabled)
+        return await self.complete_login(user)
+
+    async def complete_login(self, user: User) -> TokenPair:
+        """Выдача сессии после всех проверок (пароль; для администратора — ещё и 2FA)."""
         pair = await self._issue(user, family_id=uuid.uuid4())
         await self.audit.record("auth.login", user.id)
         await self.session.commit()
@@ -96,7 +113,9 @@ class AuthService:
             await self.audit.record("auth.refresh_reuse", stored.user_id)
             await self.session.commit()
             raise UnauthorizedError("invalid refresh token")
-        pair = await self._issue(user, family_id=stored.family_id)
+        # администратор: срок сессии абсолютный — ротация не продлевает её без повторной 2FA
+        keep_expiry = as_aware(stored.expires_at) if user.role == UserRole.ADMIN else None
+        pair = await self._issue(user, family_id=stored.family_id, expires_at=keep_expiry)
         await self.session.commit()
         return pair
 
@@ -133,18 +152,24 @@ class AuthService:
         await self.session.commit()
         return pair
 
-    async def _issue(self, user: User, family_id: uuid.UUID) -> TokenPair:
+    async def _issue(
+        self, user: User, family_id: uuid.UUID, expires_at: datetime | None = None
+    ) -> TokenPair:
         raw = new_refresh_token()
+        now = datetime.now(UTC)
+        expires = expires_at or now + self.tokens.refresh_ttl_for(user.role)
+        ttl = expires - now
         self.session.add(
             RefreshToken(
                 user_id=user.id,
                 token_hash=hash_token(raw),
                 family_id=family_id,
-                expires_at=datetime.now(UTC) + self.tokens.refresh_ttl,
+                expires_at=expires,
             )
         )
         return TokenPair(
             access_token=self.tokens.issue_access(user.id, user.role),
             refresh_token=raw,
             expires_in=self.tokens.access_ttl_seconds,
+            refresh_max_age=int(ttl.total_seconds()),
         )
