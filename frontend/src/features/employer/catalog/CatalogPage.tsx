@@ -1,4 +1,4 @@
-import { Send, Users } from "lucide-react";
+import { CalendarPlus, Users } from "lucide-react";
 import { useMemo, useState } from "react";
 import { errorMessage } from "../../../api/errors";
 import { useSkills } from "../../../api/queries";
@@ -21,8 +21,8 @@ import { EmptyState } from "../../../ui/EmptyState";
 import { Field, Select } from "../../../ui/form";
 import { LoadingBlock } from "../../../ui/Spinner";
 import { CandidateCardView } from "./CandidateCardView";
-import { useCatalogCandidates, useCatalogCategories } from "./hooks";
-import { OfferDialog } from "./OfferDialog";
+import { useActiveVacancies, useCatalogCandidates, useCatalogCategories } from "./hooks";
+import { InviteDialog } from "../interviews/InviteDialog";
 
 export function CatalogPage({ company }: { company: Company | undefined }) {
   if (!company) return <LoadingBlock />;
@@ -40,17 +40,29 @@ export function CatalogPage({ company }: { company: Company | undefined }) {
 
 function Catalog() {
   const [filters, setFilters] = useState<CatalogFilters>({});
-  const [offerTo, setOfferTo] = useState<CandidateCard | null>(null);
+  const [inviteTo, setInviteTo] = useState<CandidateCard | null>(null);
+  // подбор «из коробки»: по первой опубликованной вакансии, пока работодатель не выберет другую
+  const vacancies = useActiveVacancies();
+  const [chosen, setChosen] = useState<string | null>(null);
+  const matchVacancy = chosen ?? vacancies.data?.items[0]?.id ?? "";
   const categories = useCatalogCategories(true);
-  const candidates = useCatalogCandidates(filters, true);
+  const candidates = useCatalogCandidates({ ...filters, vacancy_id: matchVacancy || undefined }, !vacancies.isPending);
   const update = (patch: Partial<CatalogFilters>) => setFilters((f) => ({ ...f, ...patch }));
 
   return (
     <>
       <PageHeader
         title="Каталог кандидатов"
-        text="Выберите категорию — дисциплину ФСП и уровень достижений. Профили анонимны; имя и контакты откроются, когда кандидат примет ваш оффер."
+        text="Кандидаты отсортированы по соответствию вашей вакансии. Пригласите на собеседование — после него можно отправить оффер; имя и контакты откроются, когда кандидат примет оффер."
       />
+      <Field label="Подбор под вакансию" className="mb-6 max-w-xl" hint="Кандидаты отсортированы по проценту соответствия">
+        <Select
+          placeholder="Без подбора — новые профили сверху"
+          options={(vacancies.data?.items ?? []).map((v) => ({ value: v.id, label: v.title }))}
+          value={matchVacancy}
+          onChange={(e) => setChosen(e.target.value)}
+        />
+      </Field>
       {categories.error && <Alert>{errorMessage(categories.error)}</Alert>}
       {categories.data && (
         <CategoryGrid categories={categories.data} selected={filters.category} onSelect={(category) => update({ category })} />
@@ -70,15 +82,20 @@ function Catalog() {
             key={card.anon_id}
             card={card}
             action={
-              <Button size="sm" onClick={() => setOfferTo(card)}>
-                <Send className="size-3.5" aria-hidden />
-                Предложить оффер
+              <Button size="sm" onClick={() => setInviteTo(card)}>
+                <CalendarPlus className="size-3.5" aria-hidden />
+                Пригласить на собеседование
               </Button>
             }
           />
         )}
       </CursorListView>
-      <OfferDialog key={offerTo?.anon_id ?? "none"} candidate={offerTo} onClose={() => setOfferTo(null)} />
+      <InviteDialog
+        key={inviteTo?.anon_id ?? "none"}
+        candidate={inviteTo}
+        vacancyId={matchVacancy || undefined}
+        onClose={() => setInviteTo(null)}
+      />
     </>
   );
 }

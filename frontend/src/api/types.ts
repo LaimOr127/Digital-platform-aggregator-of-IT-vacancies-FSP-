@@ -51,6 +51,8 @@ export type CatalogFilters = {
   work_format?: WorkFormat;
   skill?: string;
   search_status?: SearchStatus;
+  /** сортировать по соответствию этой вакансии */
+  vacancy_id?: string;
 };
 
 /** Содержимое паспорта (подписанный JSON, версия 2). */
@@ -75,3 +77,17 @@ export type SearchStatus = Schemas["SearchStatus"];
 // поля со значением по умолчанию сервер отдаёт всегда (в схеме OpenAPI они необязательные)
 export type ProfileDraft = Required<Schemas["ProfileDraftOut"]>;
 export type ImportCapabilities = Schemas["ImportCapabilitiesOut"];
+
+export type Match = Schemas["MatchOut"];
+export type MatchFactor = Schemas["MatchFactorOut"];
+export type Interview = Schemas["InterviewOut"];
+export type EmployerInterview = Schemas["EmployerInterviewOut"];
+export type InterviewStatus = Schemas["InterviewStatus"];
+export type InterviewResult = Schemas["InterviewResult"];
+export type InterviewFormat = Schemas["InterviewFormat"];
+export type InterviewInvite = Schemas["InterviewInviteIn"];
+export type AiProvider = Schemas["AiProviderOut"];
+export type AiProviderInput = Schemas["AiProviderIn"];
+export type AiProviderUpdate = Schemas["AiProviderUpdate"];
+export type AiProviderKind = Schemas["AiProviderKind"];
+export type AiTest = Schemas["AiTestOut"];

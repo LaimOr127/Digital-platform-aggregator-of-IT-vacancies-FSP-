@@ -7,7 +7,9 @@
 > Статус: фаза 3 (в работе) — каталог кандидатов по категориям, офферы с зарплатной вилкой и раскрытие
 > контактов после принятия; обязательная 2FA администраторов, модерация вакансий и пользователей, журнал
 > аудита; подтверждение почты, восстановление пароля и уведомления по email; автозаполнение профиля
-> из анкеты ФСП и из резюме (алгоритм или ИИ), статус поиска работы кандидата. Готово ранее: ядро
+> из анкеты ФСП и из резюме (алгоритм или ИИ), статус поиска работы кандидата; подбор кандидатов
+> по соответствию вакансии (0–100 %), собеседование перед оффером, подключение любой языковой модели
+> в админке. Готово ранее: ядро
 > (аутентификация, RLS, AccessPolicy, кабинеты), интеграция с ФСП (мок API), автокатегоризация
 > и «Паспорт навыков».
 > План: [`docs/PLAN.md`](docs/PLAN.md), архитектура: [`docs/architecture.md`](docs/architecture.md).
@@ -43,9 +45,13 @@ http://localhost:8025 (Mailpit: локальный почтовый ящик —
    введите его, отсканируйте QR-код в приложении-аутентификаторе (Google Authenticator, Яндекс Ключ
    и т. п.) и подтвердите код из приложения. Затем одобрите компанию — и работодатель сможет
    опубликовать вакансию. Там же — блокировка вакансий и пользователей и журнал аудита.
-4. Каталог (`/company/catalog`): выбрать категорию, найти анонимного кандидата и отправить оффер с вилкой.
-   Кандидат принимает его в разделе «Офферы» (`/app/offers`) — и только тогда компания видит имя и контакты
-   (`/company/offers` → «Показать контакты»).
+4. Каталог (`/company/catalog`): кандидаты сразу отсортированы по соответствию опубликованной вакансии
+   (процент и «Почему»), фильтры работают поверх. «Пригласить на собеседование» — 1–3 варианта времени;
+   кандидат выбирает время в «Собеседованиях» (`/app/interviews`). После встречи компания отмечает итог
+   (`/company/interviews`) и отправляет оффер с вилкой; когда кандидат его примет — компания видит имя
+   и контакты (`/company/offers` → «Показать контакты»).
+5. Суперадмин подключает языковую модель: `/admin/ai` → «Подключить модель» (шаблоны OpenAI, Anthropic,
+   YandexGPT, DeepSeek, OpenRouter, локальная Ollama), «Проверить», «Сделать активной».
 
 ## Управление сервисами по отдельности
 Каждый сервис описан в своём файле `deploy/compose.<service>.yml`, общие настройки — один раз в `deploy/common.yml`.
@@ -74,9 +80,9 @@ http://localhost:8025 (Mailpit: локальный почтовый ящик —
 | Группа | Эндпоинты |
 |---|---|
 | `auth` | `POST register/candidate`, `POST register/employer` (202: письмо со ссылкой), `POST verify-email`, `POST verify-email/resend`, `POST password/forgot`, `POST password/reset`, `POST login`, `POST 2fa/setup`, `POST 2fa/verify`, `POST refresh`, `POST logout`, `GET me` |
-| `candidate` | `GET/PATCH profile` (в т. ч. `search_status`); автозаполнение: `GET import/capabilities`, `GET import/fsp`, `POST import/resume` (multipart); офферы: `GET offers`, `POST offers/{id}/accept`, `POST offers/{id}/decline`; ФСП: `GET fsp`, `POST fsp/link`, `POST fsp/confirm`, `POST fsp/sync`, `DELETE fsp`; паспорт: `GET/POST/DELETE passport` |
-| `employer` | `GET company`, `GET/POST vacancies`, `GET/PATCH/DELETE vacancies/{id}`, `POST vacancies/{id}/publish`, `POST vacancies/{id}/close`; каталог: `GET catalog/categories`, `GET catalog/candidates`, `GET catalog/candidates/{anon_id}`; офферы: `GET/POST offers` (заголовок `Idempotency-Key`), `POST offers/{id}/withdraw`, `GET offers/{id}/contacts` |
-| `admin` | `GET companies?status=`, `POST companies/{id}/status`, `GET vacancies?status=`, `POST vacancies/{id}/moderation`, `GET users?role=&q=`, `POST users/{id}/moderation`, `GET audit?action=` |
+| `candidate` | `GET/PATCH profile` (в т. ч. `search_status`); собеседования: `GET interviews`, `POST interviews/{id}/accept`, `POST interviews/{id}/decline`; автозаполнение: `GET import/capabilities`, `GET import/fsp`, `POST import/resume` (multipart); офферы: `GET offers`, `POST offers/{id}/accept`, `POST offers/{id}/decline`; ФСП: `GET fsp`, `POST fsp/link`, `POST fsp/confirm`, `POST fsp/sync`, `DELETE fsp`; паспорт: `GET/POST/DELETE passport` |
+| `employer` | собеседования: `GET/POST interviews`, `POST interviews/{id}/cancel`, `POST interviews/{id}/complete`; `GET company`, `GET/POST vacancies`, `GET/PATCH/DELETE vacancies/{id}`, `POST vacancies/{id}/publish`, `POST vacancies/{id}/close`; каталог: `GET catalog/categories`, `GET catalog/candidates` (`vacancy_id` — сортировка по соответствию), `GET catalog/candidates/{anon_id}`; офферы: `GET/POST offers` (по `interview_id` успешного собеседования, заголовок `Idempotency-Key`), `POST offers/{id}/withdraw`, `GET offers/{id}/contacts` |
+| `admin` | `GET companies?status=`, `POST companies/{id}/status`, `GET vacancies?status=`, `POST vacancies/{id}/moderation`, `GET users?role=&q=`, `POST users/{id}/moderation`, `GET audit?action=`; модели ИИ (суперадмин): `GET/POST ai-providers`, `PATCH/DELETE ai-providers/{id}`, `POST ai-providers/{id}/activate`, `POST ai-providers/{id}/test`, `POST ai-providers/deactivate` |
 | `public` | `GET skills`, `GET passport/{id}` (проверка паспорта), `GET passport-key`, `GET health`, `GET health/ready` |
 
 Access-токен (15 мин) приходит в теле ответа, refresh — в httpOnly-cookie; `refresh`/`logout`
@@ -138,10 +144,26 @@ make create-admin EMAIL=admin@ваш-домен   # первый модерат�
 - **Из резюме** (PDF с текстовым слоем или DOCX, до 5 МБ): алгоритм на правилах находит имя, должность, грейд,
   стаж, город, формат, зарплату, контакты, раздел «О себе» и навыки по справочнику (с синонимами: golang,
   postgres, k8s). Файл не сохраняется; тип проверяется по содержимому, есть защита от zip-бомб.
-- **ИИ (необязательно)**: если в `.env` задан `ANTHROPIC_API_KEY`, кандидат может отметить «Разобрать с помощью
-  ИИ» — текст резюме уходит в Claude (Anthropic) **без контактов** (их находит сервер). Ответ ограничен схемой и
-  справочником; при любой ошибке ИИ работает алгоритм. Модель — `AI_MODEL`.
+- **ИИ (необязательно)**: суперадмин подключает модель в интерфейсе (`/admin/ai`): любой сервис с
+  OpenAI-совместимым API (`/chat/completions`) — OpenAI, YandexGPT через совместимый шлюз, DeepSeek,
+  OpenRouter, локальные Ollama/vLLM/LM Studio — или Anthropic. Ключ хранится зашифрованным, наружу — только
+  последние символы; адрес проверяется (https, без служебных адресов стенда и метаданных облака; http — только
+  для локальной модели, `AI_ALLOW_HTTP`). Активна одна модель; `ANTHROPIC_API_KEY` в `.env` — запасной вариант.
+  Кандидат отмечает «Разобрать с помощью ИИ» — текст резюме уходит в выбранную модель **без контактов**.
+  Ответ ограничен схемой и справочником; при любой ошибке работает алгоритм.
 - Результат — черновик: кандидат видит «было → станет», выбирает поля (пустые отмечены сразу) и сохраняет сам.
+
+## Подбор и собеседования
+- **Соответствие вакансии (0–100 %)**: навыки 40, грейд 20, подтверждение ФСП 15, описание и опыт 15 (общие
+  темы текста вакансии и профиля по основам слов), формат и город 5, зарплата 5. По кнопке «Почему» — вклад
+  каждого фактора. Каталог сразу сортируется по первой опубликованной вакансии; можно выбрать другую или
+  отключить подбор, фильтры (категория, грейд, формат, статус поиска, навык) работают поверх.
+- **Собеседование перед оффером**: компания приглашает с 1–3 вариантами времени (не раньше чем через час,
+  не позже 30 дней), форматом (онлайн — только https-ссылка, или адрес офиса) и руководителем, который
+  проводит встречу. Кандидат выбирает время или отказывается (повторное приглашение — через 30 дней);
+  приглашение без ответа истекает за 7 дней. Итог отмечается только после времени встречи, отзыв видит
+  кандидат. Оффер — по успешному собеседованию, один на собеседование. На каждом шаге — письмо (время по МСК).
+- До принятия оффера кандидат анонимен; после — компания видит имя и контакты.
 
 ## Каталог и офферы
 - **Статус поиска**: «Активно ищу», «Рассматриваю предложения», «Не ищу». Статус виден в каталоге и

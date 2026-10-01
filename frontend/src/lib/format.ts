@@ -2,6 +2,9 @@
 import type {
   CompanyStatus,
   Grade,
+  InterviewFormat,
+  InterviewResult,
+  InterviewStatus,
   OfferStatus,
   SearchStatus,
   UserRole,
@@ -76,6 +79,22 @@ export const labels = {
     open: "Рассматриваю предложения",
     closed: "Не ищу работу",
   } satisfies Record<SearchStatus, string>,
+  interviewStatus: {
+    invited: "Ждёт выбора времени",
+    scheduled: "Назначено",
+    declined: "Кандидат отказался",
+    cancelled: "Отменено",
+    completed: "Состоялось",
+    expired: "Истекло",
+  } satisfies Record<InterviewStatus, string>,
+  interviewResult: {
+    passed: "Успешно",
+    failed: "Не подошёл",
+  } satisfies Record<InterviewResult, string>,
+  interviewFormat: {
+    online: "Онлайн",
+    office: "В офисе",
+  } satisfies Record<InterviewFormat, string>,
   role: {
     candidate: "Кандидат",
     employer: "Работодатель",

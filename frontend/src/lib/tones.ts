@@ -1,5 +1,5 @@
 // Цвет бейджа для статусов — в одном месте для всех порталов.
-import type { CompanyStatus, OfferStatus, SearchStatus, VacancyStatus } from "../api/types";
+import type { CompanyStatus, InterviewStatus, OfferStatus, SearchStatus, VacancyStatus } from "../api/types";
 import type { Tone } from "../ui/Badge";
 
 export const vacancyTone: Record<VacancyStatus, Tone> = {
@@ -34,3 +34,19 @@ export const searchTone: Record<SearchStatus, Tone> = {
   open: "info",
   closed: "neutral",
 };
+
+export const interviewTone: Record<InterviewStatus, Tone> = {
+  invited: "warn",
+  scheduled: "info",
+  completed: "accent",
+  declined: "neutral",
+  cancelled: "neutral",
+  expired: "neutral",
+};
+
+/** Цвет процента соответствия: высокий — акцент, средний — инфо, низкий — нейтральный. */
+export function matchTone(score: number): Tone {
+  if (score >= 70) return "accent";
+  if (score >= 45) return "info";
+  return "neutral";
+}

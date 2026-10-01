@@ -91,9 +91,9 @@ export function ImportCard({ fspLinked, autoFsp = false, onDraft }: Props) {
         <label className="mt-4 flex items-start gap-2 text-sm">
           <input type="checkbox" className="mt-0.5 accent-accent" checked={useAi} onChange={(e) => setUseAi(e.target.checked)} />
           <span>
-            Разобрать резюме с помощью ИИ (Claude)
+            Разобрать резюме с помощью ИИ ({capabilities.data.ai_provider})
             <span className="block text-xs text-muted">
-              Текст резюме без контактов будет передан в Anthropic. Без согласия работает наш алгоритм.
+              Текст резюме без контактов будет передан этой модели. Без согласия работает наш алгоритм.
             </span>
           </span>
         </label>

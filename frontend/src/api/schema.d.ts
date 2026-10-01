@@ -399,6 +399,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/candidate/interviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Приглашения на собеседование */
+        get: operations["list_interviews_api_v1_candidate_interviews_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/candidate/interviews/{interview_id}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Выбрать время собеседования */
+        post: operations["accept_api_v1_candidate_interviews__interview_id__accept_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/candidate/interviews/{interview_id}/decline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Отказаться от собеседования */
+        post: operations["decline_api_v1_candidate_interviews__interview_id__decline_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/candidate/offers": {
         parameters: {
             query?: never;
@@ -532,6 +583,58 @@ export interface paths {
         put?: never;
         /** Закрыть вакансию */
         post: operations["close_vacancy_api_v1_employer_vacancies__vacancy_id__close_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/employer/interviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Собеседования компании */
+        get: operations["list_interviews_api_v1_employer_interviews_get"];
+        put?: never;
+        /** Пригласить кандидата на собеседование (1-3 варианта времени) */
+        post: operations["invite_api_v1_employer_interviews_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/employer/interviews/{interview_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Отменить собеседование */
+        post: operations["cancel_api_v1_employer_interviews__interview_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/employer/interviews/{interview_id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Отметить результат (после встречи) */
+        post: operations["complete_api_v1_employer_interviews__interview_id__complete_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -760,6 +863,93 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/ai-providers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Подключённые модели */
+        get: operations["list_providers_api_v1_admin_ai_providers_get"];
+        put?: never;
+        /** Подключить модель */
+        post: operations["create_provider_api_v1_admin_ai_providers_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/ai-providers/{provider_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Удалить */
+        delete: operations["delete_provider_api_v1_admin_ai_providers__provider_id__delete"];
+        options?: never;
+        head?: never;
+        /** Изменить модель (пустой ключ — без изменений) */
+        patch: operations["update_provider_api_v1_admin_ai_providers__provider_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/admin/ai-providers/{provider_id}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Сделать активной (остальные выключаются) */
+        post: operations["activate_provider_api_v1_admin_ai_providers__provider_id__activate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/ai-providers/deactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Выключить ИИ */
+        post: operations["deactivate_api_v1_admin_ai_providers_deactivate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/ai-providers/{provider_id}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Проверить подключение */
+        post: operations["test_provider_api_v1_admin_ai_providers__provider_id__test_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/public/skills": {
         parameters: {
             query?: never;
@@ -904,6 +1094,81 @@ export interface components {
              */
             created_at: string;
         };
+        /** AiProviderIn */
+        AiProviderIn: {
+            /** Name */
+            name: string;
+            kind: components["schemas"]["AiProviderKind"];
+            /** Base Url */
+            base_url: string;
+            /** Model */
+            model: string;
+            /**
+             * Api Key
+             * @description пусто — без ключа (локальная модель)
+             */
+            api_key?: string | null;
+        };
+        /**
+         * AiProviderKind
+         * @enum {string}
+         */
+        AiProviderKind: "openai" | "anthropic";
+        /** AiProviderOut */
+        AiProviderOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            kind: components["schemas"]["AiProviderKind"];
+            /** Base Url */
+            base_url: string;
+            /** Model */
+            model: string;
+            /** Has Key */
+            has_key: boolean;
+            /** Key Hint */
+            key_hint: string | null;
+            /** Is Active */
+            is_active: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /**
+         * AiProviderUpdate
+         * @description Пустой api_key — ключ не меняется; clear_key — удалить ключ.
+         */
+        AiProviderUpdate: {
+            /** Name */
+            name?: string | null;
+            kind?: components["schemas"]["AiProviderKind"] | null;
+            /** Base Url */
+            base_url?: string | null;
+            /** Model */
+            model?: string | null;
+            /** Api Key */
+            api_key?: string | null;
+            /**
+             * Clear Key
+             * @default false
+             */
+            clear_key: boolean;
+        };
+        /** AiTestOut */
+        AiTestOut: {
+            /** Ok */
+            ok: boolean;
+            /** Latency Ms */
+            latency_ms: number;
+            /** Message */
+            message: string;
+        };
         /** AuditEntryOut */
         AuditEntryOut: {
             /**
@@ -973,6 +1238,7 @@ export interface components {
             achievements: string[];
             /** About */
             about: string | null;
+            match?: components["schemas"]["MatchOut"] | null;
         };
         /** CandidateCategoryOut */
         CandidateCategoryOut: {
@@ -1072,6 +1338,59 @@ export interface components {
              */
             email: string;
         };
+        /** EmployerInterviewOut */
+        EmployerInterviewOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            status: components["schemas"]["InterviewStatus"];
+            result: components["schemas"]["InterviewResult"] | null;
+            /** Company Name */
+            company_name: string;
+            /** Vacancy Title */
+            vacancy_title: string;
+            /** Vacancy Id */
+            vacancy_id: string | null;
+            /** Slots */
+            slots: string[];
+            /** Duration Minutes */
+            duration_minutes: number;
+            /** Scheduled At */
+            scheduled_at: string | null;
+            format: components["schemas"]["InterviewFormat"];
+            /** Location */
+            location: string;
+            /** Interviewer */
+            interviewer: string;
+            /** Message */
+            message: string;
+            /** Decline Reason */
+            decline_reason: string | null;
+            /** Feedback */
+            feedback: string | null;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /** Responded At */
+            responded_at: string | null;
+            /** Completed At */
+            completed_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Offer Id
+             * @description оффер по итогам, если отправлен
+             */
+            offer_id?: string | null;
+            candidate?: components["schemas"]["CandidateCardOut"] | null;
+        };
         /** EmployerOfferOut */
         EmployerOfferOut: {
             /**
@@ -1079,6 +1398,8 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /** Interview Id */
+            interview_id?: string | null;
             status: components["schemas"]["OfferStatus"];
             /** Company Name */
             company_name: string;
@@ -1190,12 +1511,143 @@ export interface components {
         ImportCapabilitiesOut: {
             /** Ai Available */
             ai_available: boolean;
+            /** Ai Provider */
+            ai_provider?: string | null;
             /**
              * Max File Mb
              * @default 5
              */
             max_file_mb: number;
         };
+        /** InterviewAcceptIn */
+        InterviewAcceptIn: {
+            /**
+             * Slot
+             * Format: date-time
+             */
+            slot: string;
+        };
+        /** InterviewCompleteIn */
+        InterviewCompleteIn: {
+            result: components["schemas"]["InterviewResult"];
+            /**
+             * Feedback
+             * @description видит кандидат
+             * @default
+             */
+            feedback: string;
+        };
+        /**
+         * InterviewFormat
+         * @enum {string}
+         */
+        InterviewFormat: "online" | "office";
+        /**
+         * InterviewInviteIn
+         * @description Приглашение: 1-3 варианта времени, формат, кто проводит (руководитель).
+         */
+        InterviewInviteIn: {
+            /**
+             * Anon Id
+             * Format: uuid
+             */
+            anon_id: string;
+            /**
+             * Vacancy Id
+             * Format: uuid
+             */
+            vacancy_id: string;
+            /** Slots */
+            slots: string[];
+            /**
+             * Duration Minutes
+             * @default 60
+             */
+            duration_minutes: number;
+            format: components["schemas"]["InterviewFormat"];
+            /**
+             * Location
+             * @description ссылка на встречу или адрес
+             */
+            location: string;
+            /** Interviewer */
+            interviewer: string;
+            /**
+             * Message
+             * @default
+             */
+            message: string;
+        };
+        /** InterviewOut */
+        InterviewOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            status: components["schemas"]["InterviewStatus"];
+            result: components["schemas"]["InterviewResult"] | null;
+            /** Company Name */
+            company_name: string;
+            /** Vacancy Title */
+            vacancy_title: string;
+            /** Vacancy Id */
+            vacancy_id: string | null;
+            /** Slots */
+            slots: string[];
+            /** Duration Minutes */
+            duration_minutes: number;
+            /** Scheduled At */
+            scheduled_at: string | null;
+            format: components["schemas"]["InterviewFormat"];
+            /** Location */
+            location: string;
+            /** Interviewer */
+            interviewer: string;
+            /** Message */
+            message: string;
+            /** Decline Reason */
+            decline_reason: string | null;
+            /** Feedback */
+            feedback: string | null;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /** Responded At */
+            responded_at: string | null;
+            /** Completed At */
+            completed_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Offer Id
+             * @description оффер по итогам, если отправлен
+             */
+            offer_id?: string | null;
+        };
+        /** InterviewReasonIn */
+        InterviewReasonIn: {
+            /**
+             * Reason
+             * @default
+             */
+            reason: string;
+        };
+        /**
+         * InterviewResult
+         * @enum {string}
+         */
+        InterviewResult: "passed" | "failed";
+        /**
+         * InterviewStatus
+         * @enum {string}
+         */
+        InterviewStatus: "invited" | "scheduled" | "declined" | "cancelled" | "completed" | "expired";
         /**
          * LinkTokenIn
          * @description Токен из ссылки в письме.
@@ -1213,6 +1665,29 @@ export interface components {
             email: string;
             /** Password */
             password: string;
+        };
+        /** MatchFactorOut */
+        MatchFactorOut: {
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /** Weight */
+            weight: number;
+            /** Share */
+            share: number;
+            /** Detail */
+            detail: string;
+        };
+        /**
+         * MatchOut
+         * @description Соответствие вакансии: процент и вклад каждого фактора.
+         */
+        MatchOut: {
+            /** Score */
+            score: number;
+            /** Factors */
+            factors: components["schemas"]["MatchFactorOut"][];
         };
         /** MeOut */
         MeOut: {
@@ -1297,7 +1772,7 @@ export interface components {
         };
         /**
          * OfferCreateIn
-         * @description Вилка обязательна и проверяется общим правилом (честный найм).
+         * @description Оффер — по итогам успешного собеседования. Вилка обязательна (честный найм).
          */
         OfferCreateIn: {
             /** Salary Min */
@@ -1305,15 +1780,10 @@ export interface components {
             /** Salary Max */
             salary_max: number;
             /**
-             * Anon Id
+             * Interview Id
              * Format: uuid
              */
-            anon_id: string;
-            /**
-             * Vacancy Id
-             * Format: uuid
-             */
-            vacancy_id: string;
+            interview_id: string;
             /**
              * Message
              * @default
@@ -1335,6 +1805,8 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /** Interview Id */
+            interview_id?: string | null;
             status: components["schemas"]["OfferStatus"];
             /** Company Name */
             company_name: string;
@@ -1405,10 +1877,24 @@ export interface components {
             /** Next Cursor */
             next_cursor: string | null;
         };
+        /** PageOut[EmployerInterviewOut] */
+        PageOut_EmployerInterviewOut_: {
+            /** Items */
+            items: components["schemas"]["EmployerInterviewOut"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
         /** PageOut[EmployerOfferOut] */
         PageOut_EmployerOfferOut_: {
             /** Items */
             items: components["schemas"]["EmployerOfferOut"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /** PageOut[InterviewOut] */
+        PageOut_InterviewOut_: {
+            /** Items */
+            items: components["schemas"]["InterviewOut"][];
             /** Next Cursor */
             next_cursor: string | null;
         };
@@ -2475,6 +2961,109 @@ export interface operations {
             };
         };
     };
+    list_interviews_api_v1_candidate_interviews_get: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["InterviewStatus"] | null;
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageOut_InterviewOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    accept_api_v1_candidate_interviews__interview_id__accept_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                interview_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InterviewAcceptIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InterviewOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    decline_api_v1_candidate_interviews__interview_id__decline_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                interview_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InterviewReasonIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InterviewOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_offers_api_v1_candidate_offers_get: {
         parameters: {
             query?: {
@@ -2817,6 +3406,142 @@ export interface operations {
             };
         };
     };
+    list_interviews_api_v1_employer_interviews_get: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["InterviewStatus"] | null;
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageOut_EmployerInterviewOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    invite_api_v1_employer_interviews_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InterviewInviteIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployerInterviewOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_api_v1_employer_interviews__interview_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                interview_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InterviewReasonIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployerInterviewOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    complete_api_v1_employer_interviews__interview_id__complete_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                interview_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InterviewCompleteIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployerInterviewOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     catalog_categories_api_v1_employer_catalog_categories_get: {
         parameters: {
             query?: never;
@@ -2845,6 +3570,8 @@ export interface operations {
                 work_format?: components["schemas"]["WorkFormat"] | null;
                 skill?: string | null;
                 search_status?: components["schemas"]["SearchStatus"] | null;
+                /** @description сортировать по соответствию этой вакансии */
+                vacancy_id?: string | null;
                 cursor?: string | null;
                 limit?: number;
             };
@@ -3260,6 +3987,205 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PageOut_AuditEntryOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_providers_api_v1_admin_ai_providers_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiProviderOut"][];
+                };
+            };
+        };
+    };
+    create_provider_api_v1_admin_ai_providers_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AiProviderIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiProviderOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_provider_api_v1_admin_ai_providers__provider_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_provider_api_v1_admin_ai_providers__provider_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AiProviderUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiProviderOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    activate_provider_api_v1_admin_ai_providers__provider_id__activate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiProviderOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    deactivate_api_v1_admin_ai_providers_deactivate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiProviderOut"][];
+                };
+            };
+        };
+    };
+    test_provider_api_v1_admin_ai_providers__provider_id__test_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiTestOut"];
                 };
             };
             /** @description Validation Error */

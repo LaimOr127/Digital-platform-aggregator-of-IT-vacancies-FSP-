@@ -1,6 +1,15 @@
 // Эндпоинты API в одном месте: компоненты не собирают URL сами.
 import { api } from "./client";
 import type {
+  AiProvider,
+  AiProviderInput,
+  AiProviderUpdate,
+  AiTest,
+  EmployerInterview,
+  Interview,
+  InterviewInvite,
+  InterviewResult,
+  InterviewStatus,
   ImportCapabilities,
   ProfileDraft,
   Accepted,
@@ -150,4 +159,38 @@ export const importApi = {
     form.append("use_ai", String(useAi));
     return api<ProfileDraft>("POST", "/candidate/import/resume", { body: form });
   },
+};
+
+
+const interviewUrl = (base: string, id: string, action: string) => `${base}/${encodeURIComponent(id)}${action}`;
+
+export const interviewsApi = {
+  invite: (body: InterviewInvite) => api<EmployerInterview>("POST", "/employer/interviews", { body }),
+  list: (status: InterviewStatus | undefined, cursor: string | undefined) =>
+    api<Page<EmployerInterview>>("GET", "/employer/interviews", { query: { status, cursor, limit: 20 } }),
+  cancel: (id: string, reason: string) =>
+    api<EmployerInterview>("POST", interviewUrl("/employer/interviews", id, "/cancel"), { body: { reason } }),
+  complete: (id: string, result: InterviewResult, feedback: string) =>
+    api<EmployerInterview>("POST", interviewUrl("/employer/interviews", id, "/complete"), { body: { result, feedback } }),
+};
+
+export const myInterviewsApi = {
+  list: (status: InterviewStatus | undefined, cursor: string | undefined) =>
+    api<Page<Interview>>("GET", "/candidate/interviews", { query: { status, cursor, limit: 20 } }),
+  accept: (id: string, slot: string) =>
+    api<Interview>("POST", interviewUrl("/candidate/interviews", id, "/accept"), { body: { slot } }),
+  decline: (id: string, reason: string) =>
+    api<Interview>("POST", interviewUrl("/candidate/interviews", id, "/decline"), { body: { reason } }),
+};
+
+const aiUrl = (id: string, action = "") => `/admin/ai-providers/${encodeURIComponent(id)}${action}`;
+
+export const aiAdminApi = {
+  list: () => api<AiProvider[]>("GET", "/admin/ai-providers"),
+  create: (body: AiProviderInput) => api<AiProvider>("POST", "/admin/ai-providers", { body }),
+  update: (id: string, body: AiProviderUpdate) => api<AiProvider>("PATCH", aiUrl(id), { body }),
+  remove: (id: string) => api<void>("DELETE", aiUrl(id)),
+  activate: (id: string) => api<AiProvider[]>("POST", aiUrl(id, "/activate")),
+  deactivate: () => api<AiProvider[]>("POST", "/admin/ai-providers/deactivate"),
+  test: (id: string) => api<AiTest>("POST", aiUrl(id, "/test")),
 };

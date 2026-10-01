@@ -7,12 +7,14 @@ import { AppShell } from "../../ui/AppShell";
 import { Badge } from "../../ui/Badge";
 import { CatalogPage } from "./catalog/CatalogPage";
 import { useCompany } from "./hooks";
+import { InterviewsPage } from "./interviews/InterviewsPage";
 import { EmployerOffersPage } from "./offers/EmployerOffersPage";
 import { VacanciesPage } from "./VacanciesPage";
 
 const NAV = [
   { to: "/company", label: "Вакансии", end: true },
   { to: "/company/catalog", label: "Каталог кандидатов" },
+  { to: "/company/interviews", label: "Собеседования" },
   { to: "/company/offers", label: "Офферы" },
 ];
 
@@ -24,6 +26,7 @@ export default function EmployerPortal() {
       <Routes>
         <Route index element={<VacanciesPage />} />
         <Route path="catalog" element={<CatalogPage company={company.data} />} />
+        <Route path="interviews" element={<InterviewsPage />} />
         <Route path="offers" element={<EmployerOffersPage />} />
         <Route path="*" element={<VacanciesPage />} />
       </Routes>

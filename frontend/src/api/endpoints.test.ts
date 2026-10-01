@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   adminApi,
+  aiAdminApi,
   authApi,
   candidateApi,
   candidateOffersApi,
@@ -8,6 +9,8 @@ import {
   employerApi,
   employerOffersApi,
   fspApi,
+  interviewsApi,
+  myInterviewsApi,
   passportApi,
   publicApi,
 } from "./endpoints";
@@ -64,6 +67,17 @@ describe("endpoints map to the backend API", () => {
     ["admin users", () => adminApi.users({ role: "candidate", q: "anna" }, undefined), "GET", "/api/v1/admin/users?role=candidate&q=anna&limit=20"],
     ["moderate user", () => adminApi.moderateUser("u1", "unblock", ""), "POST", "/api/v1/admin/users/u1/moderation"],
     ["audit", () => adminApi.audit("admin.", undefined), "GET", "/api/v1/admin/audit?action=admin.&limit=50"],
+    ["invite", () => interviewsApi.invite({} as never), "POST", "/api/v1/employer/interviews"],
+    ["interviews", () => interviewsApi.list("scheduled", undefined), "GET", "/api/v1/employer/interviews?status=scheduled&limit=20"],
+    ["cancel interview", () => interviewsApi.cancel("i1", ""), "POST", "/api/v1/employer/interviews/i1/cancel"],
+    ["complete interview", () => interviewsApi.complete("i1", "passed", ""), "POST", "/api/v1/employer/interviews/i1/complete"],
+    ["my interviews", () => myInterviewsApi.list(undefined, undefined), "GET", "/api/v1/candidate/interviews?limit=20"],
+    ["accept slot", () => myInterviewsApi.accept("i1", "2026-10-05T09:00:00Z"), "POST", "/api/v1/candidate/interviews/i1/accept"],
+    ["decline interview", () => myInterviewsApi.decline("i1", ""), "POST", "/api/v1/candidate/interviews/i1/decline"],
+    ["ai providers", () => aiAdminApi.list(), "GET", "/api/v1/admin/ai-providers"],
+    ["activate ai", () => aiAdminApi.activate("p1"), "POST", "/api/v1/admin/ai-providers/p1/activate"],
+    ["deactivate ai", () => aiAdminApi.deactivate(), "POST", "/api/v1/admin/ai-providers/deactivate"],
+    ["test ai", () => aiAdminApi.test("p1"), "POST", "/api/v1/admin/ai-providers/p1/test"],
     ["catalog categories", () => catalogApi.categories(), "GET", "/api/v1/employer/catalog/categories"],
     ["catalog candidates", () => catalogApi.candidates({ category: "product-elite", grade: "middle" }, "c"), "GET", "/api/v1/employer/catalog/candidates?category=product-elite&grade=middle&cursor=c&limit=20"],
     ["employer offers", () => employerOffersApi.list("sent", undefined), "GET", "/api/v1/employer/offers?status=sent&limit=20"],
@@ -79,7 +93,7 @@ describe("endpoints map to the backend API", () => {
 
   it("sends offer with idempotency key header", async () => {
     await employerOffersApi.send(
-      { anon_id: "a", vacancy_id: "v", salary_min: 1, salary_max: 2, message: "" },
+      { interview_id: "i1", salary_min: 1, salary_max: 2, message: "" },
       "key-1",
     );
     const [url, init] = fetchMock.mock.calls.at(-1)!;

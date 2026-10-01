@@ -4,6 +4,7 @@ import type { CandidateCard } from "../../../api/types";
 import { formatSalaryRange, labels, tierLabels } from "../../../lib/format";
 import { searchTone, tierTone } from "../../../lib/tones";
 import { Badge } from "../../../ui/Badge";
+import { MatchPanel } from "./MatchPanel";
 
 const MAX_ACHIEVEMENTS = 3;
 
@@ -40,6 +41,8 @@ export function CandidateCardView({ card, action }: { card: CandidateCard; actio
           </Badge>
         </div>
       </div>
+
+      {card.match && <MatchPanel match={card.match} />}
 
       <p className="text-sm">
         <span className="text-muted">Ожидания: </span>
