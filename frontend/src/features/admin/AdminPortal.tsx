@@ -1,7 +1,8 @@
-import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Building2, Check, Ban } from "lucide-react";
 import { useState } from "react";
 import { adminApi } from "../../api/endpoints";
+import { useCursorList } from "../../api/queries";
 import { errorMessage } from "../../api/errors";
 import type { Company, CompanyStatus } from "../../api/types";
 import { formatDate, labels } from "../../lib/format";
@@ -14,8 +15,8 @@ import { Dialog } from "../../ui/Dialog";
 import { EmptyState } from "../../ui/EmptyState";
 import { Field, Textarea } from "../../ui/form";
 import { Segmented } from "../../ui/Segmented";
-import { Spinner } from "../../ui/Spinner";
-import { useToast } from "../../ui/Toast";
+import { LoadingBlock } from "../../ui/Spinner";
+import { useAction } from "../../ui/useAction";
 
 const FILTERS: { value: CompanyStatus; label: string }[] = [
   { value: "pending", label: "На модерации" },
@@ -25,14 +26,8 @@ const FILTERS: { value: CompanyStatus; label: string }[] = [
 
 const COMPANIES = ["admin", "companies"] as const;
 
-function useCompanies(status: CompanyStatus) {
-  return useInfiniteQuery({
-    queryKey: [...COMPANIES, status],
-    queryFn: ({ pageParam }) => adminApi.companies(status, pageParam),
-    initialPageParam: undefined as string | undefined,
-    getNextPageParam: (page) => page.next_cursor ?? undefined,
-  });
-}
+const useCompanies = (status: CompanyStatus) =>
+  useCursorList([...COMPANIES, status], (cursor) => adminApi.companies(status, cursor));
 
 function useSetStatus() {
   const client = useQueryClient();
@@ -47,7 +42,7 @@ export default function AdminPortal() {
   const [status, setStatus] = useState<CompanyStatus>("pending");
   const [blocking, setBlocking] = useState<Company | null>(null);
   const query = useCompanies(status);
-  const items = query.data?.pages.flatMap((page) => page.items) ?? [];
+  const items = query.items;
 
   return (
     <AppShell>
@@ -59,11 +54,7 @@ export default function AdminPortal() {
         <Segmented label="Статус компаний" value={status} options={FILTERS} onChange={setStatus} />
       </div>
       {query.error && <Alert>{errorMessage(query.error)}</Alert>}
-      {!query.data && !query.error && (
-        <div className="flex justify-center py-16 text-muted">
-          <Spinner className="size-6" />
-        </div>
-      )}
+      {!query.data && !query.error && <LoadingBlock />}
       {query.data && items.length === 0 && (
         <EmptyState icon={<Building2 className="size-5" />} title="Список пуст" text="Компаний с таким статусом нет." />
       )}
@@ -77,19 +68,16 @@ export default function AdminPortal() {
           </Button>
         )}
       </div>
-      <BlockDialog company={blocking} onClose={() => setBlocking(null)} />
+      {/* key: причина не переносится с одной компании на другую */}
+      <BlockDialog key={blocking?.id ?? "none"} company={blocking} onClose={() => setBlocking(null)} />
     </AppShell>
   );
 }
 
 function CompanyRow({ company, onBlock }: { company: Company; onBlock: () => void }) {
-  const notify = useToast();
+  const run = useAction();
   const setStatus = useSetStatus();
-  const approve = () =>
-    setStatus.mutate(
-      { id: company.id, status: "approved", reason: "" },
-      { onSuccess: () => notify(`«${company.name}» одобрена`), onError: (err) => notify(errorMessage(err), "error") },
-    );
+  const approve = () => run(setStatus, { id: company.id, status: "approved", reason: "" }, `«${company.name}» одобрена`);
   return (
     <article className="flex flex-wrap items-center gap-4 rounded-2xl border border-line bg-surface p-5">
       <div className="min-w-0 flex-1">
@@ -120,27 +108,22 @@ function CompanyRow({ company, onBlock }: { company: Company; onBlock: () => voi
 }
 
 function BlockDialog({ company, onClose }: { company: Company | null; onClose: () => void }) {
-  const notify = useToast();
+  const run = useAction();
   const setStatus = useSetStatus();
   const [reason, setReason] = useState("");
   const tooShort = reason.trim().length < 5;
 
   const submit = () =>
     company &&
-    setStatus.mutate(
-      { id: company.id, status: "blocked", reason: reason.trim() },
-      {
-        onSuccess: () => {
-          notify(`«${company.name}» заблокирована`);
-          setReason("");
-          onClose();
-        },
-        onError: (err) => notify(errorMessage(err), "error"),
-      },
-    );
+    run(setStatus, { id: company.id, status: "blocked", reason: reason.trim() }, `«${company.name}» заблокирована`, onClose);
 
   return (
-    <Dialog open={company !== null} title={`Заблокировать «${company?.name ?? ""}»?`} onClose={onClose}>
+    <Dialog
+      open={company !== null}
+      title={`Заблокировать «${company?.name ?? ""}»?`}
+      onClose={onClose}
+      busy={setStatus.isPending}
+    >
       <p className="mb-4 text-sm text-muted">
         Все черновики и опубликованные вакансии компании будут заблокированы. Причина попадёт в журнал аудита.
       </p>

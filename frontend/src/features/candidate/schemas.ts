@@ -14,7 +14,10 @@ export const profileSchema = z
     salary_max: optionalMoney,
     phone: optionalText(32),
     telegram: optionalText(64),
-    contact_email: optionalText(254),
+    contact_email: optionalText(254).refine(
+      (v) => v === null || z.email().safeParse(v).success,
+      "Некорректный email",
+    ),
     skills: z.array(z.string()).max(50, "Не больше 50 навыков"),
     is_hidden: z.boolean(),
   })

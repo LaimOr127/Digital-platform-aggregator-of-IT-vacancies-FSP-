@@ -4,7 +4,7 @@ import type { Skill, Vacancy } from "../../api/types";
 import { labels, options } from "../../lib/format";
 import { applyServerErrors } from "../../lib/forms";
 import { Button } from "../../ui/Button";
-import { Field, Input, Select, Textarea } from "../../ui/form";
+import { Field, FieldGroup, Input, Select, Textarea } from "../../ui/form";
 import { SkillPicker } from "../../ui/SkillPicker";
 import { useToast } from "../../ui/Toast";
 import { useCreateVacancy, useUpdateVacancy } from "./hooks";
@@ -57,14 +57,13 @@ export function VacancyForm({ vacancy, skills, onDone }: Props) {
       <Field label="Город" error={errors.city?.message} className="sm:col-span-2">
         <Input placeholder="Можно оставить пустым для удалёнки" {...register("city")} />
       </Field>
-      <div className="sm:col-span-2">
-        <p className="mb-2 text-sm font-medium">Навыки</p>
+      <FieldGroup label="Навыки" error={errors.skills?.message} className="sm:col-span-2">
         <Controller
           control={control}
           name="skills"
           render={({ field }) => <SkillPicker skills={skills} value={field.value} onChange={field.onChange} max={30} />}
         />
-      </div>
+      </FieldGroup>
       <Field label="Описание" error={errors.description?.message} className="sm:col-span-2">
         <Textarea rows={6} placeholder="Задачи, команда, условия" {...register("description")} />
       </Field>

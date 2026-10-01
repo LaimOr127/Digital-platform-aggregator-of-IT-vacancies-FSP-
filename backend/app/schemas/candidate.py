@@ -1,7 +1,7 @@
 import uuid
 from typing import Annotated
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field
 
 from app.models.enums import Grade, VerificationTier, WorkFormat
 from app.schemas.common import SalaryRangeMixin, SkillOut
@@ -12,7 +12,7 @@ SkillSlug = Annotated[str, Field(pattern=r"^[a-z0-9][a-z0-9+#.\-]{0,63}$")]
 class Contacts(BaseModel):
     phone: str | None = Field(default=None, max_length=32)
     telegram: str | None = Field(default=None, max_length=64)
-    email: str | None = Field(default=None, max_length=254)
+    email: EmailStr | None = Field(default=None, max_length=254)
 
 
 class ProfileUpdateIn(SalaryRangeMixin):

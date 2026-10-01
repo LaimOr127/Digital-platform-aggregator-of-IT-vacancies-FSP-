@@ -1,23 +1,32 @@
 // Оболочка кабинетов: шапка с разделом, пользователем и выходом; контент с плавным появлением.
 import { LogOut } from "lucide-react";
 import { motion } from "motion/react";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { useNavigate } from "react-router";
+import { errorMessage } from "../api/errors";
 import { useAuth } from "../auth/AuthProvider";
 import { PORTALS } from "../auth/portal";
 import { Button } from "./Button";
 import { Logo } from "./Logo";
+import { useToast } from "./Toast";
 
 export function AppShell({ children, actions }: { children: ReactNode; actions?: ReactNode }) {
   const auth = useAuth();
   const navigate = useNavigate();
+  const notify = useToast();
   const user = auth.status === "authenticated" ? auth.user : null;
 
-  // сначала уходим со страницы кабинета: иначе защита маршрута увидит «гостя»
-  // раньше навигации и отправит на вход с ?next= текущего кабинета
+  const [leaving, setLeaving] = useState(false);
+  // выход подтверждает сервер; уходим со страницы кабинета до очистки сессии,
+  // иначе защита маршрута отправит «гостя» на вход с ?next= текущего кабинета
   const signOut = async () => {
-    navigate("/", { replace: true });
-    await auth.signOut();
+    setLeaving(true);
+    try {
+      await auth.signOut(() => navigate("/", { replace: true }));
+    } catch (err) {
+      notify(`Не удалось выйти: ${errorMessage(err)}`, "error");
+      setLeaving(false);
+    }
   };
 
   return (
@@ -29,7 +38,7 @@ export function AppShell({ children, actions }: { children: ReactNode; actions?:
           <div className="ml-auto flex items-center gap-2">
             {actions}
             {user && <span className="hidden max-w-48 truncate text-sm text-muted md:inline">{user.email}</span>}
-            <Button variant="ghost" size="sm" onClick={signOut} aria-label="Выйти">
+            <Button variant="ghost" size="sm" onClick={signOut} loading={leaving} aria-label="Выйти">
               <LogOut className="size-4" aria-hidden />
               <span className="hidden sm:inline">Выйти</span>
             </Button>

@@ -1,11 +1,9 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState, type ReactNode } from "react";
 import { useForm, type FieldValues, type UseFormSetError } from "react-hook-form";
-import { useNavigate } from "react-router";
 import { authApi } from "../../api/endpoints";
 import type { TokenOut } from "../../api/types";
 import { useAuth } from "../../auth/AuthProvider";
-import { portalPath } from "../../auth/portal";
 import { applyServerErrors } from "../../lib/forms";
 import { Alert } from "../../ui/Alert";
 import { Button } from "../../ui/Button";
@@ -22,16 +20,14 @@ type Role = "candidate" | "employer";
 
 const PASSWORD_HINT = "Не короче 10 символов, буквы и цифры или символы";
 
-/** Общий сценарий отправки: запрос -> вход -> кабинет; ошибки сервера -> поля формы. */
+/** Общий сценарий отправки: запрос -> вход (кабинет откроет AuthPage); ошибки -> поля формы. */
 function useRegister<T extends FieldValues>(fields: readonly string[], request: (v: T) => Promise<TokenOut>) {
   const { signIn } = useAuth();
-  const navigate = useNavigate();
   const [formError, setFormError] = useState<string | null>(null);
   const submit = (setError: UseFormSetError<T>) => async (values: T) => {
     setFormError(null);
     try {
-      const user = await signIn(await request(values));
-      navigate(portalPath(user.role), { replace: true });
+      await signIn(await request(values));
     } catch (err) {
       setFormError(applyServerErrors(err, setError, fields));
     }

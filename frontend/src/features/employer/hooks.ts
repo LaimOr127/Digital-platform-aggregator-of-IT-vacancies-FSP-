@@ -1,5 +1,6 @@
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { employerApi } from "../../api/endpoints";
+import { useCursorList } from "../../api/queries";
 import type { VacancyCreate, VacancyStatus, VacancyUpdate } from "../../api/types";
 
 const VACANCIES = ["vacancies"] as const;
@@ -7,12 +8,7 @@ const VACANCIES = ["vacancies"] as const;
 export const useCompany = () => useQuery({ queryKey: ["company"], queryFn: employerApi.company });
 
 export const useVacancies = (status: VacancyStatus | undefined) =>
-  useInfiniteQuery({
-    queryKey: [...VACANCIES, status ?? "all"],
-    queryFn: ({ pageParam }) => employerApi.vacancies(status, pageParam),
-    initialPageParam: undefined as string | undefined,
-    getNextPageParam: (page) => page.next_cursor ?? undefined,
-  });
+  useCursorList([...VACANCIES, status ?? "all"], (cursor) => employerApi.vacancies(status, cursor));
 
 /** Любое изменение вакансии обновляет все списки (фильтры по статусу). */
 function useVacancyMutation<A>(fn: (arg: A) => Promise<unknown>) {

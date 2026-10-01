@@ -33,42 +33,59 @@ function send(method: Method, url: string, body: unknown, token: string | null) 
   });
 }
 
-let refreshing: Promise<boolean> | null = null;
+/** ok — новый токен получен; invalid — сессии нет (401/403, нет cookie); transient — сбой сети/сервера. */
+export type RefreshResult = "ok" | "invalid" | "transient";
 
-/** Новый access-токен по refresh-cookie. Параллельные вызовы делят один запрос. */
-export function refreshSession(): Promise<boolean> {
-  refreshing ??= doRefresh().finally(() => {
+let refreshing: Promise<RefreshResult> | null = null;
+
+/** Новый access-токен по refresh-cookie. Параллельные вызовы в вкладке делят один запрос,
+ * между вкладками — блокировка Web Locks: refresh-токен одноразовый, два одновременных
+ * запроса с ним сервер считает кражей и отзывает всю сессию. */
+export function refreshSession(): Promise<RefreshResult> {
+  refreshing ??= withCrossTabLock(doRefresh).finally(() => {
     refreshing = null;
   });
   return refreshing;
 }
 
-async function doRefresh(): Promise<boolean> {
+function withCrossTabLock<T>(fn: () => Promise<T>): Promise<T> {
+  const locks = typeof navigator !== "undefined" ? navigator.locks : undefined;
+  return locks ? (locks.request("itmatch-auth-refresh", fn) as Promise<T>) : fn();
+}
+
+async function doRefresh(): Promise<RefreshResult> {
   const csrf = readCookie("csrf_token");
-  if (!csrf) return false;
+  if (!csrf) return "invalid";
   try {
     const res = await fetch(`${BASE}/auth/refresh`, {
       method: "POST",
       credentials: "same-origin",
       headers: { "X-CSRF-Token": csrf },
     });
-    if (!res.ok) return false;
+    if (res.status === 401 || res.status === 403) return "invalid";
+    if (!res.ok) return "transient";
     session.set((await res.json()).access_token);
-    return true;
+    return "ok";
   } catch {
-    return false;
+    return "transient";
   }
 }
+
+const transientError = () => new ApiError(503, "session_refresh_failed", "Нет связи с сервером, попробуйте ещё раз");
 
 export async function api<T = unknown>(method: Method, path: string, options: Options = {}): Promise<T> {
   const url = buildUrl(path, options.query);
   const token = session.get();
   let res = await send(method, url, options.body, token);
   if (res.status === 401 && token) {
-    if (await refreshSession()) {
-      res = await send(method, url, options.body, session.get());
-    } else {
+    // токен уже обновил параллельный запрос — повторяем с ним, без лишней ротации
+    const current = session.get();
+    const outcome = current && current !== token ? "ok" : await refreshSession();
+    if (outcome === "transient") throw transientError();
+    if (outcome === "invalid") {
       session.clear();
+    } else {
+      res = await send(method, url, options.body, session.get());
     }
   }
   if (!res.ok) throw await toApiError(res);
@@ -76,15 +93,29 @@ export async function api<T = unknown>(method: Method, path: string, options: Op
   return (await res.json()) as T;
 }
 
-/** Выход: CSRF-заголовок обязателен, cookie очищает сервер. */
+/** Выход на сервере (отзыв refresh-cookie). Без csrf-cookie серверной сессии уже нет.
+ * Ошибка пробрасывается: нельзя делать вид, что вышли, если cookie остался живым. */
 export async function logoutRequest(): Promise<void> {
-  const csrf = readCookie("csrf_token") ?? "";
-  await fetch(`${BASE}/auth/logout`, {
+  const csrf = readCookie("csrf_token");
+  if (!csrf) return;
+  const res = await fetch(`${BASE}/auth/logout`, {
     method: "POST",
     credentials: "same-origin",
     headers: { "X-CSRF-Token": csrf },
-  }).catch(() => undefined);
-  session.clear();
+  });
+  if (!res.ok) throw await toApiError(res);
+}
+
+/** sub (id пользователя) из access-токена — только для сравнения, без проверки подписи. */
+export function tokenSubject(token: string | null): string | null {
+  try {
+    const payload = token?.split(".")[1];
+    if (!payload) return null;
+    const json = atob(payload.replace(/-/g, "+").replace(/_/g, "/"));
+    return (JSON.parse(json) as { sub?: string }).sub ?? null;
+  } catch {
+    return null;
+  }
 }
 
 export { ApiError };

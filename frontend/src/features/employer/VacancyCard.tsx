@@ -1,12 +1,11 @@
 import { CalendarClock, MapPin, Pencil, Send, Trash2, XCircle } from "lucide-react";
 import { motion } from "motion/react";
 import type { Vacancy } from "../../api/types";
-import { errorMessage } from "../../api/errors";
 import { daysLeft, formatSalaryRange, labels } from "../../lib/format";
 import { vacancyTone } from "../../lib/tones";
 import { Badge } from "../../ui/Badge";
 import { Button } from "../../ui/Button";
-import { useToast } from "../../ui/Toast";
+import { useAction } from "../../ui/useAction";
 import { useCloseVacancy, usePublishVacancy } from "./hooks";
 
 type Props = {
@@ -17,17 +16,11 @@ type Props = {
 };
 
 export function VacancyCard({ vacancy: v, canPublish, onEdit, onDelete }: Props) {
-  const notify = useToast();
+  const run = useAction();
   const publish = usePublishVacancy();
   const close = useCloseVacancy();
   const editable = v.status !== "blocked";
   const left = v.status === "active" ? daysLeft(v.expires_at) : null;
-
-  const run = (action: typeof publish, success: string) => () =>
-    action.mutate(v.id, {
-      onSuccess: () => notify(success),
-      onError: (err) => notify(errorMessage(err), "error"),
-    });
 
   return (
     <motion.article
@@ -83,7 +76,7 @@ export function VacancyCard({ vacancy: v, canPublish, onEdit, onDelete }: Props)
           {editable && v.status !== "closed" && (
             <Button
               size="sm"
-              onClick={run(publish, v.status === "active" ? "Продлено на 14 дней" : "Вакансия опубликована")}
+              onClick={() => run(publish, v.id, v.status === "active" ? "Продлено на 14 дней" : "Вакансия опубликована")}
               loading={publish.isPending}
               disabled={!canPublish}
               title={canPublish ? undefined : "Публикация доступна после одобрения компании"}
@@ -93,7 +86,7 @@ export function VacancyCard({ vacancy: v, canPublish, onEdit, onDelete }: Props)
             </Button>
           )}
           {v.status === "active" && (
-            <Button variant="ghost" size="sm" onClick={run(close, "Вакансия закрыта")} loading={close.isPending}>
+            <Button variant="ghost" size="sm" onClick={() => run(close, v.id, "Вакансия закрыта")} loading={close.isPending}>
               <XCircle className="size-3.5" aria-hidden />
               Закрыть
             </Button>
