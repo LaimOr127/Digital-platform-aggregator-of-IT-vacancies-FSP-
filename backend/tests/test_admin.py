@@ -33,6 +33,7 @@ async def test_list_pending_and_approve_with_audit(client: AsyncClient, db, app)
         "to": "blocked",
         "reason": "фейковая компания",
         "vacancies": 0,
+        "offers": 0,
     }
 
 

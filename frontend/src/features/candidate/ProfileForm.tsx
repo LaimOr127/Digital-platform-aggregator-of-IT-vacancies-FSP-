@@ -95,7 +95,12 @@ export function ProfileForm({ profile, skills }: { profile: Profile; skills: Ski
       </Card>
 
       <Section title="О себе">
-        <Field label="Опыт и проекты" error={errors.about?.message} className="sm:col-span-2">
+        <Field
+          label="Опыт и проекты"
+          error={errors.about?.message}
+          hint="Работодатели видят этот текст в анонимной карточке — не указывайте здесь имя и контакты"
+          className="sm:col-span-2"
+        >
           <Textarea rows={5} placeholder="Чем занимались, какие задачи решали, чем гордитесь" {...register("about")} />
         </Field>
       </Section>

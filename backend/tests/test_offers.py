@@ -251,3 +251,80 @@ async def test_offer_expiry(client: AsyncClient, db, app):
         await client.post(f"{INBOX}/{offer['id']}/accept", headers=bearer(candidate["token"]))
     ).status_code == 409
     assert await OfferExpiryJob(db).run() == 1
+
+
+async def test_idempotency_key_cannot_be_reused_for_another_offer(client: AsyncClient, db, app):
+    employer = await approved_employer(client, db, app)
+    first = await verified_candidate(client, "FSP-1")
+    second = await verified_candidate(client, "FSP-2")
+    headers = {**bearer(employer["token"]), "Idempotency-Key": "same-key"}
+    assert (
+        await client.post(OFFERS, json=offer_body(first, employer), headers=headers)
+    ).status_code == 201
+    reused = await client.post(OFFERS, json=offer_body(second, employer), headers=headers)
+    assert reused.status_code == 409
+
+
+async def test_no_repeat_offer_right_after_decline(client: AsyncClient, db, app):
+    employer = await approved_employer(client, db, app)
+    candidate = await verified_candidate(client)
+    offer = await send(client, candidate, employer)
+    await client.post(
+        f"{INBOX}/{offer['id']}/decline", json={"reason": ""}, headers=bearer(candidate["token"])
+    )
+    again = await client.post(
+        OFFERS, json=offer_body(candidate, employer), headers=bearer(employer["token"])
+    )
+    assert again.status_code == 409 and "повторно" in again.json()["error"]["message"]
+
+
+async def test_expired_offer_frees_the_pair_and_filters_match_display(client: AsyncClient, db, app):
+    employer = await approved_employer(client, db, app)
+    candidate = await verified_candidate(client)
+    await send(client, candidate, employer)
+    async with db.sessionmaker() as session:
+        await set_rls_context(session, None, "system")
+        await session.execute(
+            update(Offer).values(expires_at=datetime.now(UTC) - timedelta(minutes=1))
+        )
+        await session.commit()
+    token = bearer(employer["token"])
+    assert (await client.get(OFFERS, params={"status": "sent"}, headers=token)).json()[
+        "items"
+    ] == []
+    assert (
+        len((await client.get(OFFERS, params={"status": "expired"}, headers=token)).json()["items"])
+        == 1
+    )
+    # просроченный оффер не мешает отправить новый, не дожидаясь worker
+    await send(client, candidate, employer)
+
+
+async def test_blocking_company_withdraws_pending_offers(client: AsyncClient, db, app):
+    employer = await approved_employer(client, db, app)
+    candidate = await verified_candidate(client)
+    offer = await send(client, candidate, employer)
+    admin = await create_admin(db, app)
+    cid = await company_id(client, employer["token"])
+    await client.post(
+        f"/api/v1/admin/companies/{cid}/status",
+        json={"status": "blocked", "reason": "спам"},
+        headers=bearer(admin),
+    )
+    inbox = (await client.get(INBOX, headers=bearer(candidate["token"]))).json()["items"]
+    assert inbox[0]["status"] == "withdrawn"
+    assert (
+        await client.post(f"{INBOX}/{offer['id']}/accept", headers=bearer(candidate["token"]))
+    ).status_code == 409
+
+
+async def test_offer_send_limited_per_company(client: AsyncClient, db, app):
+    app.state.rate_limits["offer_send"] = (1, 86_400)
+    employer = await approved_employer(client, db, app)
+    first = await verified_candidate(client, "FSP-1")
+    second = await verified_candidate(client, "FSP-2")
+    await send(client, first, employer)
+    limited = await client.post(
+        OFFERS, json=offer_body(second, employer), headers=bearer(employer["token"])
+    )
+    assert limited.status_code == 429

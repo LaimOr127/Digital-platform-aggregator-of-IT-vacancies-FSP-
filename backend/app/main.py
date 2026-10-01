@@ -61,6 +61,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "fsp_athlete": settings.fsp_athlete_rate_limit,
             "fsp_confirm": settings.fsp_confirm_rate_limit,
             "fsp_sync": settings.fsp_sync_rate_limit,
+            "offer_send": settings.offer_send_rate_limit,
         }
     )
     register_error_handlers(app)

@@ -21,13 +21,20 @@ from app.repositories.base import Page
 from app.repositories.candidates import CandidateProfileRepository
 from app.repositories.catalog import CatalogRepository
 from app.repositories.companies import CompanyRepository
-from app.repositories.offers import CandidateOfferRepository, CompanyOfferRepository
+from app.repositories.offers import (
+    CandidateOfferRepository,
+    CompanyOfferRepository,
+    expire_pair,
+    status_condition,
+)
 from app.repositories.vacancies import VacancyRepository
 from app.schemas.catalog import EmployerOfferOut, OfferContactsOut, OfferCreateIn, OfferOut
 from app.services.access import Action, Principal, policy
 from app.services.catalog import build_cards
 
 OFFER_TTL = timedelta(days=7)
+# после отказа кандидата компания не может сразу предложить снова (честный найм, без спама)
+DECLINE_COOLDOWN = timedelta(days=30)
 
 
 def effective_status(offer: Offer) -> OfferStatus:
@@ -57,7 +64,7 @@ class EmployerOfferService:
     async def send(self, data: OfferCreateIn, idempotency_key: str | None) -> EmployerOfferOut:
         policy.ensure(self.principal, Action.OFFER_SEND)
         if idempotency_key and (existing := await self.offers.by_idempotency_key(idempotency_key)):
-            return (await self._with_cards([existing]))[0]
+            return await self._replay(existing, data)
         vacancy = await VacancyRepository(self.session, self.company_id).get_or_404(data.vacancy_id)
         if vacancy.status != VacancyStatus.ACTIVE or (
             vacancy.expires_at and as_aware(vacancy.expires_at) <= datetime.now(UTC)
@@ -66,6 +73,11 @@ class EmployerOfferService:
         profile = await self.catalog.by_anon_id(data.anon_id)
         if profile is None:
             raise NotFoundError("кандидат не найден или скрыл профиль")
+        now = datetime.now(UTC)
+        if declined := await self.offers.declined_since(profile.id, now - DECLINE_COOLDOWN):
+            retry = as_aware(declined.responded_at or now) + DECLINE_COOLDOWN
+            raise ConflictError(f"кандидат отклонил ваш оффер — повторно можно с {retry:%d.%m.%Y}")
+        await expire_pair(self.session, vacancy.id, profile.id, now)
         company = await CompanyRepository(self.session).get_or_404(self.company_id)
         offer = Offer(
             company_id=self.company_id,
@@ -97,12 +109,12 @@ class EmployerOfferService:
     async def list_offers(
         self, status: OfferStatus | None, cursor: str | None, limit: int
     ) -> tuple[list[EmployerOfferOut], str | None]:
-        conditions = [Offer.status == status] if status else []
+        conditions = [status_condition(status, datetime.now(UTC))] if status else []
         page: Page[Offer] = await self.offers.list_page(*conditions, cursor=cursor, limit=limit)
         return await self._with_cards(page.items), page.next_cursor
 
     async def withdraw(self, offer_id: uuid.UUID) -> EmployerOfferOut:
-        offer = await self._own(offer_id)
+        offer = await self._own(offer_id, lock=True)
         if effective_status(offer) != OfferStatus.SENT:
             raise InvalidStateError("отозвать можно только оффер, ожидающий ответа")
         offer.status = OfferStatus.WITHDRAWN
@@ -130,10 +142,22 @@ class EmployerOfferService:
             email=contacts.get("email"),
         )
 
-    async def _own(self, offer_id: uuid.UUID) -> Offer:
-        offer = await self.offers.get_or_404(offer_id)
+    async def _own(self, offer_id: uuid.UUID, lock: bool = False) -> Offer:
+        offer = await (self.offers.lock_or_404 if lock else self.offers.get_or_404)(offer_id)
         policy.ensure(self.principal, Action.OFFER_MANAGE, offer)
         return offer
+
+    async def _replay(self, existing: Offer, data: OfferCreateIn) -> EmployerOfferOut:
+        """Повтор с тем же ключом возвращает тот же оффер; ключ от другого оффера — ошибка."""
+        profile = await self.catalog.by_anon_id(data.anon_id)
+        same = (
+            existing.vacancy_id == data.vacancy_id
+            and profile is not None
+            and existing.profile_id == profile.id
+        )
+        if not same:
+            raise ConflictError("Idempotency-Key уже использован для другого оффера")
+        return (await self._with_cards([existing]))[0]
 
     async def _with_cards(self, offers: list[Offer]) -> list[EmployerOfferOut]:
         profiles = await self.catalog.by_ids(list({o.profile_id for o in offers}))
@@ -159,7 +183,7 @@ class CandidateOfferService:
         self, status: OfferStatus | None, cursor: str | None, limit: int
     ) -> tuple[list[OfferOut], str | None]:
         profile = await self.profiles.own_or_404()
-        conditions = [Offer.status == status] if status else []
+        conditions = [status_condition(status, datetime.now(UTC))] if status else []
         page = await CandidateOfferRepository(self.session, profile.id).list_page(
             *conditions, cursor=cursor, limit=limit
         )
@@ -187,7 +211,7 @@ class CandidateOfferService:
         return await self._respond(offer, OfferStatus.DECLINED, "offer.declined")
 
     async def _pending(self, profile_id: uuid.UUID, offer_id: uuid.UUID) -> Offer:
-        offer = await CandidateOfferRepository(self.session, profile_id).get_or_404(offer_id)
+        offer = await CandidateOfferRepository(self.session, profile_id).lock_or_404(offer_id)
         if effective_status(offer) != OfferStatus.SENT:
             raise InvalidStateError("на этот оффер уже нельзя ответить")
         return offer

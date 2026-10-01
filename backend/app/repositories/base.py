@@ -59,6 +59,15 @@ class BaseRepository[ModelT: Base]:
         stmt = self._select().where(self.model.id == row_id)  # type: ignore[attr-defined]
         return (await self.session.execute(stmt)).scalar_one_or_none()
 
+    async def lock_or_404(self, row_id: uuid.UUID) -> ModelT:
+        """Строка с блокировкой до конца транзакции (SELECT ... FOR UPDATE): параллельные
+        изменения одной записи выполняются по очереди, а не «последний перезаписал»."""
+        stmt = self._select().where(self.model.id == row_id).with_for_update()  # type: ignore[attr-defined]
+        obj = (await self.session.execute(stmt)).scalar_one_or_none()
+        if obj is None:
+            raise NotFoundError(f"{self.model.__tablename__} not found")
+        return obj
+
     async def get_or_404(self, row_id: uuid.UUID) -> ModelT:
         obj = await self.get(row_id)
         if obj is None:

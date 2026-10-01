@@ -12,7 +12,7 @@ from fastapi import Request
 
 from app.core.errors import RateLimitedError
 
-_PERIODS = {"second": 1, "minute": 60, "hour": 3600}
+_PERIODS = {"second": 1, "minute": 60, "hour": 3600, "day": 86_400}
 _MAX_KEYS = 10_000
 
 

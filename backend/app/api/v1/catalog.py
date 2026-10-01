@@ -3,9 +3,10 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Header, Query, status
+from fastapi import APIRouter, Depends, Header, Query, Request, status
 
 from app.api.deps import CipherDep, PrincipalDep, SessionDep
+from app.core.ratelimit import check_rate_limit
 from app.models.enums import Grade, OfferStatus, WorkFormat
 from app.schemas.catalog import (
     CandidateCardOut,
@@ -63,7 +64,17 @@ async def catalog_candidate(anon_id: uuid.UUID, service: CatalogDep) -> Candidat
     return await service.candidate(anon_id)
 
 
-@router.post("/offers", status_code=status.HTTP_201_CREATED, summary="Отправить оффер")
+def _offer_limit(request: Request, principal: PrincipalDep) -> None:
+    """Офферы компании в сутки ограничены: кандидатов не заваливают предложениями."""
+    check_rate_limit(request, "offer_send", key=str(principal.company_id or principal.user_id))
+
+
+@router.post(
+    "/offers",
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(_offer_limit)],
+    summary="Отправить оффер",
+)
 async def send_offer(
     data: OfferCreateIn,
     service: OffersDep,

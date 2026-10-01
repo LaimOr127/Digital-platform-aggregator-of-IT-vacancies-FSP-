@@ -53,6 +53,7 @@ class Settings(BaseSettings):
     fsp_athlete_rate_limit: str = "5/hour"
     fsp_confirm_rate_limit: str = "20/hour"
     fsp_sync_rate_limit: str = "10/minute"
+    offer_send_rate_limit: str = "50/day"  # офферы одной компании: защита кандидатов от спама
 
     @property
     def is_prod(self) -> bool:

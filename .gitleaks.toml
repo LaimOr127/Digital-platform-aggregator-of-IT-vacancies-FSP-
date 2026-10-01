@@ -1,0 +1,9 @@
+# Стандартные правила gitleaks + подтверждённые ложные срабатывания.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Тестовые фикстуры: пароли тестовых форм, не секреты"
+paths = [
+  '''frontend/src/features/auth/schemas\.test\.ts''',
+]

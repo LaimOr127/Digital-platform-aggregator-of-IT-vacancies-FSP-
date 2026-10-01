@@ -6,6 +6,7 @@ import { Link } from "react-router";
 import type { CandidateCard } from "../../../api/types";
 import { formatSalaryRange } from "../../../lib/format";
 import { applyServerErrors } from "../../../lib/forms";
+import { randomKey } from "../../../lib/ids";
 import { Alert } from "../../../ui/Alert";
 import { Button } from "../../../ui/Button";
 import { Dialog } from "../../../ui/Dialog";
@@ -32,7 +33,7 @@ function OfferForm({ candidate, onDone }: { candidate: CandidateCard; onDone: ()
   const notify = useToast();
   const vacancies = useActiveVacancies();
   const send = useSendOffer();
-  const [idempotencyKey] = useState(() => crypto.randomUUID());
+  const [idempotencyKey] = useState(randomKey);
   const [formError, setFormError] = useState<string | null>(null);
   const form = useForm<OfferFormInput, unknown, OfferFormOutput>({
     resolver: zodResolver(offerSchema),

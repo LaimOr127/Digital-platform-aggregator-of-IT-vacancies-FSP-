@@ -1,4 +1,0 @@
-# Подтверждённые ложные срабатывания gitleaks (исторические коммиты): тестовый пароль-фикстура
-# в тесте схемы формы. В текущем коде пароль собирается при запуске теста.
-0f338a1bd075efdb6810aed0d9217985f2d1e12e:frontend/src/features/auth/schemas.test.ts:generic-api-key:17
-0f338a1bd075efdb6810aed0d9217985f2d1e12e:frontend/src/features/auth/schemas.test.ts:generic-api-key:24
