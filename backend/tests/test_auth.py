@@ -1,4 +1,5 @@
-"""Аутентификация: регистрация, вход, ротация refresh, CSRF, выход, rate limit."""
+"""Аутентификация: вход, ротация refresh, CSRF, выход, rate limit.
+Регистрация и операции по почте — в test_account.py."""
 
 import pytest
 from httpx import AsyncClient
@@ -7,32 +8,32 @@ from sqlalchemy import select
 from app.core.security import hash_token
 from app.models import AuditLog, User
 from app.repositories.users import RefreshTokenRepository
-from tests.helpers import PASSWORD, bearer, register_candidate, unique_email
+from tests.helpers import PASSWORD, bearer, login, mailed_token, register_candidate, unique_email
 
 LOGIN = "/api/v1/auth/login"
 REFRESH = "/api/v1/auth/refresh"
 
 
-async def _signup(client: AsyncClient) -> tuple[str, dict]:
+async def _signup(client: AsyncClient) -> tuple[str, str]:
+    """Зарегистрированный и вошедший кандидат: (email, access-токен); cookie — у клиента."""
     email = unique_email("user")
-    r = await client.post(
+    await client.post(
         "/api/v1/auth/register/candidate",
         json={"email": email, "password": PASSWORD, "full_name": "Анна"},
     )
-    assert r.status_code == 201
-    return email, r.json()
+    token = await mailed_token(client, email, "verify_email")
+    await client.post("/api/v1/auth/verify-email", json={"token": token})
+    return email, await login(client, email)
 
 
 def _csrf(client: AsyncClient) -> dict[str, str]:
     return {"X-CSRF-Token": client.cookies.get("csrf_token") or ""}
 
 
-async def test_register_sets_secure_cookies(client: AsyncClient):
-    r = await client.post(
-        "/api/v1/auth/register/candidate",
-        json={"email": unique_email("c"), "password": PASSWORD, "full_name": "Анна"},
-    )
-    assert r.status_code == 201
+async def test_login_sets_secure_cookies(client: AsyncClient):
+    email, _ = await _signup(client)
+    r = await client.post(LOGIN, json={"email": email, "password": PASSWORD})
+    assert r.status_code == 200
     assert r.json()["token_type"] == "bearer" and r.json()["expires_in"] == 900
     refresh_cookie = next(h for h in r.headers.get_list("set-cookie") if "refresh_token=" in h)
     assert "HttpOnly" in refresh_cookie and "SameSite=strict" in refresh_cookie
@@ -44,15 +45,6 @@ async def test_me_returns_current_user(client: AsyncClient):
     r = await client.get("/api/v1/auth/me", headers=bearer(token))
     assert r.status_code == 200
     assert r.json()["role"] == "candidate" and r.json()["company_id"] is None
-
-
-async def test_duplicate_email_conflict_case_insensitive(client: AsyncClient):
-    email, _ = await _signup(client)
-    r = await client.post(
-        "/api/v1/auth/register/candidate",
-        json={"email": email.upper(), "password": PASSWORD, "full_name": "Анна"},
-    )
-    assert r.status_code == 409 and r.json()["error"]["code"] == "conflict"
 
 
 @pytest.mark.parametrize("password", ["short1", "aaaaaaaaaaaa", "123456789012", "abababababab1"])
@@ -130,7 +122,7 @@ async def test_logout_revokes_refresh(client: AsyncClient):
 
 
 async def test_inactive_user_cannot_login_or_use_token(client: AsyncClient, db):
-    email, body = await _signup(client)
+    email, token = await _signup(client)
     async with db.sessionmaker() as session:
         user = (await session.execute(select(User).where(User.email == email))).scalar_one()
         user.is_active = False
@@ -138,7 +130,7 @@ async def test_inactive_user_cannot_login_or_use_token(client: AsyncClient, db):
     assert (
         await client.post(LOGIN, json={"email": email, "password": PASSWORD})
     ).status_code == 401
-    me = await client.get("/api/v1/auth/me", headers=bearer(body["access_token"]))
+    me = await client.get("/api/v1/auth/me", headers=bearer(token))
     assert me.status_code == 401
 
 
@@ -148,7 +140,8 @@ async def test_bad_authorization_header(client: AsyncClient, header: str):
     assert r.status_code == 401 and r.json()["error"]["code"] == "unauthorized"
 
 
-async def test_login_rate_limited_per_ip(client: AsyncClient):
+async def test_login_rate_limited_per_ip(client: AsyncClient, app):
+    app.state.rate_limits["auth"] = (10, 60)
     codes = [
         (
             await client.post(

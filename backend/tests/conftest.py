@@ -81,6 +81,9 @@ def app(db: Database, settings: Settings, fsp: FakeFspClient):
     application = create_app(settings)
     application.dependency_overrides[get_database] = lambda: db
     application.dependency_overrides[get_fsp_client] = lambda: fsp
+    # сценарии регистрируют много пользователей с одного «IP»; лимиты проверяют отдельные тесты
+    application.state.rate_limits["auth"] = (1000, 60)
+    application.state.rate_limits["email"] = (1000, 3600)
     return application
 
 

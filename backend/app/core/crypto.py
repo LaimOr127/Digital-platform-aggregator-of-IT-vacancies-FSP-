@@ -27,6 +27,10 @@ def offer_field_context(field: str, offer_id: uuid.UUID) -> bytes:
     return f"offers.{field}:{offer_id}".encode()
 
 
+def outbox_payload_context(message_id: uuid.UUID) -> bytes:
+    return f"outbox.payload:{message_id}".encode()
+
+
 class FieldCipher:
     def __init__(self, hex_key: str) -> None:
         try:

@@ -55,6 +55,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.rate_limits = build_limits(
         {
             "auth": settings.auth_rate_limit,
+            "email": settings.email_rate_limit,
             "login_email": settings.login_email_rate_limit,
             "refresh": settings.refresh_rate_limit,
             "fsp_link": settings.fsp_link_rate_limit,

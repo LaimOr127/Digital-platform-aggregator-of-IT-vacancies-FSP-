@@ -1,23 +1,26 @@
-"""Модерация: компании. Каждое действие пишется в аудит."""
+"""Модерация: компании. Каждое действие пишется в аудит, компания получает письмо."""
 
 import uuid
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.crypto import FieldCipher
 from app.models import EmployerCompany
-from app.models.enums import CompanyStatus
+from app.models.enums import CompanyStatus, RecipientType
 from app.repositories.audit import AuditRepository
 from app.repositories.base import Page
 from app.repositories.companies import CompanyRepository
 from app.repositories.offers import withdraw_pending_for_company
 from app.repositories.vacancies import VacancyRepository
 from app.services.access import Action, Principal, policy
+from app.services.outbox import Outbox
 
 
 class AdminService:
-    def __init__(self, session: AsyncSession, principal: Principal) -> None:
+    def __init__(self, session: AsyncSession, principal: Principal, cipher: FieldCipher) -> None:
         policy.ensure(principal, Action.ADMIN_MODERATE)
         self.session = session
+        self.outbox = Outbox(session, cipher)
         self.principal = principal
         self.companies = CompanyRepository(session)
         self.audit = AuditRepository(session)
@@ -51,5 +54,12 @@ class AdminService:
                 "offers": withdrawn_offers,
             },
         )
+        if status != previous and status != CompanyStatus.PENDING:
+            self.outbox.enqueue(
+                "company_status",
+                RecipientType.COMPANY,
+                company.id,
+                {"company": company.name, "status": status},
+            )
         await self.session.commit()
         return company

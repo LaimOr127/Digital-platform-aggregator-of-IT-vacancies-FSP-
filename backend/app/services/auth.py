@@ -1,4 +1,5 @@
-"""Регистрация, вход, ротация refresh-токенов, выход.
+"""Вход, ротация refresh-токенов, выход; создание администратора (CLI).
+Регистрация и операции по почте — в services/account.py.
 
 Неверный email и неверный пароль дают одинаковый ответ и одинаковое время (хеш-заглушка).
 Повторное использование отозванного refresh-токена отзывает всю цепочку (признак кражи).
@@ -8,11 +9,10 @@ import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.crypto import FieldCipher, profile_field_context
-from app.core.errors import ConflictError, UnauthorizedError
+from app.core.crypto import FieldCipher
+from app.core.errors import ConflictError, EmailNotVerifiedError, UnauthorizedError
 from app.core.security import (
     TokenService,
     hash_password,
@@ -21,12 +21,10 @@ from app.core.security import (
     verify_password,
 )
 from app.core.timeutil import as_aware
-from app.db.session import set_rls_context
-from app.models import CandidateProfile, CompanyMember, EmployerCompany, RefreshToken, User
-from app.models.enums import MemberRole, UserRole
+from app.models import RefreshToken, User
+from app.models.enums import UserRole
 from app.repositories.audit import AuditRepository
 from app.repositories.users import RefreshTokenRepository, UserRepository
-from app.schemas.auth import CandidateRegisterIn, EmployerRegisterIn
 from app.services.enrollment import mfa_stamp, start_enrollment
 
 _INVALID_CREDENTIALS = "неверный email или пароль"
@@ -57,28 +55,19 @@ class AuthService:
         self.refresh_tokens = RefreshTokenRepository(session)
         self.audit = AuditRepository(session)
 
-    async def register_candidate(self, data: CandidateRegisterIn) -> TokenPair:
-        user = await self._create_user(data.email, data.password, UserRole.CANDIDATE)
-        await set_rls_context(self.session, user.id, user.role)
-        name_enc = self.cipher.encrypt(data.full_name, profile_field_context("full_name", user.id))
-        self.session.add(CandidateProfile(user_id=user.id, full_name_enc=name_enc))
-        return await self._finish_registration(user)
-
-    async def register_employer(self, data: EmployerRegisterIn) -> TokenPair:
-        user = await self._create_user(data.email, data.password, UserRole.EMPLOYER)
-        await set_rls_context(self.session, user.id, user.role)
-        company = EmployerCompany(name=data.company_name, inn=data.inn)
-        self.session.add(company)
-        await self.session.flush()
-        self.session.add(
-            CompanyMember(company_id=company.id, user_id=user.id, role=MemberRole.OWNER)
-        )
-        return await self._finish_registration(user)
-
     async def create_admin(self, email: str, password: str, superadmin: bool) -> tuple[User, str]:
         """Только для CLI: через API администратора создать нельзя.
         Возвращает и код подключения 2FA — без него первый вход невозможен."""
-        user = await self._create_user(email, password, UserRole.ADMIN, superadmin=superadmin)
+        if await self.users.by_email(email) is not None:
+            raise ConflictError("email уже зарегистрирован")
+        user = User(
+            email=email.lower(),
+            password_hash=hash_password(password),
+            role=UserRole.ADMIN,
+            is_superadmin=superadmin,
+            email_verified=True,  # адрес задаёт оператор сервера
+        )
+        user = await self.users.add(user)
         code = start_enrollment(user)
         await self.audit.record("admin.created", None, "user", user.id, {"superadmin": superadmin})
         await self.session.commit()
@@ -89,6 +78,8 @@ class AuthService:
         valid = verify_password(user.password_hash if user else None, password)
         if user is None or not valid or not user.is_active:
             raise UnauthorizedError(_INVALID_CREDENTIALS)
+        if not user.email_verified:
+            raise EmailNotVerifiedError("подтвердите почту — ссылка в письме после регистрации")
         if user.role == UserRole.ADMIN:
             await self.audit.record("auth.mfa_challenge", user.id)
             await self.session.commit()
@@ -132,31 +123,6 @@ class AuthService:
         if stored is not None:
             await self.refresh_tokens.revoke_family(stored.family_id)
             await self.session.commit()
-
-    async def _create_user(
-        self, email: str, password: str, role: UserRole, superadmin: bool = False
-    ) -> User:
-        # хеш считается до проверки email: время ответа не выдаёт, занят ли адрес
-        password_hash = hash_password(password)
-        if await self.users.by_email(email) is not None:
-            raise ConflictError("email уже зарегистрирован")
-        user = User(
-            email=email.lower(),
-            password_hash=password_hash,
-            role=role,
-            is_superadmin=superadmin,
-        )
-        try:
-            return await self.users.add(user)
-        except IntegrityError as exc:  # гонка двух одновременных регистраций
-            await self.session.rollback()
-            raise ConflictError("email уже зарегистрирован") from exc
-
-    async def _finish_registration(self, user: User) -> TokenPair:
-        pair = await self._issue(user, family_id=uuid.uuid4())
-        await self.audit.record("auth.register", user.id, "user", user.id, {"role": user.role})
-        await self.session.commit()
-        return pair
 
     async def _issue(
         self, user: User, family_id: uuid.UUID, expires_at: datetime | None = None

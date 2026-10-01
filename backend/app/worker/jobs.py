@@ -7,15 +7,18 @@ from datetime import UTC, datetime, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings
+from app.core.crypto import FieldCipher
 from app.core.errors import NotFoundError, ServiceUnavailableError
 from app.core.logging import get_logger
 from app.db.session import SYSTEM_ROLE, Database, set_rls_context
 from app.integrations.fsp import FspClient
+from app.integrations.notifier import Notifier
 from app.models import CandidateProfile, FspLink
 from app.repositories.audit import AuditRepository
 from app.repositories.fsp import links_due
 from app.repositories.offers import expire_overdue
 from app.services.fsp_sync import FspSyncer, backoff
+from app.services.outbox import OutboxDelivery
 
 log = get_logger(__name__)
 
@@ -123,6 +126,36 @@ class OfferExpiryJob(Job):
             return expired
 
 
-def build_jobs(settings: Settings, db: Database, client: FspClient) -> list[Job]:
+class OutboxJob(Job):
+    """Отправка писем из очереди: часто, небольшими пачками, до опустошения очереди."""
+
+    name, interval_seconds = "outbox", 5
+
+    def __init__(self, db: Database, cipher: FieldCipher, notifier: Notifier, public_url: str):
+        self.db = db
+        self.cipher = cipher
+        self.notifier = notifier
+        self.public_url = public_url
+
+    async def run(self) -> int:  # type: ignore[override]
+        total = 0
+        while True:
+            async with self.db.sessionmaker() as session:
+                await set_rls_context(session, None, SYSTEM_ROLE)
+                delivery = OutboxDelivery(session, self.cipher, self.notifier, self.public_url)
+                processed = await delivery.deliver_due()
+            total += processed
+            if processed == 0:
+                return total
+
+
+def build_jobs(
+    settings: Settings, db: Database, client: FspClient, cipher: FieldCipher, notifier: Notifier
+) -> list[Job]:
     sync_every = timedelta(minutes=settings.fsp_sync_interval_minutes)
-    return [HeartbeatJob(), FspSyncJob(db, client, sync_every), OfferExpiryJob(db)]
+    return [
+        HeartbeatJob(),
+        FspSyncJob(db, client, sync_every),
+        OfferExpiryJob(db),
+        OutboxJob(db, cipher, notifier, settings.public_url),
+    ]

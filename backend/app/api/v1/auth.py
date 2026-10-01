@@ -11,8 +11,6 @@ from app.api.deps import CipherDep, PrincipalDep, SessionDep, TokensDep
 from app.core.errors import ForbiddenError, UnauthorizedError
 from app.core.ratelimit import check_rate_limit
 from app.schemas.auth import (
-    CandidateRegisterIn,
-    EmployerRegisterIn,
     LoginIn,
     MeOut,
     MfaChallengeOut,
@@ -40,7 +38,7 @@ def _refresh_limit(request: Request) -> None:
     check_rate_limit(request, "refresh")
 
 
-AuthLimited = Depends(_auth_limit)
+AuthLimited = Depends(_auth_limit)  # используется и роутером account
 RefreshLimited = Depends(_refresh_limit)
 
 
@@ -83,30 +81,6 @@ def _check_csrf(csrf_cookie: str | None, csrf_header: str | None) -> None:
 CsrfCookie = Annotated[str | None, Cookie(alias=CSRF_COOKIE)]
 CsrfHeader = Annotated[str | None, Header(alias="X-CSRF-Token")]
 RefreshCookie = Annotated[str | None, Cookie(alias=REFRESH_COOKIE)]
-
-
-@router.post(
-    "/register/candidate",
-    status_code=status.HTTP_201_CREATED,
-    dependencies=[AuthLimited],
-    summary="Регистрация кандидата",
-)
-async def register_candidate(
-    data: CandidateRegisterIn, request: Request, response: Response, service: AuthServiceDep
-) -> TokenOut:
-    return _respond(request, response, await service.register_candidate(data))
-
-
-@router.post(
-    "/register/employer",
-    status_code=status.HTTP_201_CREATED,
-    dependencies=[AuthLimited],
-    summary="Регистрация работодателя и компании (компания уходит на модерацию)",
-)
-async def register_employer(
-    data: EmployerRegisterIn, request: Request, response: Response, service: AuthServiceDep
-) -> TokenOut:
-    return _respond(request, response, await service.register_employer(data))
 
 
 @router.post("/login", dependencies=[AuthLimited], summary="Вход (администратору — затем 2FA)")

@@ -7,3 +7,16 @@ services:
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload",
               "--proxy-headers", "--forwarded-allow-ips", "*"]
     volumes: ["../backend/app:/app/app:ro"]
+  worker:
+    depends_on:
+      mailpit: { condition: service_started }
+  # Почтовый ящик для разработки: все письма видны на http://localhost:8025 (наружу не уходят)
+  mailpit:
+    image: axllent/mailpit:v1.27
+    extends: { file: common.yml, service: hardened }
+    user: "65534:65534"
+    environment:
+      MP_DISABLE_VERSION_CHECK: "true"
+      MP_MAX_MESSAGES: "500"
+    ports: ["127.0.0.1:${MAIL_UI_PORT:-8025}:8025"]
+    networks: [internal, public]

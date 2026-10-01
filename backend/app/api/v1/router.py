@@ -3,6 +3,7 @@
 from fastapi import APIRouter
 
 from app.api.v1 import (
+    account,
     admin,
     auth,
     candidate,
@@ -15,5 +16,16 @@ from app.api.v1 import (
 )
 
 api_router = APIRouter(prefix="/api/v1")
-for module in (health, auth, candidate, fsp, candidate_offers, employer, catalog, admin, public):
+for module in (
+    health,
+    auth,
+    account,
+    candidate,
+    fsp,
+    candidate_offers,
+    employer,
+    catalog,
+    admin,
+    public,
+):
     api_router.include_router(module.router)

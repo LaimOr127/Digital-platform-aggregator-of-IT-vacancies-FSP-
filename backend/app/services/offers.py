@@ -15,7 +15,7 @@ from app.core.crypto import FieldCipher, offer_field_context, profile_field_cont
 from app.core.errors import ConflictError, ForbiddenError, InvalidStateError, NotFoundError
 from app.core.timeutil import as_aware
 from app.models import Offer
-from app.models.enums import OfferStatus, VacancyStatus
+from app.models.enums import OfferStatus, RecipientType, VacancyStatus
 from app.repositories.audit import AuditRepository
 from app.repositories.base import Page
 from app.repositories.candidates import CandidateProfileRepository
@@ -31,6 +31,7 @@ from app.repositories.vacancies import VacancyRepository
 from app.schemas.catalog import EmployerOfferOut, OfferContactsOut, OfferCreateIn, OfferOut
 from app.services.access import Action, Principal, policy
 from app.services.catalog import build_cards
+from app.services.outbox import Outbox
 
 OFFER_TTL = timedelta(days=7)
 # после отказа кандидата компания не может сразу предложить снова (честный найм, без спама)
@@ -103,6 +104,17 @@ class EmployerOfferService:
                 "кандидату уже отправлен оффер на эту вакансию — дождитесь ответа"
             ) from exc
         await self.audit.record("offer.sent", self.principal.user_id, "offer", offer.id)
+        Outbox(self.session, self.cipher).enqueue(
+            "offer_received",
+            RecipientType.PROFILE,
+            profile.id,
+            {
+                "company": offer.company_name,
+                "vacancy": offer.vacancy_title,
+                "salary_min": offer.salary_min,
+                "salary_max": offer.salary_max,
+            },
+        )
         await self.session.commit()
         return (await self._with_cards([offer]))[0]
 
@@ -220,5 +232,11 @@ class CandidateOfferService:
         offer.status = status
         offer.responded_at = datetime.now(UTC)
         await self.audit.record(action, self.principal.user_id, "offer", offer.id)
+        Outbox(self.session, self.cipher).enqueue(
+            "offer_answered",
+            RecipientType.COMPANY,
+            offer.company_id,
+            {"vacancy": offer.vacancy_title, "accepted": status == OfferStatus.ACCEPTED},
+        )
         await self.session.commit()
         return to_out(offer)

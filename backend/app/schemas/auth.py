@@ -30,6 +30,26 @@ class EmployerRegisterIn(PasswordMixin):
     inn: str | None = Field(default=None, pattern=r"^\d{10}(\d{2})?$")
 
 
+class EmailIn(BaseModel):
+    email: EmailStr
+
+
+class LinkTokenIn(BaseModel):
+    """Токен из ссылки в письме."""
+
+    token: str = Field(min_length=20, max_length=128)
+
+
+class PasswordResetIn(PasswordMixin, LinkTokenIn):
+    pass
+
+
+class AcceptedOut(BaseModel):
+    """Ответ не зависит от того, зарегистрирован ли адрес."""
+
+    detail: str = "Проверьте почту: если адрес зарегистрирован, письмо уже отправлено"
+
+
 class LoginIn(BaseModel):
     email: EmailStr
     password: str = Field(min_length=1, max_length=128)

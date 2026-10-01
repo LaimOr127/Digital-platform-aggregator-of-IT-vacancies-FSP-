@@ -53,3 +53,23 @@ class VacancyStatus(StrEnum):
     ACTIVE = "active"
     CLOSED = "closed"
     BLOCKED = "blocked"
+
+
+class RecipientType(StrEnum):
+    """Кому письмо: пользователю, кандидату (по профилю) или владельцам компании."""
+
+    USER = "user"
+    PROFILE = "profile"
+    COMPANY = "company"
+
+
+class OutboxStatus(StrEnum):
+    PENDING = "pending"
+    SENT = "sent"
+    FAILED = "failed"  # исчерпаны попытки
+    DROPPED = "dropped"  # адресат недоступен (удалён, заблокирован)
+
+
+class EmailTokenPurpose(StrEnum):
+    VERIFY = "verify"
+    RESET = "reset"

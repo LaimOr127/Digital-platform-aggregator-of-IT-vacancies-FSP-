@@ -21,7 +21,6 @@ from tests.helpers import (
     bearer,
     new_admin,
     register_candidate,
-    unique_email,
 )
 
 LOGIN = "/api/v1/auth/login"
@@ -192,13 +191,9 @@ async def test_reset_mfa_requires_new_enrollment_and_revokes_sessions(client: As
 
 
 async def test_candidate_login_unchanged(client: AsyncClient):
-    email = unique_email("cand")
-    await client.post(
-        "/api/v1/auth/register/candidate",
-        json={"email": email, "password": PASSWORD, "full_name": "Анна"},
-    )
-    body = (await client.post(LOGIN, json={"email": email, "password": PASSWORD})).json()
-    assert body["access_token"] and "mfa_required" not in body
+    token = await register_candidate(client)  # регистрация -> письмо -> вход без 2FA
+    me = (await client.get("/api/v1/auth/me", headers=bearer(token))).json()
+    assert me["role"] == "candidate"
 
 
 async def test_admin_session_without_2fa_cannot_be_refreshed(db, app):

@@ -43,6 +43,18 @@ class MfaExpiredError(UnauthorizedError):
         super().__init__(message)
 
 
+class EmailNotVerifiedError(AppError):
+    """Пароль верный, но почта не подтверждена: клиент предлагает отправить письмо ещё раз."""
+
+    status_code, code = 403, "email_not_verified"
+
+
+class InvalidLinkError(AppError):
+    """Ссылка из письма недействительна: устарела, уже использована или искажена."""
+
+    status_code, code = 400, "invalid_link"
+
+
 class ConflictError(AppError):
     status_code, code = 409, "conflict"
 

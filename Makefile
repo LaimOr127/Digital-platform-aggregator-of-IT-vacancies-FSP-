@@ -61,9 +61,10 @@ test-frontend:  ## тесты и сборка фронта в контейнер
 	docker build -q --target build -t itmatch/web:build frontend
 
 HTTP_PORT ?= $(or $(shell grep -s '^HTTP_PORT=' .env | cut -d= -f2),8088)
+MAIL_UI_PORT ?= $(or $(shell grep -s '^MAIL_UI_PORT=' .env | cut -d= -f2),8025)
 
 smoke:          ## смоук-тест работающего стека
-	./scripts/smoke.sh http://localhost:$(HTTP_PORT)
+	MAIL_URL=http://localhost:$(MAIL_UI_PORT) ./scripts/smoke.sh http://localhost:$(HTTP_PORT)
 
 check-db:       ## проверка прав роли приложения в работающей БД
 	@DC="$(DC)" ./scripts/check-db.sh

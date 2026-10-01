@@ -10,8 +10,9 @@ from app.core.errors import ServiceUnavailableError
 from app.db.session import set_rls_context
 from app.models import FspLink
 from app.services.fsp_sync import backoff
-from app.worker.jobs import FspSyncJob, HeartbeatJob, OfferExpiryJob, build_jobs
+from app.worker.jobs import FspSyncJob, HeartbeatJob, OfferExpiryJob, OutboxJob, build_jobs
 from tests.fake_fsp import result
+from tests.fake_notifier import MemoryNotifier
 from tests.helpers import bearer, link_fsp, register_candidate
 
 FSP = "/api/v1/candidate/fsp"
@@ -100,7 +101,9 @@ def test_backoff_grows_and_is_capped():
     assert backoff(50) == timedelta(hours=24)
 
 
-async def test_build_jobs(db, fsp):
-    jobs = build_jobs(Settings(fsp_sync_interval_minutes=5), db, fsp)
-    assert [type(j) for j in jobs] == [HeartbeatJob, FspSyncJob, OfferExpiryJob]
+async def test_build_jobs(db, fsp, app):
+    jobs = build_jobs(
+        Settings(fsp_sync_interval_minutes=5), db, fsp, app.state.cipher, MemoryNotifier()
+    )
+    assert [type(j) for j in jobs] == [HeartbeatJob, FspSyncJob, OfferExpiryJob, OutboxJob]
     await jobs[0].run()

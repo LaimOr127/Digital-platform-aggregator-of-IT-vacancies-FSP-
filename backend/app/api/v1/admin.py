@@ -3,7 +3,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
 
-from app.api.deps import PrincipalDep, SessionDep
+from app.api.deps import CipherDep, PrincipalDep, SessionDep
 from app.models.enums import CompanyStatus, UserRole, VacancyStatus
 from app.schemas.admin import AdminUserOut, AdminVacancyOut, AuditEntryOut, ModerationIn
 from app.schemas.common import PageOut
@@ -14,8 +14,8 @@ from app.services.moderation import ModerationService
 router = APIRouter(prefix="/admin", tags=["admin"])
 
 
-def _service(session: SessionDep, principal: PrincipalDep) -> AdminService:
-    return AdminService(session, principal)
+def _service(session: SessionDep, principal: PrincipalDep, cipher: CipherDep) -> AdminService:
+    return AdminService(session, principal, cipher)
 
 
 ServiceDep = Annotated[AdminService, Depends(_service)]

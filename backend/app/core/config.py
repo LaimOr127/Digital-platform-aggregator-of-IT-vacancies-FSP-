@@ -56,6 +56,17 @@ class Settings(BaseSettings):
     fsp_sync_rate_limit: str = "10/minute"
     offer_send_rate_limit: str = "50/day"  # офферы одной компании: защита кандидатов от спама
     mfa_rate_limit: str = "10/hour"  # попытки кода 2FA на администратора
+    # письма на один адрес (регистрация, повтор письма, сброс пароля): защита от почтовой бомбы
+    email_rate_limit: str = "3/hour"
+
+    # Почта (нужна только worker): ссылки в письмах ведут на public_url
+    public_url: str = "http://localhost:8088"
+    smtp_host: str = "mailpit"
+    smtp_port: int = 1025
+    smtp_user: str = ""
+    smtp_password: SecretStr = SecretStr("")
+    smtp_from: str = "IT Match <no-reply@itmatch.local>"
+    smtp_starttls: bool = False
 
     @property
     def is_prod(self) -> bool:

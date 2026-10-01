@@ -42,6 +42,7 @@ async def test_create_superadmin(monkeypatch, db, capsys):
     async with db.sessionmaker() as session:
         user = (await session.execute(select(User))).scalar_one()
     assert user.role == "admin" and user.is_superadmin and not user.totp_enabled
+    assert user.email_verified  # адрес задаёт оператор: письмо подтверждения не нужно
     out = capsys.readouterr().out
     assert "admin created" in out and "2fa enrollment code" in out
 
