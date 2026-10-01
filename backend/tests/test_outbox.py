@@ -10,6 +10,7 @@ from app.services.outbox import MAX_ATTEMPTS, Outbox
 from app.worker.jobs import OutboxJob
 from tests.fake_notifier import MemoryNotifier
 from tests.helpers import (
+    PASSWORD,
     approve_company,
     bearer,
     company_id,
@@ -39,7 +40,7 @@ async def test_delivery_renders_link_and_wipes_payload(client: AsyncClient, db, 
     email = unique_email("mail")
     await client.post(
         "/api/v1/auth/register/candidate",
-        json={"email": email, "password": "Str0ng-pass-42", "full_name": "Анна"},
+        json={"email": email, "password": PASSWORD, "full_name": "Анна"},
     )
     notifier = MemoryNotifier()
     assert await job(db, app, notifier).run() == 1
