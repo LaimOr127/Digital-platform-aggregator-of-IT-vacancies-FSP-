@@ -51,7 +51,7 @@ check "Без токена — 401"                      401 "$(code "$BASE/api/
 # ФСП и паспорт (только стенд с моком ФСП: код подтверждения возвращается в ответе).
 # В конце аккаунт ФСП отвязывается — смоук можно запускать повторно.
 AUTH="Authorization: Bearer $TOKEN"
-START="$(curl -s -H "$AUTH" -H "$J" -d '{"athlete_id":"FSP-24006"}' "$BASE/api/v1/candidate/fsp/link")"
+START="$(curl -s -H "$AUTH" -H "$J" -d '{"athlete_id":"FSP-29999"}' "$BASE/api/v1/candidate/fsp/link")"
 DEMO="$(printf '%s' "$START" | sed -n 's/.*"demo_code":"\([0-9]*\)".*/\1/p')"
 if [ -n "$DEMO" ]; then
   LINKED="$(curl -s -H "$AUTH" -H "$J" -d "{\"code\":\"$DEMO\"}" "$BASE/api/v1/candidate/fsp/confirm")"

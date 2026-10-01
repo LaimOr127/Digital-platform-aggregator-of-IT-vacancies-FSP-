@@ -211,6 +211,15 @@ ATHLETES = {
             ),
         ),
         Athlete("FSP-24007", "Алина Сафина", "Москва", "a.safina@example.org", None, ()),
+        # только для автоматического смоук-теста: не пересекается с ручными проверками демо
+        Athlete(
+            "FSP-29999",
+            "Смоук Тест",
+            "Москва",
+            "smoke@example.org",
+            "1",
+            (_r("r99", "c-rus-rob-25", 5, team="Smoke Bots", role="captain"),),
+        ),
     )
 }
 

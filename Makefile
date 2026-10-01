@@ -11,7 +11,7 @@ MODE  ?= dev
 COMPOSE_FILES = -f deploy/compose.base.yml $(foreach s,$(ALL),-f deploy/compose.$(s).yml) -f deploy/compose.$(MODE).yml
 DC = docker compose --env-file .env $(COMPOSE_FILES)
 
-.PHONY: env up down stop logs logs-dump ps build dev prod test test-backend test-fsp-mock test-frontend smoke check-db verify config secrets-check clean migrate create-admin reset-admin-2fa check-dupes
+.PHONY: env up down stop logs logs-dump ps build dev prod test test-backend test-fsp-mock test-frontend smoke check-db verify config secrets-check clean migrate create-admin reset-admin-2fa check-dupes seed-demo load
 
 env:            ## создать .env со случайными секретами
 	@./scripts/gen-env.sh
@@ -77,6 +77,14 @@ migrate:        ## применить миграции вручную (обыч�
 create-admin:   ## создать суперадмина: make create-admin EMAIL=admin@example.org (пароль спросит)
 	@test -n "$(EMAIL)" || { echo "укажите EMAIL=..."; exit 1; }
 	$(DC) exec api python -m app.cli create-admin --email "$(EMAIL)" --superadmin
+
+load:           ## нагрузочный тест (k6): make load EMP=<токен работодателя> CAND=<токен кандидата> VAC=<id вакансии>
+	@test -n "$(EMP)" -a -n "$(CAND)" -a -n "$(VAC)" || { echo "укажите EMP, CAND и VAC"; exit 1; }
+	docker run --rm --network itmatch_edge -v "$$PWD/scripts/load:/load:ro" \
+	  -e EMP="$(EMP)" -e CAND="$(CAND)" -e VAC="$(VAC)" grafana/k6:2.3.0 run --quiet /load/catalog.js
+
+seed-demo:      ## демо-кандидаты для каталога (только dev): make seed-demo N=500
+	$(DC) exec api python -m app.cli seed-demo --candidates "$(or $(N),500)"
 
 check-dupes:    ## копии файлов от iCloud/Finder ("file 2.py") ломают сборку — проверяем заранее
 	@./scripts/check-dupes.sh

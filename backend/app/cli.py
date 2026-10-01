@@ -17,6 +17,7 @@ from app.core.config import get_settings
 from app.core.crypto import FieldCipher
 from app.core.errors import NotFoundError
 from app.core.security import TokenService
+from app.db.demo import seed_candidates
 from app.db.session import get_database
 from app.schemas.auth import PasswordMixin
 from app.services.auth import AuthService
@@ -62,6 +63,22 @@ def _print_enrollment(code: str) -> None:
     )
 
 
+async def seed_demo(count: int) -> None:
+    settings = get_settings()
+    if settings.is_prod:
+        sys.exit("демо-данные не создаются в prod")
+    if not 1 <= count <= 20_000:
+        sys.exit("--candidates: от 1 до 20000")
+    db = get_database()
+    try:
+        async with db.sessionmaker() as session:
+            cipher = FieldCipher(settings.secret("field_encryption_key"))
+            created = await seed_candidates(session, cipher, count)
+    finally:
+        await db.dispose()
+    sys.stdout.write(f"demo candidates created: {created}\n")
+
+
 def _validate_email(email: str) -> str:
     try:
         return str(TypeAdapter(EmailStr).validate_python(email))
@@ -88,7 +105,12 @@ def main() -> None:
     admin.add_argument("--superadmin", action="store_true")
     reset = sub.add_parser("reset-2fa", help="сбросить 2FA администратора")
     reset.add_argument("--email", required=True)
+    demo = sub.add_parser("seed-demo", help="демо-кандидаты для каталога (только dev)")
+    demo.add_argument("--candidates", type=int, default=500)
     args = parser.parse_args()
+    if args.command == "seed-demo":
+        asyncio.run(seed_demo(args.candidates))
+        return
     email = _validate_email(args.email)
     if args.command == "create-admin":
         asyncio.run(create_admin(email, _read_password(), args.superadmin))
