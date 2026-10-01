@@ -96,3 +96,11 @@ async def test_passport_without_fsp_is_self_declared(client: AsyncClient):
     passport = await issue(client, await register_candidate(client))
     assert passport["payload"]["verification_tier"] == "self_declared"
     assert passport["payload"]["fsp"]["achievements"] == []
+
+
+async def test_unlinking_fsp_revokes_passport(client: AsyncClient):
+    token = await linked_candidate(client)
+    passport = await issue(client, token)
+    assert (await client.delete("/api/v1/candidate/fsp", headers=bearer(token))).status_code == 204
+    body = (await client.get(f"/api/v1/public/passport/{passport['id']}")).json()
+    assert body["valid"] is False and body["revoked_at"]

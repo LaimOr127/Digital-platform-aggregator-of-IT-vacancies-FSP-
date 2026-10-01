@@ -37,6 +37,24 @@ check "Вход с неверным паролем"               401 "$(code -H
 check "Кабинет работодателя закрыт кандидату" 403 "$(code -H "Authorization: Bearer $TOKEN" "$BASE/api/v1/employer/vacancies")"
 check "Без токена — 401"                      401 "$(code "$BASE/api/v1/candidate/profile")"
 
+# ФСП и паспорт (только стенд с моком ФСП: код подтверждения возвращается в ответе).
+# В конце аккаунт ФСП отвязывается — смоук можно запускать повторно.
+AUTH="Authorization: Bearer $TOKEN"
+START="$(curl -s -H "$AUTH" -H "$J" -d '{"athlete_id":"FSP-24006"}' "$BASE/api/v1/candidate/fsp/link")"
+DEMO="$(printf '%s' "$START" | sed -n 's/.*"demo_code":"\([0-9]*\)".*/\1/p')"
+if [ -n "$DEMO" ]; then
+  LINKED="$(curl -s -H "$AUTH" -H "$J" -d "{\"code\":\"$DEMO\"}" "$BASE/api/v1/candidate/fsp/confirm")"
+  check "Привязка ФСП через мок"                1   "$(printf '%s' "$LINKED" | grep -c '"verification_tier":"verified_fsp"')"
+  check "Категория по результатам ФСП"          1   "$(printf '%s' "$LINKED" | grep -c 'robotics-advanced')"
+  PID="$(curl -s -H "$AUTH" -H "$J" -d '{"show_name":false}' "$BASE/api/v1/candidate/passport" | sed -n 's/^{"id":"\([^"]*\)".*/\1/p')"
+  check "Паспорт навыков проверяется публично"  1   "$(curl -s "$BASE/api/v1/public/passport/$PID" | grep -c '"valid":true')"
+  check "Страница паспорта (SPA)"               200 "$(code "$BASE/passport/$PID")"
+  check "Отвязка ФСП отзывает паспорт"          204 "$(code -X DELETE -H "$AUTH" "$BASE/api/v1/candidate/fsp")"
+  check "Отозванный паспорт не действителен"    1   "$(curl -s "$BASE/api/v1/public/passport/$PID" | grep -c '"valid":false')"
+else
+  echo "  SKIP ФСП: стенд без демо-кодов (FSP_DEMO_CODES=false)"
+fi
+
 H="$(curl -sI "$BASE/")"
 for h in Content-Security-Policy Strict-Transport-Security X-Content-Type-Options X-Frame-Options Referrer-Policy Permissions-Policy; do
   check "Заголовок $h" 1 "$(printf '%s' "$H" | grep -ic "^$h:")"

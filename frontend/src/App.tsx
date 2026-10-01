@@ -9,6 +9,7 @@ const AuthPage = lazy(() => import("./features/auth/AuthPage"));
 const CandidatePortal = lazy(() => import("./features/candidate/CandidatePortal"));
 const EmployerPortal = lazy(() => import("./features/employer/EmployerPortal"));
 const AdminPortal = lazy(() => import("./features/admin/AdminPortal"));
+const PublicPassport = lazy(() => import("./features/passport/PublicPassport"));
 
 export function App() {
   return (
@@ -18,6 +19,7 @@ export function App() {
           <Route path="/" element={<Landing />} />
           <Route path="/login" element={<AuthPage mode="login" />} />
           <Route path="/register" element={<AuthPage mode="register" />} />
+          <Route path="/passport/:id" element={<PublicPassport />} />
           <Route path="/app/*" element={<RequireRole role="candidate"><CandidatePortal /></RequireRole>} />
           <Route path="/company/*" element={<RequireRole role="employer"><EmployerPortal /></RequireRole>} />
           <Route path="/admin/*" element={<RequireRole role="admin"><AdminPortal /></RequireRole>} />

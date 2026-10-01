@@ -37,7 +37,8 @@ export function fieldErrors(err: unknown): Record<string, string> {
   return result;
 }
 
+/** Текст ошибки для интерфейса (сообщения API начинаются со строчной буквы). */
 export function errorMessage(err: unknown): string {
-  if (err instanceof ApiError) return err.message;
-  return "Не удалось связаться с сервером";
+  if (!(err instanceof ApiError)) return "Не удалось связаться с сервером";
+  return err.message.charAt(0).toUpperCase() + err.message.slice(1);
 }

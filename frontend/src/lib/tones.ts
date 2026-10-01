@@ -9,6 +9,12 @@ export const vacancyTone: Record<VacancyStatus, Tone> = {
   blocked: "danger",
 };
 
+export const tierTone: Record<string, Tone> = {
+  elite: "accent",
+  advanced: "info",
+  base: "neutral",
+};
+
 export const companyTone: Record<CompanyStatus, Tone> = {
   pending: "warn",
   approved: "accent",

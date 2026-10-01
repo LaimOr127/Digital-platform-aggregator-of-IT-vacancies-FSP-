@@ -1,9 +1,11 @@
 # Сервер: автоперезапуск, лимиты ресурсов, 80/443 наружу, egress для реального API ФСП.
-# APP_ENV=prod задаётся здесь явно: prod-режим не зависит от значения в .env
+# APP_ENV=prod задаётся здесь явно: prod-режим не зависит от значения в .env.
+# Демо-коды ФСП в prod выключены; для демо-стенда с моком — явно FSP_DEMO_CODES_PROD=true.
 x-limits: &limits
   restart: unless-stopped
 x-prod-env: &prod-env
   APP_ENV: prod
+  FSP_DEMO_CODES: ${FSP_DEMO_CODES_PROD:-false}
 
 services:
   proxy:
@@ -30,4 +32,6 @@ services:
     deploy: { resources: { limits: { cpus: "1.0", memory: 512M } } }
   fsp-mock:
     <<: *limits
+    environment:
+      FSP_MOCK_EXPOSE_CODES: ${FSP_DEMO_CODES_PROD:-false}
     deploy: { resources: { limits: { cpus: "0.25", memory: 96M } } }

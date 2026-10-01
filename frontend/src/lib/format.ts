@@ -52,6 +52,24 @@ export const labels = {
   } satisfies Record<VerificationTier, string>,
 };
 
+export const tierLabels: Record<string, string> = {
+  elite: "Высший уровень",
+  advanced: "Продвинутый уровень",
+  base: "Базовый уровень",
+};
+
+export const levelLabels: Record<string, string> = {
+  regional: "Региональный",
+  national: "Всероссийский",
+  international: "Международный",
+};
+
+/** Итог участия: место, финал или участие. */
+export function outcomeLabel(place: number | null | undefined, stage: string): string {
+  if (place) return `${place} место`;
+  return stage === "final" ? "Финалист" : "Участник";
+}
+
 export function options<K extends string>(map: Record<K, string>): { value: K; label: string }[] {
   return (Object.keys(map) as K[]).map((value) => ({ value, label: map[value] }));
 }

@@ -5,9 +5,13 @@ import type {
   Company,
   CompanyStatus,
   EmployerRegisterIn,
+  FspLinkStart,
+  FspStatus,
   LoginIn,
   Me,
   Page,
+  Passport,
+  PassportVerify,
   Profile,
   ProfileUpdate,
   Skill,
@@ -29,6 +33,21 @@ export const authApi = {
 
 export const publicApi = {
   skills: () => api<Skill[]>("GET", "/public/skills"),
+  passport: (id: string) => api<PassportVerify>("GET", `/public/passport/${encodeURIComponent(id)}`),
+};
+
+export const fspApi = {
+  status: () => api<FspStatus>("GET", "/candidate/fsp"),
+  link: (athleteId: string) => api<FspLinkStart>("POST", "/candidate/fsp/link", { body: { athlete_id: athleteId } }),
+  confirm: (code: string) => api<FspStatus>("POST", "/candidate/fsp/confirm", { body: { code } }),
+  sync: () => api<FspStatus>("POST", "/candidate/fsp/sync"),
+  unlink: () => api<void>("DELETE", "/candidate/fsp"),
+};
+
+export const passportApi = {
+  active: () => api<Passport | null>("GET", "/candidate/passport"),
+  issue: (showName: boolean) => api<Passport>("POST", "/candidate/passport", { body: { show_name: showName } }),
+  revoke: () => api<void>("DELETE", "/candidate/passport"),
 };
 
 export const candidateApi = {

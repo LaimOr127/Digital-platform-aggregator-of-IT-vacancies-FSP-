@@ -50,3 +50,23 @@ body {
 .tabular {
   font-variant-numeric: tabular-nums;
 }
+
+/* Печать / сохранение в PDF (паспорт навыков): светлая тема, без элементов управления */
+@media print {
+  :root {
+    color-scheme: light;
+    --bg: #ffffff;
+    --surface: #ffffff;
+    --surface-2: #f4f5f7;
+    --border: #d5d9df;
+    --text: #111418;
+    --muted: #4b5563;
+    --accent: #0f7a4a;
+  }
+  .no-print {
+    display: none !important;
+  }
+  * {
+    box-shadow: none !important;
+  }
+}
