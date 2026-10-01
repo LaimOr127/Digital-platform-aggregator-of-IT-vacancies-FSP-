@@ -7,7 +7,11 @@ services:
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload",
               "--proxy-headers", "--forwarded-allow-ips", "*"]
     volumes: ["../backend/app:/app/app:ro"]
-    networks: [edge, internal, egress]   # выход наружу — только для ИИ-сервиса (если задан ключ)
+    networks: [edge, internal, egress]   # выход наружу — только для языковых моделей
+    environment:
+      # локальная модель (Ollama, LM Studio) на этом компьютере: http://host.docker.internal:11434/v1
+      AI_ALLOW_HTTP: ${AI_ALLOW_HTTP:-true}
+    extra_hosts: ["host.docker.internal:host-gateway"]
   worker:
     depends_on:
       mailpit: { condition: service_started }

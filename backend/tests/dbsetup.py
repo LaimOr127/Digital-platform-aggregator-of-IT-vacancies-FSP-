@@ -21,7 +21,8 @@ APP_ROLE = "itmatch_test_app"
 TEST_SKILLS = [("python", "Python"), ("go", "Go"), ("postgresql", "PostgreSQL"), ("react", "React")]
 _BACKEND_DIR = Path(__file__).resolve().parents[1]
 _TRUNCATE = (
-    "TRUNCATE users, employer_companies, audit_log, outbox_messages RESTART IDENTITY CASCADE"
+    "TRUNCATE users, employer_companies, audit_log, outbox_messages, ai_providers "
+    "RESTART IDENTITY CASCADE"
 )
 
 

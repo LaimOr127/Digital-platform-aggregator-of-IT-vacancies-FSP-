@@ -27,6 +27,10 @@ def offer_field_context(field: str, offer_id: uuid.UUID) -> bytes:
     return f"offers.{field}:{offer_id}".encode()
 
 
+def ai_key_context(provider_id: uuid.UUID) -> bytes:
+    return f"ai_providers.api_key:{provider_id}".encode()
+
+
 def outbox_payload_context(message_id: uuid.UUID) -> bytes:
     return f"outbox.payload:{message_id}".encode()
 

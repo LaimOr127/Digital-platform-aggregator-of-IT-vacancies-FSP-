@@ -8,13 +8,14 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 from pydantic import BaseModel
 
-from app.api.deps import FspClientDep, PrincipalDep, SessionDep
+from app.api.deps import CipherDep, FspClientDep, PrincipalDep, SessionDep
 from app.core.ratelimit import check_rate_limit
 from app.schemas.profile_import import ProfileDraftOut
 from app.services.access import Action, policy
+from app.services.ai_providers import active_client
 from app.services.profile_import import FspImportService
 from app.services.resume.extract import MAX_BYTES, UnsupportedResumeError
-from app.services.resume.llm import LlmResumeParser
+from app.services.resume.llm import AiResumeParser
 from app.services.resume.service import ResumeImportService
 
 
@@ -28,21 +29,27 @@ router = APIRouter(
 )
 
 
-def get_ai_parser(request: Request) -> LlmResumeParser:
-    return request.app.state.ai_parser
+async def get_ai_parser(
+    request: Request, session: SessionDep, cipher: CipherDep
+) -> AiResumeParser | None:
+    """Модель, активная в настройках (или ключ из окружения); None — ИИ выключен."""
+    state = request.app.state
+    resolved = await active_client(session, cipher, state.settings, state.ai_transport)
+    return AiResumeParser(*resolved) if resolved else None
 
 
-AiParserDep = Annotated[LlmResumeParser, Depends(get_ai_parser)]
+AiParserDep = Annotated[AiResumeParser | None, Depends(get_ai_parser)]
 
 
 class ImportCapabilitiesOut(BaseModel):
     ai_available: bool
+    ai_provider: str | None = None  # для согласия: куда уйдёт текст резюме
     max_file_mb: int = MAX_BYTES // (1024 * 1024)
 
 
 @router.get("/capabilities", summary="Доступен ли ИИ-разбор резюме")
 async def capabilities(ai: AiParserDep) -> ImportCapabilitiesOut:
-    return ImportCapabilitiesOut(ai_available=ai.available)
+    return ImportCapabilitiesOut(ai_available=ai is not None, ai_provider=ai.label if ai else None)
 
 
 @router.get("/fsp", summary="Черновик профиля из анкеты ФСП (после привязки аккаунта)")

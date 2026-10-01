@@ -1,5 +1,6 @@
 """Реестр моделей: импорт здесь регистрирует все таблицы в Base.metadata (нужно Alembic)."""
 
+from app.models.ai_provider import AiProvider
 from app.models.audit import AuditLog
 from app.models.base import Base
 from app.models.candidate import CandidateProfile, Skill, profile_skills
@@ -14,6 +15,7 @@ from app.models.user import RefreshToken, User
 from app.models.vacancy import Vacancy, vacancy_skills
 
 __all__ = [
+    "AiProvider",
     "AuditLog",
     "Base",
     "CandidateProfile",

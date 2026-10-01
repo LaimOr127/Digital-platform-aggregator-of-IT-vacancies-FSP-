@@ -16,7 +16,6 @@ from app.core.security import TokenService
 from app.core.signing import PassportSigner
 from app.db.session import get_database
 from app.integrations.fsp import HttpFspClient
-from app.services.resume.llm import LlmResumeParser
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -52,7 +51,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.cipher = FieldCipher(settings.secret("field_encryption_key"))
     app.state.signer = PassportSigner(settings.secret("passport_signing_key"))
     app.state.fsp_client = HttpFspClient(settings)
-    app.state.ai_parser = LlmResumeParser(settings)
+    app.state.ai_transport = None  # тесты подменяют сеть к языковым моделям
     app.state.rate_limiter = RateLimiter()
     app.state.rate_limits = build_limits(
         {

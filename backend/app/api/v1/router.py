@@ -5,6 +5,7 @@ from fastapi import APIRouter
 from app.api.v1 import (
     account,
     admin,
+    admin_ai,
     auth,
     candidate,
     candidate_interviews,
@@ -32,6 +33,7 @@ for module in (
     employer_interviews,
     catalog,
     admin,
+    admin_ai,
     public,
 ):
     api_router.include_router(module.router)

@@ -1,19 +1,30 @@
 """Автозаполнение профиля: черновик из анкеты ФСП и из резюме (правила и ИИ по согласию)."""
 
 import json
+import uuid
 
 import httpx
 from httpx import AsyncClient
-from pydantic import SecretStr
 from sqlalchemy import select
 
-from app.core.config import Settings
-from app.models import AuditLog
-from app.services.resume.llm import LlmResumeParser
+from app.core.crypto import ai_key_context
+from app.models import AiProvider, AuditLog
+from app.models.enums import AiProviderKind
 from tests.helpers import bearer, link_fsp, register_candidate
 from tests.resume_files import docx
 
 IMPORT = "/api/v1/candidate/import"
+TOOL_INPUT = {
+    "full_name": "Анна Смирнова",
+    "title": "Backend-разработчик",
+    "grade": "senior",
+    "experience_years": 6,
+    "city": "Казань",
+    "work_format": "remote",
+    "salary_min": 350000,
+    "skills": ["Python", "Go", "Zig-2077"],
+    "about": "Строю высоконагруженные сервисы.",
+}
 
 
 async def upload(client: AsyncClient, token: str, data: bytes, use_ai: bool = False):
@@ -25,18 +36,34 @@ async def upload(client: AsyncClient, token: str, data: bytes, use_ai: bool = Fa
     )
 
 
-def ai_parser(app, handler) -> list[dict]:
-    """Подменяет ИИ-сервис: возвращает список запросов, которые к нему ушли."""
+async def use_ai(app, db, handler, kind: AiProviderKind = AiProviderKind.ANTHROPIC) -> list[dict]:
+    """Подключает модель как в админке и подменяет сеть: возвращает ушедшие к модели запросы."""
     sent: list[dict] = []
 
     def respond(request: httpx.Request) -> httpx.Response:
-        sent.append({"headers": dict(request.headers), "body": json.loads(request.content)})
+        body = json.loads(request.content)
+        sent.append({"url": str(request.url), "headers": dict(request.headers), "body": body})
         return handler(request)
 
-    parser = LlmResumeParser(Settings(anthropic_api_key=SecretStr("k" * 40)))
-    parser.transport = httpx.MockTransport(respond)
-    app.state.ai_parser = parser
+    app.state.ai_transport = httpx.MockTransport(respond)
+    async with db.sessionmaker() as session:
+        provider = AiProvider(
+            id=uuid.uuid4(),
+            name="Тестовая модель",
+            kind=kind,
+            base_url="https://ai.test/v1",
+            model="m",
+            is_active=True,
+        )
+        provider.api_key_enc = app.state.cipher.encrypt("k" * 40, ai_key_context(provider.id))
+        session.add(provider)
+        await session.commit()
     return sent
+
+
+def anthropic_reply(data: dict) -> httpx.Response:
+    block = {"type": "tool_use", "name": "respond", "input": data}
+    return httpx.Response(200, json={"content": [block]})
 
 
 async def test_fsp_draft_after_confirmed_link(client: AsyncClient, db):
@@ -67,7 +94,7 @@ async def test_fsp_draft_after_confirmed_link(client: AsyncClient, db):
 async def test_resume_draft_by_rules(client: AsyncClient):
     token = await register_candidate(client)
     capabilities = (await client.get(f"{IMPORT}/capabilities", headers=bearer(token))).json()
-    assert capabilities == {"ai_available": False, "max_file_mb": 5}
+    assert capabilities == {"ai_available": False, "ai_provider": None, "max_file_mb": 5}
     r = await upload(client, token, docx(), use_ai=True)  # ИИ не настроен: работают правила
     draft = r.json()
     assert r.status_code == 200 and draft["source"] == "resume"
@@ -85,37 +112,24 @@ async def test_unsupported_and_oversized_files(client: AsyncClient):
     assert big.status_code == 422 and "5 МБ" in big.json()["error"]["message"]
 
 
-async def test_ai_draft_without_contacts_sent(client: AsyncClient, app):
-    tool_input = {
-        "full_name": "Анна Смирнова",
-        "title": "Backend-разработчик",
-        "grade": "senior",
-        "experience_years": 6,
-        "city": "Казань",
-        "work_format": "remote",
-        "salary_min": 350000,
-        "skills": ["Python", "Go", "Zig-2077"],
-        "about": "Строю высоконагруженные сервисы.",
-    }
-    reply = {"content": [{"type": "tool_use", "name": "fill_profile", "input": tool_input}]}
-    sent = ai_parser(app, lambda _: httpx.Response(200, json=reply))
+async def test_ai_draft_without_contacts_sent(client: AsyncClient, app, db):
+    sent = await use_ai(app, db, lambda _: anthropic_reply(TOOL_INPUT))
     token = await register_candidate(client)
     draft = (await upload(client, token, docx(), use_ai=True)).json()
-    assert (
-        draft["title"] == "Backend-разработчик"
-        and draft["about"] == "Строю высоконагруженные сервисы."
-    )
+    assert draft["title"] == "Backend-разработчик"
+    assert draft["about"] == "Строю высоконагруженные сервисы."
     assert draft["unknown_skills"] == ["Zig-2077"]
     assert draft["contacts"]["telegram"] == "@anna_backend"  # найдено локально
+    assert "Тестовая модель" in draft["notes"][0]
     [request] = sent
     prompt = request["body"]["messages"][0]["content"]
     assert "anna.dev@example.org" not in prompt and "123-45-67" not in prompt
-    assert request["body"]["tool_choice"] == {"type": "tool", "name": "fill_profile"}
+    assert request["body"]["tool_choice"] == {"type": "tool", "name": "respond"}
     assert request["headers"]["x-api-key"] == "k" * 40
 
 
-async def test_ai_requires_consent_and_falls_back(client: AsyncClient, app):
-    sent = ai_parser(app, lambda _: httpx.Response(529, json={"error": "overloaded"}))
+async def test_ai_requires_consent_and_falls_back(client: AsyncClient, app, db):
+    sent = await use_ai(app, db, lambda _: httpx.Response(529, json={"error": "overloaded"}))
     token = await register_candidate(client)
     without_consent = (await upload(client, token, docx(), use_ai=False)).json()
     assert sent == [] and without_consent["title"] == "Senior Backend-разработчик"
@@ -124,13 +138,27 @@ async def test_ai_requires_consent_and_falls_back(client: AsyncClient, app):
     assert fallback["skills"]
 
 
-async def test_ai_answer_outside_schema_is_rejected(client: AsyncClient, app):
-    bad = {
-        "content": [
-            {"type": "tool_use", "name": "fill_profile", "input": {"grade": "god", "skills": []}}
-        ]
-    }
-    ai_parser(app, lambda _: httpx.Response(200, json=bad))
+async def test_ai_answer_outside_schema_is_rejected(client: AsyncClient, app, db):
+    await use_ai(app, db, lambda _: anthropic_reply({"grade": "god", "skills": []}))
     token = await register_candidate(client)
     draft = (await upload(client, token, docx(), use_ai=True)).json()
     assert draft["grade"] == "senior"  # из правил, ответ ИИ отброшен
+
+
+async def test_openai_compatible_model(client: AsyncClient, app, db):
+    """Любая модель с OpenAI-совместимым API; сервер без response_format — повтор без него."""
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if "response_format" in json.loads(request.content):
+            return httpx.Response(400, json={"error": "unsupported response_format"})
+        content = '```json\n{"title": "Go-разработчик", "skills": ["Go"], "grade": "middle"}\n```'
+        return httpx.Response(200, json={"choices": [{"message": {"content": content}}]})
+
+    sent = await use_ai(app, db, handler, kind=AiProviderKind.OPENAI)
+    token = await register_candidate(client)
+    capabilities = (await client.get(f"{IMPORT}/capabilities", headers=bearer(token))).json()
+    assert capabilities["ai_provider"] == "Тестовая модель"
+    draft = (await upload(client, token, docx(), use_ai=True)).json()
+    assert draft["title"] == "Go-разработчик" and draft["grade"] == "middle"
+    assert len(sent) == 2 and sent[0]["url"] == "https://ai.test/v1/chat/completions"
+    assert sent[0]["headers"]["authorization"] == "Bearer " + "k" * 40

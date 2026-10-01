@@ -66,6 +66,8 @@ class Settings(BaseSettings):
     ai_model: str = "claude-sonnet-5-5"
     ai_base_url: str = "https://api.anthropic.com"
     ai_timeout_seconds: float = 30.0
+    # http:// для моделей разрешён только явно (локальная Ollama в dev); в остальных случаях https
+    ai_allow_http: bool = False
     resume_rate_limit: str = "20/hour"  # разборов резюме на пользователя
 
     # Почта (нужна только worker): ссылки в письмах ведут на public_url

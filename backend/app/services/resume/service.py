@@ -8,6 +8,7 @@ import asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import ServiceUnavailableError
+from app.integrations.ai.base import AiUnavailableError
 from app.repositories.audit import AuditRepository
 from app.schemas.candidate import Contacts
 from app.schemas.profile_import import ProfileDraftOut
@@ -15,14 +16,16 @@ from app.services.access import Action, Principal, policy
 from app.services.profile_import import grade_for_experience, skills_out
 from app.services.resume import rules
 from app.services.resume.extract import extract_text
-from app.services.resume.llm import AiProfile, AiUnavailableError, LlmResumeParser
+from app.services.resume.llm import AiProfile, AiResumeParser
 from app.services.skill_matching import SkillDictionary
 
 _EXTRACT_TIMEOUT = 15  # секунд: «тяжёлый» PDF не держит запрос бесконечно
 
 
 class ResumeImportService:
-    def __init__(self, session: AsyncSession, principal: Principal, ai: LlmResumeParser) -> None:
+    def __init__(
+        self, session: AsyncSession, principal: Principal, ai: AiResumeParser | None
+    ) -> None:
         policy.ensure(principal, Action.PROFILE_MANAGE_OWN)
         self.session = session
         self.principal = principal
@@ -36,10 +39,10 @@ class ResumeImportService:
         dictionary = await SkillDictionary.load(self.session)
         draft = build_resume_draft(rules.parse(text), dictionary.find_in_text(text), dictionary)
         ai_used = False
-        if use_ai and self.ai.available:
+        if use_ai and self.ai is not None:
             try:
                 ai_profile = await self.ai.parse(rules.mask_contacts(text))
-                merge_ai(draft, ai_profile, dictionary, self.ai.model)
+                merge_ai(draft, ai_profile, dictionary, self.ai.label)
                 ai_used = True
             except AiUnavailableError:
                 draft.notes.append("ИИ сейчас недоступен — поля заполнены алгоритмом")
@@ -73,7 +76,7 @@ def build_resume_draft(
 
 
 def merge_ai(
-    draft: ProfileDraftOut, ai: AiProfile, dictionary: SkillDictionary, model: str
+    draft: ProfileDraftOut, ai: AiProfile, dictionary: SkillDictionary, label: str
 ) -> None:
     """ИИ уточняет смысловые поля; контакты — только локальные (в ИИ они не передавались)."""
     for name in ("full_name", "title", "about", "city", "work_format", "salary_min"):
@@ -86,6 +89,6 @@ def merge_ai(
     draft.skills = skills_out(dictionary, known + [s for s in matched.slugs if s not in known])
     draft.unknown_skills = matched.unknown
     draft.notes = [
-        f"Поля заполнены ИИ ({model}) — проверьте перед сохранением",
+        f"Поля заполнены ИИ ({label}) — проверьте перед сохранением",
         "Контакты найдены на сервере и в ИИ-сервис не передавались",
     ]

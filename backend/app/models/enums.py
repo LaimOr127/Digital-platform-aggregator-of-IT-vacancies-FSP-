@@ -100,3 +100,8 @@ class InterviewResult(StrEnum):
 class InterviewFormat(StrEnum):
     ONLINE = "online"
     OFFICE = "office"
+
+
+class AiProviderKind(StrEnum):
+    OPENAI = "openai"  # OpenAI-совместимый Chat Completions API
+    ANTHROPIC = "anthropic"
