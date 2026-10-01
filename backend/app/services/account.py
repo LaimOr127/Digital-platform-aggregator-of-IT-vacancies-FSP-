@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.crypto import FieldCipher, profile_field_context
 from app.core.errors import InvalidLinkError
-from app.core.security import hash_password
+from app.core.security import hash_password_async
 from app.db.session import set_rls_context
 from app.models import CandidateProfile, CompanyMember, EmployerCompany, User
 from app.models.enums import EmailTokenPurpose, MemberRole, RecipientType, UserRole
@@ -55,7 +55,7 @@ class AccountService:
 
     async def _register(self, email: str, password: str, role: UserRole) -> User | None:
         """Новый пользователь или None, если адрес занят (владельцу уйдёт письмо)."""
-        password_hash = hash_password(password)  # и для занятого адреса: одинаковое время
+        password_hash = await hash_password_async(password)  # и для занятого: одинаковое время
         existing = await self.users.by_email(email)
         if existing is not None:
             await self._notify_existing(existing)
@@ -106,7 +106,7 @@ class AccountService:
     async def reset_password(self, token: str, password: str) -> None:
         """Новый пароль; все сессии завершаются. Ссылка из письма подтверждает и почту."""
         user = await self._consume(token, EmailTokenPurpose.RESET)
-        user.password_hash = hash_password(password)
+        user.password_hash = await hash_password_async(password)
         user.email_verified = True
         await RefreshTokenRepository(self.session).revoke_all_for_user(user.id)
         await self.audit.record("auth.password_reset", user.id)

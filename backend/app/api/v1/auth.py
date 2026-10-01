@@ -30,12 +30,12 @@ _REFRESH_PATH = "/api/v1/auth"
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-def _auth_limit(request: Request) -> None:
-    check_rate_limit(request, "auth")
+async def _auth_limit(request: Request) -> None:
+    await check_rate_limit(request, "auth")
 
 
-def _refresh_limit(request: Request) -> None:
-    check_rate_limit(request, "refresh")
+async def _refresh_limit(request: Request) -> None:
+    await check_rate_limit(request, "refresh")
 
 
 AuthLimited = Depends(_auth_limit)  # используется и роутером account
@@ -88,7 +88,7 @@ async def login(
     data: LoginIn, request: Request, response: Response, service: AuthServiceDep
 ) -> TokenOut | MfaChallengeOut:
     # второй лимит — по аккаунту: перебор пароля с пула IP упирается в него
-    check_rate_limit(request, "login_email", key=data.email.lower())
+    await check_rate_limit(request, "login_email", key=data.email.lower())
     result = await service.login(data.email, data.password)
     if isinstance(result, MfaChallenge):
         return MfaChallengeOut(mfa_token=result.mfa_token, enrolled=result.enrolled)
@@ -102,17 +102,17 @@ def _mfa(session: SessionDep, tokens: TokensDep, cipher: CipherDep) -> MfaServic
 MfaServiceDep = Annotated[MfaService, Depends(_mfa)]
 
 
-def _mfa_limit(request: Request, mfa_token: str) -> None:
+async def _mfa_limit(request: Request, mfa_token: str) -> None:
     """Попытки кода 2FA ограничены на администратора (по токену шага), не только по IP."""
     claims = request.app.state.tokens.decode_mfa(mfa_token)
-    check_rate_limit(request, "mfa", key=str(claims.user_id))
+    await check_rate_limit(request, "mfa", key=str(claims.user_id))
 
 
 @router.post(
     "/2fa/setup", dependencies=[AuthLimited], summary="Настроить приложение-аутентификатор"
 )
 async def mfa_setup(data: MfaSetupIn, request: Request, service: MfaServiceDep) -> MfaSetupOut:
-    _mfa_limit(request, data.mfa_token)
+    await _mfa_limit(request, data.mfa_token)
     secret, uri = await service.setup(data.mfa_token, data.enrollment_code)
     return MfaSetupOut(secret=secret, otpauth_uri=uri)
 
@@ -121,7 +121,7 @@ async def mfa_setup(data: MfaSetupIn, request: Request, service: MfaServiceDep) 
 async def mfa_verify(
     data: MfaVerifyIn, request: Request, response: Response, service: MfaServiceDep
 ) -> TokenOut:
-    _mfa_limit(request, data.mfa_token)
+    await _mfa_limit(request, data.mfa_token)
     return _respond(request, response, await service.verify(data.mfa_token, data.code))
 
 

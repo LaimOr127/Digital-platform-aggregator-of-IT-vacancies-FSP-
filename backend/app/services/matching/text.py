@@ -97,11 +97,15 @@ def keywords(text: str) -> set[str]:
 
 
 def overlap(vacancy_text: str, candidate_text: str) -> tuple[float, list[str]]:
+    return overlap_with(frozenset(keywords(vacancy_text)), candidate_text)
+
+
+def overlap_with(wanted: frozenset[str], candidate_text: str) -> tuple[float, list[str]]:
     """Доля ключевых слов вакансии, встречающихся у кандидата, и примеры общих слов.
 
     Насыщение на 25%: описания разной длины, полного совпадения слов не бывает.
+    Ключевые слова вакансии считаются один раз на весь рейтинг (VacancyContext).
     """
-    wanted = keywords(vacancy_text)
     if not wanted:
         return 0.0, []
     common = wanted & keywords(candidate_text)

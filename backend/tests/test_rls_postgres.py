@@ -8,6 +8,7 @@ from httpx import AsyncClient
 from sqlalchemy import text
 from sqlalchemy.exc import DBAPIError
 
+from app.core.ratelimit_pg import PostgresRateLimiter, purge_expired
 from app.db.session import Database, set_rls_context
 from tests.flows import send
 from tests.helpers import (
@@ -212,3 +213,20 @@ async def test_offers_visible_only_to_parties(client: AsyncClient, db: Database,
         assert await _scalar(db, candidate_id, "candidate", sql) == 1, table
         assert await _scalar(db, rival_id, "employer", sql) == 0, table
         assert await _scalar(db, other_id, "candidate", sql) == 0, table
+
+
+async def test_postgres_rate_limiter_is_shared_and_sliding(db: Database):
+    """Счётчики в PostgreSQL: два «процесса» (два лимитера) делят один лимит."""
+    now = [3_600.0 * 1000]  # начало часового окна
+    first = PostgresRateLimiter(db.engine, clock=lambda: now[0])
+    second = PostgresRateLimiter(db.engine, clock=lambda: now[0])
+    assert await first.hit("mfa:shared", 2, 3600)
+    assert await second.hit("mfa:shared", 2, 3600)
+    assert not await first.hit("mfa:shared", 2, 3600)
+    # скользящее окно: в середине следующего часа учитывается половина прошлых попыток
+    now[0] += 3600 + 1800
+    assert not await second.hit("mfa:shared", 2, 3600)  # 1 + 3 * 0.5 = 2.5 > 2
+    now[0] += 2160  # 10% третьего часа: 1 + 1 * 0.9 = 1.9 <= 2
+    assert await first.hit("mfa:shared", 2, 3600)
+    now[0] += 3600 * 3
+    assert await purge_expired(db.engine) >= 1

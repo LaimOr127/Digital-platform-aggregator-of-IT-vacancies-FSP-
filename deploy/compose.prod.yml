@@ -19,9 +19,13 @@ services:
     environment: *prod-env
   api:
     <<: *limits
-    environment: *prod-env
+    environment:
+      <<: *prod-env
+      # процессы uvicorn: CPU-задачи (подбор, argon2) не останавливают остальные запросы;
+      # лимиты общие для всех процессов (PostgreSQL), так что их число можно менять свободно
+      WEB_CONCURRENCY: ${API_WORKERS:-2}
     networks: [edge, internal, egress]
-    deploy: { resources: { limits: { cpus: "1.0", memory: 384M } } }
+    deploy: { resources: { limits: { cpus: "1.0", memory: 512M } } }
   worker:
     <<: *limits
     environment: *prod-env

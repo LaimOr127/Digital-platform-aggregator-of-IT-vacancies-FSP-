@@ -7,6 +7,8 @@ from typing import Any
 
 import httpx
 
+from app.integrations.ai.guard import UnsafeUrlError, ensure_public
+
 TIMEOUT_SECONDS = 30.0
 
 
@@ -26,12 +28,21 @@ class AiClient(ABC):
         self.model = model
         self.api_key = api_key
         self.transport = transport  # тесты подменяют сеть
+        self.allow_private = False  # частные сети — только явно (on-prem / локальная модель)
 
     async def complete_json(self, system: str, user: str, schema: dict[str, Any]) -> dict[str, Any]:
         try:
+            await ensure_public(self.base_url, self.allow_private)
             async with httpx.AsyncClient(timeout=TIMEOUT_SECONDS, transport=self.transport) as http:
                 return await self._request(http, system, user, schema)
-        except (httpx.HTTPError, ValueError, KeyError, TypeError, IndexError) as exc:
+        except (
+            UnsafeUrlError,
+            httpx.HTTPError,
+            ValueError,
+            KeyError,
+            TypeError,
+            IndexError,
+        ) as exc:
             raise AiUnavailableError(type(exc).__name__) from exc
 
     @abstractmethod

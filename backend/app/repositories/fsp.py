@@ -1,10 +1,10 @@
 """Данные ФСП и категории. Всё, что принадлежит кандидату, фильтруется по profile_id."""
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 
-from sqlalchemy import Select, delete, insert, or_, select
+from sqlalchemy import Select, delete, insert, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import Category, FspAchievement, FspLink, FspVerification, candidate_categories
@@ -44,15 +44,31 @@ class FspAchievementRepository(_ProfileScoped[FspAchievement]):
         return list((await self.session.execute(stmt)).scalars())
 
 
-async def links_due(session: AsyncSession, now: datetime, limit: int) -> list[FspLink]:
-    """Привязки, которым пора синхронизироваться (worker, контекст system)."""
-    stmt = (
-        select(FspLink)
+async def claim_due_links(
+    session: AsyncSession, now: datetime, limit: int, lease: timedelta
+) -> list[tuple[uuid.UUID, uuid.UUID]]:
+    """Захват пачки привязок, которым пора синхронизироваться (worker, контекст system).
+
+    Привязки помечаются занятыми на lease (next_sync_at сдвигается): параллельные экземпляры
+    worker берут разные пачки (SKIP LOCKED), а упавший экземпляр не держит их дольше lease.
+    Возвращает (id привязки, id профиля).
+    """
+    due = (
+        select(FspLink.id)
         .where(or_(FspLink.next_sync_at.is_(None), FspLink.next_sync_at <= now))
         .order_by(FspLink.next_sync_at.nulls_first())
         .limit(limit)
+        .with_for_update(skip_locked=True)
     )
-    return list((await session.execute(stmt)).scalars())
+    claimed = await session.execute(
+        update(FspLink)
+        .where(FspLink.id.in_(due.scalar_subquery()))
+        .values(next_sync_at=now + lease)
+        .returning(FspLink.id, FspLink.profile_id)
+    )
+    rows = [(link_id, profile_id) for link_id, profile_id in claimed.all()]
+    await session.commit()
+    return rows
 
 
 async def lock_link(session: AsyncSession, link_id: uuid.UUID) -> FspLink | None:

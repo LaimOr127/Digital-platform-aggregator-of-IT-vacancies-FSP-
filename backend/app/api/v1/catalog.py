@@ -68,9 +68,11 @@ async def catalog_candidate(anon_id: uuid.UUID, service: CatalogDep) -> Candidat
     return await service.candidate(anon_id)
 
 
-def _offer_limit(request: Request, principal: PrincipalDep) -> None:
+async def _offer_limit(request: Request, principal: PrincipalDep) -> None:
     """Офферы компании в сутки ограничены: кандидатов не заваливают предложениями."""
-    check_rate_limit(request, "offer_send", key=str(principal.company_id or principal.user_id))
+    await check_rate_limit(
+        request, "offer_send", key=str(principal.company_id or principal.user_id)
+    )
 
 
 @router.post(

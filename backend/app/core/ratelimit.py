@@ -1,13 +1,15 @@
-"""Ограничение частоты запросов (скользящее окно в памяти процесса).
+"""Ограничение частоты запросов. Интерфейс один, хранилище — на выбор (RATE_LIMIT_BACKEND):
 
-Хранилище живёт в app.state: у каждого экземпляра приложения (и теста) своё.
-Для нескольких реплик api заменяется реализацией на PostgreSQL с тем же интерфейсом.
+- memory — скользящее окно в памяти процесса (тесты, один процесс);
+- postgres — общее для всех процессов и реплик api (ratelimit_pg.py): лимиты, в том числе
+  на коды 2FA и подбор пароля, не размножаются при масштабировании.
 """
 
 import ipaddress
 import time
 from collections import defaultdict, deque
 from collections.abc import Callable
+from typing import Protocol
 
 from fastapi import Request
 
@@ -23,6 +25,12 @@ def parse_rate(rate: str) -> tuple[int, int]:
     return int(count), _PERIODS[period]
 
 
+class Limiter(Protocol):
+    async def hit(self, key: str, limit: int, window: int) -> bool:
+        """True — запрос разрешён; False — лимит исчерпан."""
+        ...
+
+
 class RateLimiter:
     def __init__(self, clock: Callable[[], float] = time.monotonic) -> None:
         self._hits: dict[str, deque[float]] = defaultdict(deque)
@@ -30,7 +38,7 @@ class RateLimiter:
         self._windows: dict[str, int] = {}
         self._clock = clock
 
-    def hit(self, key: str, limit: int, window: int) -> bool:
+    async def hit(self, key: str, limit: int, window: int) -> bool:
         """True — запрос разрешён; False — лимит исчерпан."""
         now = self._clock()
         if key not in self._hits and len(self._hits) >= _MAX_KEYS:
@@ -78,9 +86,9 @@ def client_ip(request: Request) -> str:
     return host
 
 
-def check_rate_limit(request: Request, scope: str, key: str | None = None) -> None:
+async def check_rate_limit(request: Request, scope: str, key: str | None = None) -> None:
     """Лимит области scope для ключа (по умолчанию — IP клиента)."""
     limit, window = request.app.state.rate_limits[scope]
-    limiter: RateLimiter = request.app.state.rate_limiter
-    if not limiter.hit(f"{scope}:{key or client_ip(request)}", limit, window):
+    limiter: Limiter = request.app.state.rate_limiter
+    if not await limiter.hit(f"{scope}:{key or client_ip(request)}", limit, window):
         raise RateLimitedError("too many requests")

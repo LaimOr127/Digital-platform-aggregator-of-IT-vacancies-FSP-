@@ -8,6 +8,7 @@ import jwt
 import pytest
 from pydantic import SecretStr
 
+from app.core.cache import TtlCache
 from app.core.config import Settings
 from app.core.crypto import FieldCipher, profile_field_context
 from app.core.errors import UnauthorizedError
@@ -109,38 +110,50 @@ def test_cipher_rejects_bad_key(key: str):
         FieldCipher(key)
 
 
-def test_rate_limiter_sliding_window():
+async def test_rate_limiter_sliding_window():
     now = [0.0]
     limiter = RateLimiter(clock=lambda: now[0])
-    assert all(limiter.hit("k", 3, 60) for _ in range(3))
-    assert not limiter.hit("k", 3, 60)
-    assert limiter.hit("other", 3, 60)
+    assert [await limiter.hit("k", 3, 60) for _ in range(3)] == [True] * 3
+    assert not await limiter.hit("k", 3, 60)
+    assert await limiter.hit("other", 3, 60)
     now[0] = 61.0
-    assert limiter.hit("k", 3, 60)
+    assert await limiter.hit("k", 3, 60)
 
 
-def test_rate_limiter_memory_bounded(monkeypatch):
+async def test_rate_limiter_memory_bounded(monkeypatch):
     monkeypatch.setattr("app.core.ratelimit._MAX_KEYS", 10)
     now = [0.0]
     limiter = RateLimiter(clock=lambda: now[0])
     for i in range(50):
         now[0] = float(i)
-        assert limiter.hit(f"ip-{i}", 5, 3600)
+        assert await limiter.hit(f"ip-{i}", 5, 3600)
     assert len(limiter._hits) <= 10
 
 
-def test_rate_limiter_eviction_respects_each_key_window(monkeypatch):
+async def test_rate_limiter_eviction_respects_each_key_window(monkeypatch):
     """Очистка по короткому окну не сбрасывает часовые счётчики других областей."""
     monkeypatch.setattr("app.core.ratelimit._MAX_KEYS", 3)
     now = [0.0]
     limiter = RateLimiter(clock=lambda: now[0])
-    assert limiter.hit("mfa:admin", 1, 3600)
+    assert await limiter.hit("mfa:admin", 1, 3600)
     now[0] = 120.0
-    assert limiter.hit("login:a", 5, 60)
-    assert limiter.hit("login:b", 5, 60)
+    assert await limiter.hit("login:a", 5, 60)
+    assert await limiter.hit("login:b", 5, 60)
     now[0] = 200.0
-    assert limiter.hit("login:c", 5, 60)  # переполнение: устаревают только минутные ключи
-    assert not limiter.hit("mfa:admin", 1, 3600)
+    assert await limiter.hit("login:c", 5, 60)  # переполнение: устаревают только минутные ключи
+    assert not await limiter.hit("mfa:admin", 1, 3600)
+
+
+def test_ttl_cache_expires_and_evicts_oldest():
+    now = [0.0]
+    cache: TtlCache[int] = TtlCache(ttl=10, max_items=2, clock=lambda: now[0])
+    cache.put("a", 1)
+    cache.put("b", 2)
+    assert cache.get("a") == 1  # "a" — свежая по использованию
+    cache.put("c", 3)  # вытесняет самую старую — "b"
+    assert cache.get("b") is None and cache.get("c") == 3
+    now[0] = 11.0
+    assert cache.get("a") is None
 
 
 def test_client_ip_groups_ipv6_by_64():

@@ -10,12 +10,13 @@ from app.core.config import Settings
 from app.core.crypto import FieldCipher
 from app.core.errors import NotFoundError, ServiceUnavailableError
 from app.core.logging import get_logger
+from app.core.ratelimit_pg import purge_expired
 from app.db.session import SYSTEM_ROLE, Database, set_rls_context
 from app.integrations.fsp import FspClient
 from app.integrations.notifier import Notifier
 from app.models import CandidateProfile, FspLink
 from app.repositories.audit import AuditRepository
-from app.repositories.fsp import links_due
+from app.repositories.fsp import claim_due_links
 from app.repositories.interviews import expire_overdue as expire_interviews
 from app.repositories.offers import expire_overdue
 from app.services.fsp_sync import FspSyncer, backoff
@@ -46,6 +47,7 @@ class FspSyncJob(Job):
 
     name, interval_seconds = "fsp-sync", 300
     batch_size = 50
+    lease = timedelta(minutes=10)  # столько пачка «занята» одним экземпляром worker
 
     def __init__(self, db: Database, client: FspClient, sync_every: timedelta) -> None:
         self.db = db
@@ -55,9 +57,8 @@ class FspSyncJob(Job):
     async def run(self) -> int:  # type: ignore[override]
         async with self.db.sessionmaker() as session:
             await set_rls_context(session, None, SYSTEM_ROLE)
-            due = await links_due(session, datetime.now(UTC), self.batch_size)
-            # id сохраняем заранее: после rollback объекты сессии устаревают
-            targets = [(link.id, link.profile_id) for link in due]
+            # пачка захватывается атомарно: несколько экземпляров worker не дублируют работу
+            targets = await claim_due_links(session, datetime.now(UTC), self.batch_size, self.lease)
             synced = 0
             for link_id, profile_id in targets:
                 outcome = await self._sync_one(session, link_id, profile_id)
@@ -128,6 +129,18 @@ class OfferExpiryJob(Job):
             return expired
 
 
+class RateLimitPurgeJob(Job):
+    """Удаляет истёкшие счётчики лимитов (только при RATE_LIMIT_BACKEND=postgres)."""
+
+    name, interval_seconds = "rate-limit-purge", 600
+
+    def __init__(self, db: Database) -> None:
+        self.db = db
+
+    async def run(self) -> int:  # type: ignore[override]
+        return await purge_expired(self.db.engine)
+
+
 class OutboxJob(Job):
     """Отправка писем из очереди: часто, небольшими пачками, до опустошения очереди."""
 
@@ -160,4 +173,5 @@ def build_jobs(
         FspSyncJob(db, client, sync_every),
         OfferExpiryJob(db),
         OutboxJob(db, cipher, notifier, settings.public_url),
+        *([RateLimitPurgeJob(db)] if settings.rate_limit_backend == "postgres" else []),
     ]

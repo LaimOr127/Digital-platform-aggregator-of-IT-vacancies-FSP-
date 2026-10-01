@@ -13,7 +13,7 @@ from app.services.matching.factors import (
     SalaryFactor,
     SkillsFactor,
 )
-from app.services.matching.scorer import match
+from app.services.matching.scorer import VacancyContext, match
 from app.services.matching.text import keywords, overlap
 from tests.flows import CATALOG, approved_employer
 from tests.helpers import bearer, register_candidate
@@ -39,6 +39,10 @@ def vacancy(**overrides):
     return SimpleNamespace(**{**base, **overrides})
 
 
+def ctx(v) -> VacancyContext:
+    return VacancyContext.of(v)
+
+
 def candidate(**overrides) -> Candidate:
     base = {
         "title": "Python-разработчик",
@@ -54,23 +58,23 @@ def candidate(**overrides) -> Candidate:
 
 
 def test_skills_share_and_explanation():
-    result = SkillsFactor().score(vacancy(), candidate())
+    result = SkillsFactor().score(ctx(vacancy()), candidate())
     assert result.share == round(2 / 3, 3)
     assert result.detail == "2 из 3: Python, Postgresql; нет: Kafka"
 
 
 def test_grade_distance():
-    assert GradeFactor().score(vacancy(), candidate()).share == 1.0
-    assert GradeFactor().score(vacancy(), candidate(grade=Grade.SENIOR)).share == 0.5
-    assert GradeFactor().score(vacancy(), candidate(grade=Grade.INTERN)).share == 0.0
+    assert GradeFactor().score(ctx(vacancy()), candidate()).share == 1.0
+    assert GradeFactor().score(ctx(vacancy()), candidate(grade=Grade.SENIOR)).share == 0.5
+    assert GradeFactor().score(ctx(vacancy()), candidate(grade=Grade.INTERN)).share == 0.0
 
 
 def test_format_city_and_salary():
-    assert FormatFactor().score(vacancy(), candidate()).detail == "тот же город: Казань"
+    assert FormatFactor().score(ctx(vacancy()), candidate()).detail == "тот же город: Казань"
     remote_wanted = candidate(city="Пермь", work_format=WorkFormat.REMOTE)
-    assert FormatFactor().score(vacancy(), remote_wanted).share == 0.0
-    assert SalaryFactor().score(vacancy(), candidate()).share == 1.0
-    assert SalaryFactor().score(vacancy(), candidate(salary_min=360_000)).share == 0.6
+    assert FormatFactor().score(ctx(vacancy()), remote_wanted).share == 0.0
+    assert SalaryFactor().score(ctx(vacancy()), candidate()).share == 1.0
+    assert SalaryFactor().score(ctx(vacancy()), candidate(salary_min=360_000)).share == 0.6
 
 
 def test_description_overlap_uses_word_stems():
@@ -80,7 +84,9 @@ def test_description_overlap_uses_word_stems():
     )
     assert share == 1.0 and "разраб" in common
     assert (
-        DescriptionFactor().score(vacancy(), candidate(about=None, title=None, skills=[])).share
+        DescriptionFactor()
+        .score(ctx(vacancy()), candidate(about=None, title=None, skills=[]))
+        .share
         == 0
     )
 

@@ -11,6 +11,7 @@ services:
     environment:
       # локальная модель (Ollama, LM Studio) на этом компьютере: http://host.docker.internal:11434/v1
       AI_ALLOW_HTTP: ${AI_ALLOW_HTTP:-true}
+      AI_ALLOW_PRIVATE_NETWORK: ${AI_ALLOW_PRIVATE_NETWORK:-true}
     extra_hosts: ["host.docker.internal:host-gateway"]
   worker:
     depends_on:

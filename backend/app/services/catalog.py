@@ -9,8 +9,9 @@ from dataclasses import asdict
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.cache import TtlCache
 from app.core.errors import ForbiddenError, InvalidStateError, NotFoundError
-from app.models import CandidateProfile
+from app.models import CandidateProfile, Vacancy
 from app.repositories.base import Page
 from app.repositories.catalog import CatalogFilters, CatalogRepository
 from app.repositories.fsp import CategoryRepository
@@ -26,10 +27,11 @@ from app.services.access import Action, Principal, policy
 from app.services.categorization import TIERS, describe_anonymous
 from app.services.fsp_sync import to_evidence
 from app.services.matching.factors import Candidate
-from app.services.matching.scorer import match
+from app.services.matching.scorer import MatchResult, VacancyContext, match
 
 # сортировка по соответствию оценивает до стольких кандидатов (новые — первыми)
 MAX_SCORED = 1000
+MATCH_CACHE: TtlCache[list[tuple[uuid.UUID, MatchResult]]] = TtlCache(ttl=60, max_items=256)
 
 
 class CatalogService:
@@ -69,22 +71,43 @@ class CatalogService:
     async def _by_match(
         self, filters: CatalogFilters, vacancy_id: uuid.UUID, cursor: str | None, limit: int
     ) -> tuple[list[CandidateCardOut], str | None]:
-        """Самые подходящие кандидаты — сверху; при равенстве — новые профили."""
+        """Самые подходящие кандидаты — сверху; при равенстве — новые профили.
+
+        Рейтинг кэшируется на минуту: страницы листаются без пересчёта и в стабильном
+        порядке; правка вакансии (updated_at) сразу даёт новый рейтинг.
+        """
         vacancy = await VacancyRepository(self.session, self._company_id()).get_or_404(vacancy_id)
-        profiles = await self.catalog.search_all(filters, MAX_SCORED)
-        categories = await self.catalog.categories_for([p.id for p in profiles])
-        scored = [(match(vacancy, Candidate(p, categories.get(p.id, []))), p) for p in profiles]
-        scored.sort(key=lambda pair: pair[0].score, reverse=True)  # сортировка устойчивая
+        key = (vacancy.id, vacancy.updated_at, filters)
+        ranking = MATCH_CACHE.get(key)
+        if ranking is None:
+            ranking = await self._rank(vacancy, filters)
+            MATCH_CACHE.put(key, ranking)
         offset = _offset(cursor)
-        page = scored[offset : offset + limit]
-        cards = await build_cards(self.catalog, [p for _, p in page])
-        for card, (result, _) in zip(cards, page, strict=True):
+        page = ranking[offset : offset + limit]
+        # видимость проверяется заново: кандидат мог скрыться после расчёта рейтинга
+        visible = {p.id: p for p in await self.catalog.by_ids([pid for pid, _ in page])}
+        shown = [(visible[pid], result) for pid, result in page if pid in visible]
+        cards = await build_cards(self.catalog, [p for p, _ in shown])
+        for card, (_, result) in zip(cards, shown, strict=True):
             card.match = MatchOut(
                 score=result.score,
                 factors=[MatchFactorOut(**asdict(f)) for f in result.factors],
             )
-        has_more = offset + limit < len(scored)
+        has_more = offset + limit < len(ranking)
         return cards, f"{_OFFSET_PREFIX}{offset + limit}" if has_more else None
+
+    async def _rank(
+        self, vacancy: Vacancy, filters: CatalogFilters
+    ) -> list[tuple[uuid.UUID, MatchResult]]:
+        profiles = await self.catalog.search_all(filters, MAX_SCORED)
+        categories = await self.catalog.categories_for([p.id for p in profiles])
+        context = VacancyContext.of(vacancy)
+        ranking = [
+            (p.id, match(vacancy, Candidate(p, categories.get(p.id, [])), context=context))
+            for p in profiles
+        ]
+        ranking.sort(key=lambda pair: pair[1].score, reverse=True)  # устойчиво: новые выше
+        return ranking
 
     def _company_id(self) -> uuid.UUID:
         if self.principal.company_id is None:

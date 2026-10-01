@@ -29,7 +29,13 @@ def _engine_kwargs(url: str) -> dict:
     if url.startswith("sqlite"):
         # тесты: одна in-memory БД на движок
         return {"poolclass": StaticPool, "connect_args": {"check_same_thread": False}}
-    return {"pool_pre_ping": True, "pool_size": 5}
+    settings = get_settings()
+    # на процесс: pool_size постоянных + max_overflow временных соединений
+    return {
+        "pool_pre_ping": True,
+        "pool_size": settings.db_pool_size,
+        "max_overflow": settings.db_max_overflow,
+    }
 
 
 _SET_RLS_SQL = text(

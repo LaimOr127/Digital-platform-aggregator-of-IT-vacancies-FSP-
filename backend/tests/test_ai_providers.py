@@ -16,7 +16,7 @@ def provider(**overrides) -> dict:
     return {
         "name": "OpenAI GPT",
         "kind": "openai",
-        "base_url": "https://api.example-llm.ru/v1",
+        "base_url": "https://llm.example.test/v1",
         "model": "gpt-test",
         "api_key": KEY,
         **overrides,
@@ -49,12 +49,15 @@ async def test_key_is_encrypted_and_never_returned(client: AsyncClient, db, app)
 @pytest.mark.parametrize(
     "base_url",
     [
-        "http://api.example-llm.ru/v1",  # http без явного разрешения
+        "http://llm.example.test/v1",  # http без явного разрешения
         "https://db:5432",
         "https://mailpit:8025",
         "https://localhost:11434",
         "https://127.0.0.1/v1",
         "https://169.254.169.254/latest",  # метаданные облака
+        "https://10.0.0.5/v1",  # частная сеть — только с AI_ALLOW_PRIVATE_NETWORK
+        "https://[::1]/v1",
+        "https://[fd00::1]/v1",
         "ftp://example.org",
     ],
 )
@@ -110,3 +113,35 @@ async def test_connection_check(client: AsyncClient, db, app):
         "latency_ms": bad["latency_ms"],
         "message": "Ошибка 401: неверный ключ",
     }
+
+
+async def test_address_resolving_to_loopback_is_blocked_before_request(
+    client: AsyncClient, db, app
+):
+    """Десятичная запись IP проходит проверку текста, но ведёт на 127.0.0.1 — запрос не уходит."""
+    admin = await create_admin(db, app, superadmin=True)
+    created = await client.post(
+        URL, json=provider(base_url="https://2130706433/v1"), headers=bearer(admin)
+    )
+    assert created.status_code == 201
+    sent: list[httpx.Request] = []
+    app.state.ai_transport = httpx.MockTransport(lambda r: sent.append(r) or httpx.Response(200))
+    result = (await client.post(f"{URL}/{created.json()['id']}/test", headers=bearer(admin))).json()
+    assert result["ok"] is False and "внутренний сервис" in result["message"]
+    assert sent == []
+
+
+async def test_private_network_only_when_allowed(client: AsyncClient, db, app):
+    app.state.settings.ai_allow_private_network = True
+    try:
+        admin = await create_admin(db, app, superadmin=True)
+        r = await client.post(
+            URL, json=provider(base_url="https://10.0.0.5/v1"), headers=bearer(admin)
+        )
+        assert r.status_code == 201
+        loopback = await client.post(
+            URL, json=provider(base_url="https://127.0.0.1/v1"), headers=bearer(admin)
+        )
+        assert loopback.status_code == 422  # loopback закрыт всегда
+    finally:
+        app.state.settings.ai_allow_private_network = False

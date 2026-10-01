@@ -9,6 +9,7 @@ from app.core.config import Settings
 from app.core.errors import ServiceUnavailableError
 from app.db.session import set_rls_context
 from app.models import FspLink
+from app.repositories.fsp import claim_due_links
 from app.services.fsp_sync import backoff
 from app.worker.jobs import FspSyncJob, HeartbeatJob, OfferExpiryJob, OutboxJob, build_jobs
 from tests.fake_fsp import result
@@ -107,3 +108,18 @@ async def test_build_jobs(db, fsp, app):
     )
     assert [type(j) for j in jobs] == [HeartbeatJob, FspSyncJob, OfferExpiryJob, OutboxJob]
     await jobs[0].run()
+
+
+async def test_due_links_are_claimed_once(client: AsyncClient, db):
+    """Несколько экземпляров worker: пачку получает только один, второй — следующую."""
+    await linked(client, "FSP-1")
+    await linked(client, "FSP-2")
+    await make_due(db)
+    now = datetime.now(UTC)
+    async with db.sessionmaker() as first, db.sessionmaker() as second:
+        for session in (first, second):
+            await set_rls_context(session, None, "system")
+        batch = await claim_due_links(first, now, 1, timedelta(minutes=10))
+        rest = await claim_due_links(second, now, 10, timedelta(minutes=10))
+        again = await claim_due_links(first, now, 10, timedelta(minutes=10))
+    assert len(batch) == 1 and len(rest) == 1 and batch != rest and again == []

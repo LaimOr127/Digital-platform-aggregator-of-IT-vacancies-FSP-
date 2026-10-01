@@ -12,6 +12,7 @@ from app.core.crypto import FieldCipher
 from app.core.errors import register_error_handlers
 from app.core.logging import setup_logging
 from app.core.ratelimit import RateLimiter, build_limits
+from app.core.ratelimit_pg import PostgresRateLimiter
 from app.core.security import TokenService
 from app.core.signing import PassportSigner
 from app.db.session import get_database
@@ -52,7 +53,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.signer = PassportSigner(settings.secret("passport_signing_key"))
     app.state.fsp_client = HttpFspClient(settings)
     app.state.ai_transport = None  # тесты подменяют сеть к языковым моделям
-    app.state.rate_limiter = RateLimiter()
+    app.state.rate_limiter = (
+        PostgresRateLimiter(get_database().engine)
+        if settings.rate_limit_backend == "postgres"
+        else RateLimiter()
+    )
     app.state.rate_limits = build_limits(
         {
             "auth": settings.auth_rate_limit,

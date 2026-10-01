@@ -15,10 +15,10 @@ from app.core.crypto import FieldCipher
 from app.core.errors import ConflictError, EmailNotVerifiedError, UnauthorizedError
 from app.core.security import (
     TokenService,
-    hash_password,
+    hash_password_async,
     hash_token,
     new_refresh_token,
-    verify_password,
+    verify_password_async,
 )
 from app.core.timeutil import as_aware
 from app.models import RefreshToken, User
@@ -62,7 +62,7 @@ class AuthService:
             raise ConflictError("email уже зарегистрирован")
         user = User(
             email=email.lower(),
-            password_hash=hash_password(password),
+            password_hash=await hash_password_async(password),
             role=UserRole.ADMIN,
             is_superadmin=superadmin,
             email_verified=True,  # адрес задаёт оператор сервера
@@ -75,7 +75,7 @@ class AuthService:
 
     async def login(self, email: str, password: str) -> TokenPair | MfaChallenge:
         user = await self.users.by_email(email)
-        valid = verify_password(user.password_hash if user else None, password)
+        valid = await verify_password_async(user.password_hash if user else None, password)
         if user is None or not valid or not user.is_active:
             raise UnauthorizedError(_INVALID_CREDENTIALS)
         if not user.email_verified:

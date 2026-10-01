@@ -1,5 +1,6 @@
 """Пароли (argon2id), access JWT и непрозрачные refresh-токены. Секреты — только из Settings."""
 
+import asyncio
 import hashlib
 import secrets
 import uuid
@@ -28,6 +29,16 @@ def verify_password(password_hash: str | None, password: str) -> bool:
         return _hasher.verify(password_hash or _DUMMY_HASH, password) and password_hash is not None
     except (VerificationError, InvalidHashError):
         return False
+
+
+async def hash_password_async(password: str) -> str:
+    """argon2 — сотни миллисекунд CPU: в отдельном потоке (библиотека отпускает GIL),
+    чтобы вход и регистрация не останавливали обработку остальных запросов."""
+    return await asyncio.to_thread(hash_password, password)
+
+
+async def verify_password_async(password_hash: str | None, password: str) -> bool:
+    return await asyncio.to_thread(verify_password, password_hash, password)
 
 
 def new_refresh_token() -> str:

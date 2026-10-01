@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from app.models import CandidateProfile, Category, Vacancy
 from app.models.enums import Grade, VerificationTier, WorkFormat
 from app.services.categorization import TIER_TITLES, TIERS
-from app.services.matching.text import overlap
+from app.services.matching.text import keywords, overlap_with
 
 GRADE_ORDER = [Grade.INTERN, Grade.JUNIOR, Grade.MIDDLE, Grade.SENIOR, Grade.LEAD]
 
@@ -21,6 +21,23 @@ class Candidate:
 
     profile: CandidateProfile
     categories: list[Category]
+
+
+@dataclass(frozen=True)
+class VacancyContext:
+    """Вакансия с заранее подготовленными данными: считаются один раз на весь рейтинг."""
+
+    vacancy: Vacancy
+    skills: dict[str, str]  # slug -> название
+    keywords: frozenset[str]
+
+    @classmethod
+    def of(cls, vacancy: Vacancy) -> "VacancyContext":
+        return cls(
+            vacancy,
+            {s.slug: s.name for s in vacancy.skills},
+            frozenset(keywords(f"{vacancy.title} {vacancy.description}")),
+        )
 
 
 @dataclass(frozen=True)
@@ -37,19 +54,19 @@ class Factor(ABC):
     label: str
     weight: int
 
-    def score(self, vacancy: Vacancy, candidate: Candidate) -> FactorScore:
-        share, detail = self.evaluate(vacancy, candidate)
+    def score(self, context: VacancyContext, candidate: Candidate) -> FactorScore:
+        share, detail = self.evaluate(context, candidate)
         return FactorScore(self.key, self.label, self.weight, round(share, 3), detail)
 
     @abstractmethod
-    def evaluate(self, vacancy: Vacancy, candidate: Candidate) -> tuple[float, str]: ...
+    def evaluate(self, context: VacancyContext, candidate: Candidate) -> tuple[float, str]: ...
 
 
 class SkillsFactor(Factor):
     key, label, weight = "skills", "Навыки", 40
 
-    def evaluate(self, vacancy: Vacancy, candidate: Candidate) -> tuple[float, str]:
-        wanted = {s.slug: s.name for s in vacancy.skills}
+    def evaluate(self, context: VacancyContext, candidate: Candidate) -> tuple[float, str]:
+        wanted = context.skills
         if not wanted:
             return 0.5, "в вакансии навыки не указаны"
         have = {s.slug for s in candidate.profile.skills}
@@ -66,18 +83,18 @@ class SkillsFactor(Factor):
 class GradeFactor(Factor):
     key, label, weight = "grade", "Грейд", 20
 
-    def evaluate(self, vacancy: Vacancy, candidate: Candidate) -> tuple[float, str]:
+    def evaluate(self, context: VacancyContext, candidate: Candidate) -> tuple[float, str]:
         grade = candidate.profile.grade
         if grade is None:
             return 0.3, "кандидат не указал грейд"
-        gap = abs(GRADE_ORDER.index(grade) - GRADE_ORDER.index(vacancy.grade))
+        gap = abs(GRADE_ORDER.index(grade) - GRADE_ORDER.index(context.vacancy.grade))
         return {0: (1.0, "совпадает"), 1: (0.5, "соседний")}.get(gap, (0.0, "далёкий"))
 
 
 class FspFactor(Factor):
     key, label, weight = "fsp", "Подтверждение ФСП", 15
 
-    def evaluate(self, vacancy: Vacancy, candidate: Candidate) -> tuple[float, str]:
+    def evaluate(self, context: VacancyContext, candidate: Candidate) -> tuple[float, str]:
         if candidate.profile.verification_tier != VerificationTier.VERIFIED_FSP:
             return 0.0, "навыки не подтверждены ФСП"
         if not candidate.categories:
@@ -90,12 +107,12 @@ class FspFactor(Factor):
 class DescriptionFactor(Factor):
     key, label, weight = "description", "Описание и опыт", 15
 
-    def evaluate(self, vacancy: Vacancy, candidate: Candidate) -> tuple[float, str]:
+    def evaluate(self, context: VacancyContext, candidate: Candidate) -> tuple[float, str]:
         profile = candidate.profile
         candidate_text = " ".join(
             filter(None, [profile.title, profile.about, *(s.name for s in profile.skills)])
         )
-        share, common = overlap(f"{vacancy.title} {vacancy.description}", candidate_text)
+        share, common = overlap_with(context.keywords, candidate_text)
         if not common:
             return share, "общих тем с описанием вакансии не найдено"
         return share, f"общие темы: {', '.join(common)}"
@@ -104,8 +121,8 @@ class DescriptionFactor(Factor):
 class FormatFactor(Factor):
     key, label, weight = "format", "Формат и город", 5
 
-    def evaluate(self, vacancy: Vacancy, candidate: Candidate) -> tuple[float, str]:
-        profile = candidate.profile
+    def evaluate(self, context: VacancyContext, candidate: Candidate) -> tuple[float, str]:
+        profile, vacancy = candidate.profile, context.vacancy
         if vacancy.work_format == WorkFormat.REMOTE:
             return 1.0, "удалённая работа — город не важен"
         same_city = bool(
@@ -121,8 +138,8 @@ class FormatFactor(Factor):
 class SalaryFactor(Factor):
     key, label, weight = "salary", "Зарплата", 5
 
-    def evaluate(self, vacancy: Vacancy, candidate: Candidate) -> tuple[float, str]:
-        expected = candidate.profile.salary_min
+    def evaluate(self, context: VacancyContext, candidate: Candidate) -> tuple[float, str]:
+        expected, vacancy = candidate.profile.salary_min, context.vacancy
         if not expected:
             return 0.6, "ожидания не указаны"
         if expected <= vacancy.salary_max:

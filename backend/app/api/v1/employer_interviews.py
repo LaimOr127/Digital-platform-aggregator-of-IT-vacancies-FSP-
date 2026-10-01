@@ -29,10 +29,10 @@ def _service(
 ServiceDep = Annotated[EmployerInterviewService, Depends(_service)]
 
 
-def _invite_limit(request: Request, principal: PrincipalDep) -> None:
+async def _invite_limit(request: Request, principal: PrincipalDep) -> None:
     """Приглашения компании в сутки ограничены: кандидатов не заваливают."""
     key = str(principal.company_id or principal.user_id)
-    check_rate_limit(request, "interview_invite", key=key)
+    await check_rate_limit(request, "interview_invite", key=key)
 
 
 @router.post(

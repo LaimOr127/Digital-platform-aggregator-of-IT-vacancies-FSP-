@@ -29,6 +29,10 @@ class Settings(BaseSettings):
     db_owner_password: SecretStr = SecretStr("")
     # Полный URL БД вместо сборки из частей (тесты: sqlite+aiosqlite)
     database_url_override: str = ""
+    db_pool_size: int = 5
+    db_max_overflow: int = 10
+    # memory — счётчики в процессе (тесты, один процесс); postgres — общие для процессов и реплик
+    rate_limit_backend: Literal["memory", "postgres"] = "memory"
 
     jwt_secret: SecretStr = SecretStr("")
     access_token_ttl_minutes: int = 15
@@ -68,6 +72,8 @@ class Settings(BaseSettings):
     ai_timeout_seconds: float = 30.0
     # http:// для моделей разрешён только явно (локальная Ollama в dev); в остальных случаях https
     ai_allow_http: bool = False
+    # частные сети (10/8, 172.16/12, 192.168/16): on-prem модель или Ollama на хосте; иначе закрыто
+    ai_allow_private_network: bool = False
     resume_rate_limit: str = "20/hour"  # разборов резюме на пользователя
 
     # Почта (нужна только worker): ссылки в письмах ведут на public_url

@@ -21,8 +21,8 @@ router = APIRouter(prefix="/candidate", tags=["candidate"])
 
 
 def _per_user(scope: str):  # фабрика зависимостей FastAPI: лимит по пользователю
-    def dependency(request: Request, principal: PrincipalDep) -> None:
-        check_rate_limit(request, scope, key=str(principal.user_id))
+    async def dependency(request: Request, principal: PrincipalDep) -> None:
+        await check_rate_limit(request, scope, key=str(principal.user_id))
 
     return Depends(dependency)
 
@@ -58,7 +58,7 @@ async def fsp_status(service: FspDep) -> FspStatusOut:
 async def fsp_link(data: FspLinkIn, request: Request, service: FspDep) -> FspLinkStartOut:
     athlete_id = data.athlete_id.strip().upper()
     # письма владельцу аккаунта ФСП — не чаще лимита, кто бы их ни запрашивал
-    check_rate_limit(request, "fsp_athlete", key=athlete_id)
+    await check_rate_limit(request, "fsp_athlete", key=athlete_id)
     return await service.start(athlete_id)
 
 

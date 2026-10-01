@@ -33,8 +33,8 @@ def _service(session: SessionDep, cipher: CipherDep) -> AccountService:
 AccountDep = Annotated[AccountService, Depends(_service)]
 
 
-def _email_limit(request: Request, email: str) -> None:
-    check_rate_limit(request, "email", key=email.lower())
+async def _email_limit(request: Request, email: str) -> None:
+    await check_rate_limit(request, "email", key=email.lower())
 
 
 @router.post(
@@ -46,7 +46,7 @@ def _email_limit(request: Request, email: str) -> None:
 async def register_candidate(
     data: CandidateRegisterIn, request: Request, service: AccountDep
 ) -> AcceptedOut:
-    _email_limit(request, data.email)
+    await _email_limit(request, data.email)
     await service.register_candidate(data)
     return AcceptedOut()
 
@@ -60,7 +60,7 @@ async def register_candidate(
 async def register_employer(
     data: EmployerRegisterIn, request: Request, service: AccountDep
 ) -> AcceptedOut:
-    _email_limit(request, data.email)
+    await _email_limit(request, data.email)
     await service.register_employer(data)
     return AcceptedOut()
 
@@ -79,7 +79,7 @@ async def verify_email(data: LinkTokenIn, service: AccountDep) -> None:
     summary="Отправить письмо подтверждения ещё раз",
 )
 async def resend_verification(data: EmailIn, request: Request, service: AccountDep) -> AcceptedOut:
-    _email_limit(request, data.email)
+    await _email_limit(request, data.email)
     await service.resend_verification(data.email)
     return AcceptedOut()
 
@@ -91,7 +91,7 @@ async def resend_verification(data: EmailIn, request: Request, service: AccountD
     summary="Письмо со ссылкой для сброса пароля",
 )
 async def forgot_password(data: EmailIn, request: Request, service: AccountDep) -> AcceptedOut:
-    _email_limit(request, data.email)
+    await _email_limit(request, data.email)
     await service.forgot_password(data.email)
     return AcceptedOut()
 

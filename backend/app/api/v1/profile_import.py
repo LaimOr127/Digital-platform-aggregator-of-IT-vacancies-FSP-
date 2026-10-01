@@ -56,7 +56,7 @@ async def capabilities(ai: AiParserDep) -> ImportCapabilitiesOut:
 async def from_fsp(
     request: Request, session: SessionDep, principal: PrincipalDep, client: FspClientDep
 ) -> ProfileDraftOut:
-    check_rate_limit(request, "fsp_sync", key=str(principal.user_id))
+    await check_rate_limit(request, "fsp_sync", key=str(principal.user_id))
     return await FspImportService(session, principal, client).draft()
 
 
@@ -69,7 +69,7 @@ async def from_resume(
     file: Annotated[UploadFile, File(description="PDF или DOCX")],
     use_ai: Annotated[bool, Form(description="согласие на разбор ИИ-сервисом")] = False,
 ) -> ProfileDraftOut:
-    check_rate_limit(request, "resume", key=str(principal.user_id))
+    await check_rate_limit(request, "resume", key=str(principal.user_id))
     data = await file.read(MAX_BYTES + 1)
     if len(data) > MAX_BYTES:
         raise UnsupportedResumeError("файл больше 5 МБ")
