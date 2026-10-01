@@ -1,6 +1,9 @@
 // Эндпоинты API в одном месте: компоненты не собирают URL сами.
 import { api } from "./client";
 import type {
+  AdminUser,
+  AdminVacancy,
+  AuditEntry,
   CandidateCard,
   CandidateRegisterIn,
   CatalogCategory,
@@ -11,7 +14,10 @@ import type {
   FspLinkStart,
   FspStatus,
   LoginIn,
+  LoginResult,
   Me,
+  MfaSetup,
+  ModerationAction,
   Offer,
   OfferContacts,
   OfferCreate,
@@ -24,6 +30,7 @@ import type {
   ProfileUpdate,
   Skill,
   TokenOut,
+  UserRole,
   Vacancy,
   VacancyCreate,
   VacancyStatus,
@@ -31,7 +38,13 @@ import type {
 } from "./types";
 
 export const authApi = {
-  login: (body: LoginIn) => api<TokenOut>("POST", "/auth/login", { body }),
+  /** администратору вместо токенов приходит шаг 2FA (mfa_required) */
+  login: (body: LoginIn) => api<LoginResult>("POST", "/auth/login", { body }),
+  /** первый вход: код подключения выдаёт CLI (make create-admin / make reset-admin-2fa) */
+  mfaSetup: (mfaToken: string, enrollmentCode: string) =>
+    api<MfaSetup>("POST", "/auth/2fa/setup", { body: { mfa_token: mfaToken, enrollment_code: enrollmentCode } }),
+  mfaVerify: (mfaToken: string, code: string) =>
+    api<TokenOut>("POST", "/auth/2fa/verify", { body: { mfa_token: mfaToken, code } }),
   registerCandidate: (body: CandidateRegisterIn) =>
     api<TokenOut>("POST", "/auth/register/candidate", { body }),
   registerEmployer: (body: EmployerRegisterIn) =>
@@ -108,4 +121,14 @@ export const adminApi = {
     api<Page<Company>>("GET", "/admin/companies", { query: { status, cursor, limit: 20 } }),
   setCompanyStatus: (id: string, status: CompanyStatus, reason: string) =>
     api<Company>("POST", `/admin/companies/${encodeURIComponent(id)}/status`, { body: { status, reason } }),
+  vacancies: (status: VacancyStatus | undefined, cursor: string | undefined) =>
+    api<Page<AdminVacancy>>("GET", "/admin/vacancies", { query: { status, cursor, limit: 20 } }),
+  moderateVacancy: (id: string, action: ModerationAction, reason: string) =>
+    api<AdminVacancy>("POST", `/admin/vacancies/${encodeURIComponent(id)}/moderation`, { body: { action, reason } }),
+  users: (filters: { role?: UserRole; q?: string }, cursor: string | undefined) =>
+    api<Page<AdminUser>>("GET", "/admin/users", { query: { ...filters, cursor, limit: 20 } }),
+  moderateUser: (id: string, action: ModerationAction, reason: string) =>
+    api<AdminUser>("POST", `/admin/users/${encodeURIComponent(id)}/moderation`, { body: { action, reason } }),
+  audit: (action: string | undefined, cursor: string | undefined) =>
+    api<Page<AuditEntry>>("GET", "/admin/audit", { query: { action, cursor, limit: 50 } }),
 };

@@ -81,8 +81,42 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Вход */
+        /** Вход (администратору — затем 2FA) */
         post: operations["login_api_v1_auth_login_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/2fa/setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Настроить приложение-аутентификатор */
+        post: operations["mfa_setup_api_v1_auth_2fa_setup_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/2fa/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Подтвердить вход кодом 2FA */
+        post: operations["mfa_verify_api_v1_auth_2fa_verify_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -522,6 +556,91 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/vacancies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Все вакансии (модерация) */
+        get: operations["list_vacancies_api_v1_admin_vacancies_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/vacancies/{vacancy_id}/moderation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Заблокировать/разблокировать вакансию */
+        post: operations["moderate_vacancy_api_v1_admin_vacancies__vacancy_id__moderation_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Пользователи (поиск по email, фильтр по роли) */
+        get: operations["list_users_api_v1_admin_users_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users/{user_id}/moderation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Заблокировать/разблокировать пользователя */
+        post: operations["moderate_user_api_v1_admin_users__user_id__moderation_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Журнал аудита */
+        get: operations["list_audit_api_v1_admin_audit_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/public/skills": {
         parameters: {
             query?: never;
@@ -599,6 +718,86 @@ export interface components {
             role: string;
             /** Team */
             team: string | null;
+        };
+        /** AdminUserOut */
+        AdminUserOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Email */
+            email: string;
+            role: components["schemas"]["UserRole"];
+            /** Is Active */
+            is_active: boolean;
+            /** Is Superadmin */
+            is_superadmin: boolean;
+            /** Totp Enabled */
+            totp_enabled: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** AdminVacancyOut */
+        AdminVacancyOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Company Id
+             * Format: uuid
+             */
+            company_id: string;
+            /** Company Name */
+            company_name: string;
+            /** Title */
+            title: string;
+            /** Description */
+            description: string;
+            grade: components["schemas"]["Grade"];
+            work_format: components["schemas"]["WorkFormat"];
+            /** Salary Min */
+            salary_min: number;
+            /** Salary Max */
+            salary_max: number;
+            status: components["schemas"]["VacancyStatus"];
+            /** Expires At */
+            expires_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** AuditEntryOut */
+        AuditEntryOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Action */
+            action: string;
+            /** Actor Email */
+            actor_email: string | null;
+            /** Target Type */
+            target_type: string | null;
+            /** Target Id */
+            target_id: string | null;
+            /** Meta */
+            meta: {
+                [key: string]: unknown;
+            };
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
         };
         /**
          * CandidateCardOut
@@ -862,6 +1061,58 @@ export interface components {
             /** Company Id */
             company_id?: string | null;
         };
+        /**
+         * MfaChallengeOut
+         * @description Ответ на вход администратора: нужен код 2FA (mfa_token действует 5 минут).
+         */
+        MfaChallengeOut: {
+            /**
+             * Mfa Required
+             * @default true
+             */
+            mfa_required: boolean;
+            /** Mfa Token */
+            mfa_token: string;
+            /** Enrolled */
+            enrolled: boolean;
+        };
+        /**
+         * MfaSetupIn
+         * @description Код подключения выдаёт CLI (make create-admin / make reset-admin-2fa).
+         */
+        MfaSetupIn: {
+            /** Mfa Token */
+            mfa_token: string;
+            /** Enrollment Code */
+            enrollment_code: string;
+        };
+        /** MfaSetupOut */
+        MfaSetupOut: {
+            /** Secret */
+            secret: string;
+            /** Otpauth Uri */
+            otpauth_uri: string;
+        };
+        /** MfaVerifyIn */
+        MfaVerifyIn: {
+            /** Mfa Token */
+            mfa_token: string;
+            /** Code */
+            code: string;
+        };
+        /** ModerationIn */
+        ModerationIn: {
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "block" | "unblock";
+            /**
+             * Reason
+             * @default
+             */
+            reason: string;
+        };
         /** OfferContactsOut */
         OfferContactsOut: {
             /** Full Name */
@@ -948,6 +1199,27 @@ export interface components {
          * @enum {string}
          */
         OfferStatus: "sent" | "accepted" | "declined" | "withdrawn" | "expired";
+        /** PageOut[AdminUserOut] */
+        PageOut_AdminUserOut_: {
+            /** Items */
+            items: components["schemas"]["AdminUserOut"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /** PageOut[AdminVacancyOut] */
+        PageOut_AdminVacancyOut_: {
+            /** Items */
+            items: components["schemas"]["AdminVacancyOut"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /** PageOut[AuditEntryOut] */
+        PageOut_AuditEntryOut_: {
+            /** Items */
+            items: components["schemas"]["AuditEntryOut"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
         /** PageOut[CandidateCardOut] */
         PageOut_CandidateCardOut_: {
             /** Items */
@@ -1358,6 +1630,72 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["LoginIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TokenOut"] | components["schemas"]["MfaChallengeOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mfa_setup_api_v1_auth_2fa_setup_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MfaSetupIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MfaSetupOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mfa_verify_api_v1_auth_2fa_verify_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MfaVerifyIn"];
             };
         };
         responses: {
@@ -2329,6 +2667,176 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CompanyOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_vacancies_api_v1_admin_vacancies_get: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["VacancyStatus"] | null;
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageOut_AdminVacancyOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    moderate_vacancy_api_v1_admin_vacancies__vacancy_id__moderation_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vacancy_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ModerationIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminVacancyOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_users_api_v1_admin_users_get: {
+        parameters: {
+            query?: {
+                role?: components["schemas"]["UserRole"] | null;
+                q?: string | null;
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageOut_AdminUserOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    moderate_user_api_v1_admin_users__user_id__moderation_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ModerationIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminUserOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_audit_api_v1_admin_audit_get: {
+        parameters: {
+            query?: {
+                action?: string | null;
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageOut_AuditEntryOut_"];
                 };
             };
             /** @description Validation Error */

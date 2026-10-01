@@ -30,6 +30,13 @@ export type Passport = Schemas["PassportOut"];
 export type PassportVerify = Schemas["PassportVerifyOut"];
 
 export type PassportCheck = PassportVerify["status"];
+export type MfaChallenge = Schemas["MfaChallengeOut"];
+export type MfaSetup = Schemas["MfaSetupOut"];
+export type LoginResult = TokenOut | MfaChallenge;
+export type AdminVacancy = Schemas["AdminVacancyOut"];
+export type AdminUser = Schemas["AdminUserOut"];
+export type AuditEntry = Schemas["AuditEntryOut"];
+export type ModerationAction = Schemas["ModerationIn"]["action"];
 export type CatalogCategory = Schemas["CatalogCategoryOut"];
 export type CandidateCard = Schemas["CandidateCardOut"];
 export type OfferCreate = Schemas["OfferCreateIn"];

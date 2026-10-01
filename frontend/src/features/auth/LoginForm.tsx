@@ -2,15 +2,24 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { authApi } from "../../api/endpoints";
+import type { MfaChallenge } from "../../api/types";
 import { useAuth } from "../../auth/AuthProvider";
 import { applyServerErrors } from "../../lib/forms";
 import { Alert } from "../../ui/Alert";
 import { Button } from "../../ui/Button";
 import { Field, Input } from "../../ui/form";
+import { MfaStep } from "./MfaStep";
 import { loginSchema, type LoginForm as Values } from "./schemas";
 
-/** После входа AuthPage сам перенаправит в кабинет (с учётом ?next=). */
+/** После входа AuthPage сам перенаправит в кабинет (с учётом ?next=).
+ * Администратору сервер вместо токенов возвращает вызов второго фактора. */
 export function LoginForm() {
+  const [challenge, setChallenge] = useState<MfaChallenge | null>(null);
+  if (challenge) return <MfaStep challenge={challenge} onRestart={() => setChallenge(null)} />;
+  return <PasswordStep onChallenge={setChallenge} />;
+}
+
+function PasswordStep({ onChallenge }: { onChallenge: (challenge: MfaChallenge) => void }) {
   const { signIn } = useAuth();
   const [formError, setFormError] = useState<string | null>(null);
   const { register, handleSubmit, setError, formState } = useForm<Values>({ resolver: zodResolver(loginSchema) });
@@ -19,7 +28,9 @@ export function LoginForm() {
   const onSubmit = handleSubmit(async (values) => {
     setFormError(null);
     try {
-      await signIn(await authApi.login(values));
+      const result = await authApi.login(values);
+      if ("mfa_token" in result) onChallenge(result);
+      else await signIn(result);
     } catch (err) {
       setFormError(applyServerErrors(err, setError, ["email", "password"]));
     }
