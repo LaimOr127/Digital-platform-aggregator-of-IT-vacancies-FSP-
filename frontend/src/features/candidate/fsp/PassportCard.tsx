@@ -3,7 +3,7 @@ import { useState } from "react";
 import type { Passport, PassportPayload, VerificationTier } from "../../../api/types";
 import { formatDate, labels } from "../../../lib/format";
 import { Alert } from "../../../ui/Alert";
-import { Button } from "../../../ui/Button";
+import { Button, buttonClasses } from "../../../ui/Button";
 import { Card, CardTitle } from "../../../ui/Card";
 import { ConfirmDialog } from "../../../ui/ConfirmDialog";
 import { Switch } from "../../../ui/form";
@@ -112,7 +112,7 @@ function ActivePassport({ passport }: { passport: Passport }) {
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex h-8 items-center gap-2 rounded-lg border border-line bg-surface-2 px-3 text-sm font-medium hover:border-muted/60"
+            className={buttonClasses("secondary", "sm")}
           >
             <ExternalLink className="size-3.5" aria-hidden />
             Открыть
