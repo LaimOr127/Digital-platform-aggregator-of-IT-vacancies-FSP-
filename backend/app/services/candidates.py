@@ -14,7 +14,7 @@ from app.services.access import Action, Principal, policy
 from app.services.common import apply_fields, apply_salary, resolve_skills
 
 log = get_logger(__name__)
-_PLAIN_FIELDS = ("title", "about", "grade", "work_format", "city", "is_hidden")
+_PLAIN_FIELDS = ("title", "about", "grade", "work_format", "city", "is_hidden", "search_status")
 
 
 class CandidateService:
@@ -73,5 +73,6 @@ class CandidateService:
             salary_max=p.salary_max,
             verification_tier=p.verification_tier,
             is_hidden=p.is_hidden,
+            search_status=p.search_status,
             skills=[SkillOut.model_validate(s) for s in p.skills],
         )

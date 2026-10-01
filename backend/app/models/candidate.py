@@ -4,7 +4,7 @@ from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, Table, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, IdMixin, TimestampMixin, str_enum
-from app.models.enums import Grade, VerificationTier, WorkFormat
+from app.models.enums import Grade, SearchStatus, VerificationTier, WorkFormat
 
 profile_skills = Table(
     "profile_skills",
@@ -47,5 +47,11 @@ class CandidateProfile(IdMixin, TimestampMixin, Base):
         str_enum(VerificationTier, "verification_tier"), default=VerificationTier.SELF_DECLARED
     )
     is_hidden: Mapped[bool] = mapped_column(Boolean, default=False)
+    # статус поиска: «не ищу» — профиль не в каталоге, офферы не приходят
+    search_status: Mapped[SearchStatus] = mapped_column(
+        str_enum(SearchStatus, "search_status"),
+        default=SearchStatus.OPEN,
+        server_default=SearchStatus.OPEN.value,
+    )
 
     skills: Mapped[list[Skill]] = relationship(secondary=profile_skills, lazy="selectin")

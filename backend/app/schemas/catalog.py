@@ -3,7 +3,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
-from app.models.enums import Grade, OfferStatus, VerificationTier, WorkFormat
+from app.models.enums import Grade, OfferStatus, SearchStatus, VerificationTier, WorkFormat
 from app.schemas.common import SalaryRangeMixin
 
 
@@ -32,6 +32,7 @@ class CandidateCardOut(BaseModel):
     salary_min: int | None
     salary_max: int | None
     verification_tier: VerificationTier
+    search_status: SearchStatus
     skills: list[str]
     categories: list[CandidateCategoryOut]
     achievements: list[str]

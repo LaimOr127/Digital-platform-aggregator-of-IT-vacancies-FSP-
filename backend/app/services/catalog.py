@@ -10,9 +10,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import NotFoundError
 from app.models import CandidateProfile
-from app.models.enums import Grade, WorkFormat
 from app.repositories.base import Page
-from app.repositories.catalog import CatalogRepository
+from app.repositories.catalog import CatalogFilters, CatalogRepository
 from app.repositories.fsp import CategoryRepository
 from app.schemas.catalog import CandidateCardOut, CandidateCategoryOut, CatalogCategoryOut
 from app.services.access import Action, Principal, policy
@@ -42,17 +41,9 @@ class CatalogService:
         ]
 
     async def candidates(
-        self,
-        category: str | None,
-        grade: Grade | None,
-        work_format: WorkFormat | None,
-        skill: str | None,
-        cursor: str | None,
-        limit: int,
+        self, filters: CatalogFilters, cursor: str | None, limit: int
     ) -> tuple[list[CandidateCardOut], str | None]:
-        page: Page[CandidateProfile] = await self.catalog.search(
-            category, grade, work_format, skill, cursor, limit
-        )
+        page: Page[CandidateProfile] = await self.catalog.search(filters, cursor, limit)
         return await build_cards(self.catalog, page.items), page.next_cursor
 
     async def candidate(self, anon_id: uuid.UUID) -> CandidateCardOut:
@@ -80,6 +71,7 @@ async def build_cards(
             salary_min=p.salary_min,
             salary_max=p.salary_max,
             verification_tier=p.verification_tier,
+            search_status=p.search_status,
             skills=sorted(s.name for s in p.skills),
             categories=[
                 CandidateCategoryOut(slug=c.slug, tier=c.tier, title=c.title)

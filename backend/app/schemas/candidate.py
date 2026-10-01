@@ -3,7 +3,7 @@ from typing import Annotated
 
 from pydantic import BaseModel, EmailStr, Field
 
-from app.models.enums import Grade, VerificationTier, WorkFormat
+from app.models.enums import Grade, SearchStatus, VerificationTier, WorkFormat
 from app.schemas.common import SalaryRangeMixin, SkillOut
 
 SkillSlug = Annotated[str, Field(pattern=r"^[a-z0-9][a-z0-9+#.\-]{0,63}$")]
@@ -24,6 +24,7 @@ class ProfileUpdateIn(SalaryRangeMixin):
     work_format: WorkFormat | None = None
     city: str | None = Field(default=None, max_length=100)
     is_hidden: bool | None = None
+    search_status: SearchStatus | None = None
     skills: list[SkillSlug] | None = Field(default=None, max_length=50, description="slug навыков")
 
 
@@ -42,4 +43,5 @@ class ProfileOut(BaseModel):
     salary_max: int | None
     verification_tier: VerificationTier
     is_hidden: bool
+    search_status: SearchStatus
     skills: list[SkillOut]

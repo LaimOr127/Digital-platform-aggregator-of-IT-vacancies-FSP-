@@ -7,7 +7,8 @@ from fastapi import APIRouter, Depends, Header, Query, Request, status
 
 from app.api.deps import CipherDep, PrincipalDep, SessionDep
 from app.core.ratelimit import check_rate_limit
-from app.models.enums import Grade, OfferStatus, WorkFormat
+from app.models.enums import Grade, OfferStatus, SearchStatus, WorkFormat
+from app.repositories.catalog import CatalogFilters
 from app.schemas.catalog import (
     CandidateCardOut,
     CatalogCategoryOut,
@@ -50,12 +51,12 @@ async def catalog_candidates(
     grade: Grade | None = None,
     work_format: WorkFormat | None = None,
     skill: Slug = None,
+    search_status: SearchStatus | None = None,
     cursor: str | None = None,
     limit: Limit = 20,
 ) -> PageOut[CandidateCardOut]:
-    items, next_cursor = await service.candidates(
-        category, grade, work_format, skill, cursor, limit
-    )
+    filters = CatalogFilters(category, grade, work_format, skill, search_status)
+    items, next_cursor = await service.candidates(filters, cursor, limit)
     return PageOut(items=items, next_cursor=next_cursor)
 
 

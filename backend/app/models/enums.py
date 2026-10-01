@@ -73,3 +73,11 @@ class OutboxStatus(StrEnum):
 class EmailTokenPurpose(StrEnum):
     VERIFY = "verify"
     RESET = "reset"
+
+
+class SearchStatus(StrEnum):
+    """Статус поиска работы кандидата: виден работодателям в каталоге."""
+
+    ACTIVE = "active"  # активно ищу
+    OPEN = "open"  # рассматриваю предложения
+    CLOSED = "closed"  # не ищу: профиль не в каталоге, новые офферы не приходят
