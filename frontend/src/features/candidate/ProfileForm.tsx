@@ -7,13 +7,17 @@ import { labels, options } from "../../lib/format";
 import { applyServerErrors } from "../../lib/forms";
 import { Button } from "../../ui/Button";
 import { Card, CardTitle } from "../../ui/Card";
-import { Field, Input, Select, Switch, Textarea } from "../../ui/form";
+import { Field, FieldGroup, Input, Select, Switch, Textarea } from "../../ui/form";
 import { SkillPicker } from "../../ui/SkillPicker";
 import { useToast } from "../../ui/Toast";
 import { useUpdateProfile } from "./hooks";
 import { formToUpdate, profileSchema, profileToForm, type ProfileFormInput, type ProfileFormOutput } from "./schemas";
 
-const FIELDS = ["full_name", "title", "about", "grade", "work_format", "city", "salary_min", "salary_max", "skills", "is_hidden"];
+const FIELDS = [
+  "full_name", "title", "about", "grade", "work_format", "city", "salary_min", "salary_max",
+  "skills", "is_hidden", "phone", "telegram", "contact_email",
+];
+const ALIASES = { "contacts.phone": "phone", "contacts.telegram": "telegram", "contacts.email": "contact_email" };
 
 function Section({ title, text, children }: { title: string; text?: string; children: ReactNode }) {
   return (
@@ -31,6 +35,8 @@ export function ProfileForm({ profile, skills }: { profile: Profile; skills: Ski
   const form = useForm<ProfileFormInput, unknown, ProfileFormOutput>({
     resolver: zodResolver(profileSchema),
     values: profileToForm(profile),
+    // фоновое обновление профиля не стирает несохранённые правки пользователя
+    resetOptions: { keepDirtyValues: true },
   });
   const { register, control, formState } = form;
   const { errors, isDirty } = formState;
@@ -40,7 +46,7 @@ export function ProfileForm({ profile, skills }: { profile: Profile; skills: Ski
       await update.mutateAsync(formToUpdate(values));
       notify("Профиль сохранён");
     } catch (err) {
-      const message = applyServerErrors(err, form.setError, FIELDS);
+      const message = applyServerErrors(err, form.setError, FIELDS, ALIASES);
       if (message) notify(message, "error");
     }
   });
@@ -75,16 +81,17 @@ export function ProfileForm({ profile, skills }: { profile: Profile; skills: Ski
       </Section>
 
       <Card>
-        <CardTitle>Навыки</CardTitle>
-        <p className="mt-1 text-sm text-muted">Из общего справочника — так работодатели находят вас по стеку.</p>
-        <div className="mt-5">
+        <FieldGroup
+          label="Навыки"
+          hint="Из общего справочника — так работодатели находят вас по стеку."
+          error={errors.skills?.message}
+        >
           <Controller
             control={control}
             name="skills"
             render={({ field }) => <SkillPicker skills={skills} value={field.value} onChange={field.onChange} max={50} />}
           />
-          {errors.skills && <p className="mt-2 text-xs text-danger">{errors.skills.message}</p>}
-        </div>
+        </FieldGroup>
       </Card>
 
       <Section title="О себе">

@@ -24,13 +24,15 @@ export async function toApiError(res: Response): Promise<ApiError> {
   return new ApiError(res.status, `http_${res.status}`, "Сервис временно недоступен");
 }
 
-/** Ошибки валидации тела запроса -> {поле: сообщение} для формы. */
+/** Ошибки валидации тела запроса -> {путь: сообщение}; вложенные поля через точку
+ * ("contacts.phone"), индексы списков отбрасываются ("skills.3" -> "skills"). */
 export function fieldErrors(err: unknown): Record<string, string> {
   if (!(err instanceof ApiError)) return {};
   const result: Record<string, string> = {};
   for (const detail of err.details) {
-    const [where, field] = detail.loc;
-    if (where === "body" && typeof field === "string" && !(field in result)) result[field] = detail.msg;
+    const [where, ...path] = detail.loc;
+    const field = path.filter((part) => typeof part === "string").join(".");
+    if (where === "body" && field && !(field in result)) result[field] = detail.msg;
   }
   return result;
 }

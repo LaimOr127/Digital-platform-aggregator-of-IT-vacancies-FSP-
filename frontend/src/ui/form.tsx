@@ -1,5 +1,13 @@
 // Поля форм: подпись, подсказка и ошибка связаны с полем через aria-атрибуты.
-import { cloneElement, useId, type InputHTMLAttributes, type ReactElement, type SelectHTMLAttributes, type TextareaHTMLAttributes } from "react";
+import {
+  cloneElement,
+  useId,
+  type InputHTMLAttributes,
+  type ReactElement,
+  type ReactNode,
+  type SelectHTMLAttributes,
+  type TextareaHTMLAttributes,
+} from "react";
 import { cn } from "../lib/cn";
 
 const control =
@@ -79,5 +87,31 @@ export function Switch({ label, description, className, ...rest }: SwitchProps) 
         {description && <span className="text-xs text-muted">{description}</span>}
       </span>
     </label>
+  );
+}
+
+type GroupProps = { label: string; hint?: string; error?: string; className?: string; children: ReactNode };
+
+/** Группа для составного поля (например, выбор навыков): подпись и ошибка через aria. */
+export function FieldGroup({ label, hint, error, className, children }: GroupProps) {
+  const id = useId();
+  const describedBy = [hint && `${id}-hint`, error && `${id}-error`].filter(Boolean).join(" ") || undefined;
+  return (
+    <div role="group" aria-labelledby={`${id}-label`} aria-describedby={describedBy} className={className}>
+      <p id={`${id}-label`} className="text-sm font-medium">
+        {label}
+      </p>
+      {hint && (
+        <p id={`${id}-hint`} className="mt-1 text-sm text-muted">
+          {hint}
+        </p>
+      )}
+      <div className="mt-3">{children}</div>
+      {error && (
+        <p id={`${id}-error`} className="mt-2 text-xs text-danger" role="alert">
+          {error}
+        </p>
+      )}
+    </div>
   );
 }

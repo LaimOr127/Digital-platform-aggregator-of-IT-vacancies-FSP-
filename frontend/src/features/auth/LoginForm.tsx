@@ -1,19 +1,17 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { useNavigate } from "react-router";
 import { authApi } from "../../api/endpoints";
 import { useAuth } from "../../auth/AuthProvider";
-import { safeNext } from "../../auth/portal";
 import { applyServerErrors } from "../../lib/forms";
 import { Alert } from "../../ui/Alert";
 import { Button } from "../../ui/Button";
 import { Field, Input } from "../../ui/form";
 import { loginSchema, type LoginForm as Values } from "./schemas";
 
-export function LoginForm({ next }: { next: string | null }) {
+/** После входа AuthPage сам перенаправит в кабинет (с учётом ?next=). */
+export function LoginForm() {
   const { signIn } = useAuth();
-  const navigate = useNavigate();
   const [formError, setFormError] = useState<string | null>(null);
   const { register, handleSubmit, setError, formState } = useForm<Values>({ resolver: zodResolver(loginSchema) });
   const { errors, isSubmitting } = formState;
@@ -21,8 +19,7 @@ export function LoginForm({ next }: { next: string | null }) {
   const onSubmit = handleSubmit(async (values) => {
     setFormError(null);
     try {
-      const user = await signIn(await authApi.login(values));
-      navigate(safeNext(next, user.role), { replace: true });
+      await signIn(await authApi.login(values));
     } catch (err) {
       setFormError(applyServerErrors(err, setError, ["email", "password"]));
     }

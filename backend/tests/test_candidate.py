@@ -85,3 +85,12 @@ async def test_null_clears_optional_field(client: AsyncClient):
     await client.patch(PROFILE, json={"city": "Казань"}, headers=bearer(token))
     r = await client.patch(PROFILE, json={"city": None}, headers=bearer(token))
     assert r.status_code == 200 and r.json()["city"] is None
+
+
+async def test_contact_email_validated(client: AsyncClient):
+    token = await register_candidate(client)
+    r = await client.patch(
+        PROFILE, json={"contacts": {"email": "not-an-email"}}, headers=bearer(token)
+    )
+    assert r.status_code == 422
+    assert r.json()["error"]["details"][0]["loc"] == ["body", "contacts", "email"]

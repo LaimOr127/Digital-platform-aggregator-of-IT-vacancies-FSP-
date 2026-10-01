@@ -2,7 +2,7 @@ import { BadgeCheck, EyeOff, Scale } from "lucide-react";
 import { motion } from "motion/react";
 import { Link, Navigate, useSearchParams } from "react-router";
 import { useAuth } from "../../auth/AuthProvider";
-import { portalPath } from "../../auth/portal";
+import { safeNext } from "../../auth/portal";
 import { Logo } from "../../ui/Logo";
 import { FullScreenSpinner } from "../../ui/Spinner";
 import { LoginForm } from "./LoginForm";
@@ -18,7 +18,8 @@ export default function AuthPage({ mode }: { mode: "login" | "register" }) {
   const auth = useAuth();
   const [params] = useSearchParams();
   if (auth.status === "loading") return <FullScreenSpinner />;
-  if (auth.status === "authenticated") return <Navigate to={portalPath(auth.user.role)} replace />;
+  // единственная точка редиректа после входа/регистрации: учитывает ?next= своего портала
+  if (auth.status === "authenticated") return <Navigate to={safeNext(params.get("next"), auth.user.role)} replace />;
 
   return (
     <div className="grid min-h-dvh lg:grid-cols-2">
@@ -62,7 +63,7 @@ export default function AuthPage({ mode }: { mode: "login" | "register" }) {
           </p>
           <div className="mt-8">
             {mode === "login" ? (
-              <LoginForm next={params.get("next")} />
+              <LoginForm />
             ) : (
               <RegisterForm initialRole={params.get("role") === "employer" ? "employer" : "candidate"} />
             )}

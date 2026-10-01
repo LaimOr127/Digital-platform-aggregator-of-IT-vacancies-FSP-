@@ -67,7 +67,10 @@ class CandidateService:
         return ProfileOut(
             anon_id=p.anon_id,
             full_name=self._decrypt(p, "full_name", p.full_name_enc),
-            contacts=Contacts(**json.loads(contacts_raw)) if contacts_raw else Contacts(),
+            # сохранённые данные уже прошли валидацию при записи; правила могли ужесточиться
+            contacts=Contacts.model_construct(**json.loads(contacts_raw))
+            if contacts_raw
+            else Contacts(),
             title=p.title,
             about=p.about,
             grade=p.grade,

@@ -20,6 +20,13 @@ describe("applyServerErrors", () => {
     expect(applyServerErrors(err, vi.fn(), ["email"])).toBe("Некорректные данные");
   });
 
+  it("maps API paths to form fields via aliases", () => {
+    const setError = vi.fn();
+    const err = new ApiError(422, "validation_error", "x", [{ loc: ["body", "contacts", "phone"], msg: "длинный" }]);
+    expect(applyServerErrors(err, setError, ["phone"], { "contacts.phone": "phone" })).toBeNull();
+    expect(setError).toHaveBeenCalledWith("phone", { message: "длинный" });
+  });
+
   it("handles network errors", () => {
     expect(applyServerErrors(new TypeError("offline"), vi.fn(), [])).toBe("Не удалось связаться с сервером");
   });

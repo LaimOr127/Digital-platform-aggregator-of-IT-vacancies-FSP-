@@ -13,8 +13,8 @@ import { Button } from "../../ui/Button";
 import { Dialog } from "../../ui/Dialog";
 import { EmptyState } from "../../ui/EmptyState";
 import { Segmented } from "../../ui/Segmented";
-import { Spinner } from "../../ui/Spinner";
-import { useToast } from "../../ui/Toast";
+import { LoadingBlock } from "../../ui/Spinner";
+import { useAction } from "../../ui/useAction";
 import { useCompany, useDeleteVacancy, useVacancies } from "./hooks";
 import { VacancyCard } from "./VacancyCard";
 import { VacancyForm } from "./VacancyForm";
@@ -38,12 +38,18 @@ export default function EmployerPortal() {
   const [editing, setEditing] = useState<Editing>(null);
   const [deleting, setDeleting] = useState<Vacancy | null>(null);
   const blocked = company.data?.status === "blocked";
+  const loadError = company.error ?? skills.error;
 
   return (
     <AppShell>
       {company.data && <CompanyBanner company={company.data} />}
+      {loadError && (
+        <div className="mb-6">
+          <Alert>Не удалось загрузить данные компании: {errorMessage(loadError)}</Alert>
+        </div>
+      )}
       <PageHeader title="Вакансии" text="Вакансия живёт 14 дней после публикации — затем продлите её или закройте.">
-        <Button onClick={() => setEditing({ vacancy: null })} disabled={blocked || !skills.data}>
+        <Button onClick={() => setEditing({ vacancy: null })} disabled={blocked || !skills.data || !company.data}>
           <Plus className="size-4" aria-hidden />
           Новая вакансия
         </Button>
@@ -69,7 +75,7 @@ export default function EmployerPortal() {
           <VacancyForm vacancy={editing.vacancy} skills={skills.data} onDone={() => setEditing(null)} />
         )}
       </Dialog>
-      <DeleteDialog vacancy={deleting} onClose={() => setDeleting(null)} />
+      <DeleteDialog key={deleting?.id ?? "none"} vacancy={deleting} onClose={() => setDeleting(null)} />
     </AppShell>
   );
 }
@@ -103,16 +109,10 @@ type ListProps = {
 
 function VacancyList({ status, canPublish, onCreate, onEdit, onDelete }: ListProps) {
   const query = useVacancies(status);
-  if (query.error) return <Alert>{errorMessage(query.error)}</Alert>;
-  if (!query.data) {
-    return (
-      <div className="flex justify-center py-16 text-muted">
-        <Spinner className="size-6" />
-      </div>
-    );
-  }
-  const items = query.data.pages.flatMap((page) => page.items);
-  if (items.length === 0) {
+  // ошибка без данных — вместо списка; ошибка догрузки — рядом с уже загруженным списком
+  if (query.error && !query.data) return <Alert>{errorMessage(query.error)}</Alert>;
+  if (!query.data) return <LoadingBlock />;
+  if (query.items.length === 0) {
     return (
       <EmptyState
         icon={<Briefcase className="size-5" />}
@@ -125,10 +125,11 @@ function VacancyList({ status, canPublish, onCreate, onEdit, onDelete }: ListPro
   return (
     <div className="flex flex-col gap-4">
       <AnimatePresence initial={false}>
-        {items.map((v) => (
+        {query.items.map((v) => (
           <VacancyCard key={v.id} vacancy={v} canPublish={canPublish} onEdit={onEdit} onDelete={onDelete} />
         ))}
       </AnimatePresence>
+      {query.error && <Alert>{errorMessage(query.error)}</Alert>}
       {query.hasNextPage && (
         <Button variant="secondary" className="self-center" onClick={() => query.fetchNextPage()} loading={query.isFetchingNextPage}>
           Показать ещё
@@ -139,27 +140,22 @@ function VacancyList({ status, canPublish, onCreate, onEdit, onDelete }: ListPro
 }
 
 function DeleteDialog({ vacancy, onClose }: { vacancy: Vacancy | null; onClose: () => void }) {
-  const notify = useToast();
+  const run = useAction();
   const remove = useDeleteVacancy();
-  const confirm = () =>
-    vacancy &&
-    remove.mutate(vacancy.id, {
-      onSuccess: () => {
-        notify("Вакансия удалена");
-        onClose();
-      },
-      onError: (err) => notify(errorMessage(err), "error"),
-    });
   return (
-    <Dialog open={vacancy !== null} title="Удалить вакансию?" onClose={onClose}>
+    <Dialog open={vacancy !== null} title="Удалить вакансию?" onClose={onClose} busy={remove.isPending}>
       <p className="text-sm text-muted">
         «{vacancy?.title}» будет удалена без возможности восстановления. Если вакансия просто неактуальна — лучше закройте её.
       </p>
       <div className="mt-6 flex justify-end gap-3">
-        <Button variant="ghost" onClick={onClose}>
+        <Button variant="ghost" onClick={onClose} disabled={remove.isPending}>
           Отмена
         </Button>
-        <Button variant="danger" onClick={confirm} loading={remove.isPending}>
+        <Button
+          variant="danger"
+          onClick={() => vacancy && run(remove, vacancy.id, "Вакансия удалена", onClose)}
+          loading={remove.isPending}
+        >
           Удалить
         </Button>
       </div>

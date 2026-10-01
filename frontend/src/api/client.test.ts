@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { api, refreshSession } from "./client";
+import { api, logoutRequest, refreshSession, tokenSubject } from "./client";
 import { ApiError, fieldErrors } from "./errors";
 import { session } from "./session";
 
@@ -75,6 +75,28 @@ describe("api", () => {
     expect(session.get()).toBe("fresh");
   });
 
+  it("keeps session and reports transient error when refresh hits a server failure", async () => {
+    session.set("expired");
+    fetchMock
+      .mockResolvedValueOnce(json(401, { error: { code: "unauthorized", message: "x" } }))
+      .mockResolvedValueOnce(json(502, { error: { code: "bad_gateway", message: "x" } }));
+    const err = (await api("GET", "/auth/me").catch((e) => e)) as ApiError;
+    expect(err.code).toBe("session_refresh_failed");
+    expect(session.get()).toBe("expired");
+  });
+
+  it("retries with a token refreshed by a parallel request without rotating again", async () => {
+    session.set("old");
+    fetchMock.mockImplementationOnce(async () => {
+      session.set("new"); // параллельный запрос успел обновить токен
+      return json(401, { error: { code: "unauthorized", message: "x" } });
+    });
+    fetchMock.mockResolvedValueOnce(json(200, { ok: true }));
+    await expect(api("GET", "/auth/me")).resolves.toEqual({ ok: true });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls[1][1].headers.Authorization).toBe("Bearer new");
+  });
+
   it("clears session when refresh fails", async () => {
     session.set("expired");
     fetchMock
@@ -96,19 +118,49 @@ describe("refreshSession", () => {
   it("is single-flight: parallel callers share one request", async () => {
     fetchMock.mockResolvedValueOnce(token("t1"));
     const [a, b] = await Promise.all([refreshSession(), refreshSession()]);
-    expect(a && b).toBe(true);
+    expect([a, b]).toEqual(["ok", "ok"]);
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it("returns false without csrf cookie and does not call the API", async () => {
     document.cookie = "csrf_token=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
-    await expect(refreshSession()).resolves.toBe(false);
+    await expect(refreshSession()).resolves.toBe("invalid");
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("returns false on network error", async () => {
+  it("distinguishes transient failures from an invalid session", async () => {
     fetchMock.mockRejectedValueOnce(new TypeError("offline"));
-    await expect(refreshSession()).resolves.toBe(false);
+    await expect(refreshSession()).resolves.toBe("transient");
+    fetchMock.mockResolvedValueOnce(json(403, { error: { code: "forbidden", message: "x" } }));
+    await expect(refreshSession()).resolves.toBe("invalid");
+  });
+
+  it("uses a cross-tab lock when Web Locks are available", async () => {
+    const request = vi.fn((_name: string, fn: () => Promise<unknown>) => fn());
+    vi.stubGlobal("navigator", { locks: { request } });
+    fetchMock.mockResolvedValueOnce(token("t"));
+    await refreshSession();
+    expect(request).toHaveBeenCalledWith("itmatch-auth-refresh", expect.any(Function));
+  });
+});
+
+describe("logoutRequest and tokenSubject", () => {
+  it("throws when the server did not log out", async () => {
+    fetchMock.mockResolvedValueOnce(json(403, { error: { code: "forbidden", message: "csrf" } }));
+    await expect(logoutRequest()).rejects.toMatchObject({ status: 403 });
+  });
+
+  it("skips the call without csrf cookie (no server session)", async () => {
+    document.cookie = "csrf_token=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
+    await logoutRequest();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("reads sub from a JWT and tolerates garbage", () => {
+    const payload = btoa(JSON.stringify({ sub: "u-1" })).replace(/=+$/, "");
+    expect(tokenSubject(`h.${payload}.s`)).toBe("u-1");
+    expect(tokenSubject("garbage")).toBeNull();
+    expect(tokenSubject(null)).toBeNull();
   });
 });
 
@@ -119,6 +171,14 @@ describe("fieldErrors", () => {
       { loc: ["body"], msg: "общая ошибка" },
     ]);
     expect(fieldErrors(err)).toEqual({ password: "слишком короткий" });
+  });
+
+  it("keeps nested paths and drops list indexes", () => {
+    const err = new ApiError(422, "validation_error", "x", [
+      { loc: ["body", "contacts", "email"], msg: "не email" },
+      { loc: ["body", "skills", 3], msg: "плохой slug" },
+    ]);
+    expect(fieldErrors(err)).toEqual({ "contacts.email": "не email", skills: "плохой slug" });
   });
 
   it("returns empty object for other errors", () => {

@@ -17,3 +17,11 @@ export function FullScreenSpinner() {
     </div>
   );
 }
+
+export function LoadingBlock() {
+  return (
+    <div className="flex justify-center py-16 text-muted">
+      <Spinner className="size-6" />
+    </div>
+  );
+}
