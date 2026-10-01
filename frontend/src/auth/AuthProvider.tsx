@@ -11,13 +11,14 @@ import type { Me, TokenOut } from "../api/types";
 
 type AuthState =
   | { status: "loading"; user: null }
-  | { status: "anonymous"; user: null }
+  /** signedOut: пользователь вышел сам — защита маршрута ведёт на главную, а не на вход */
+  | { status: "anonymous"; user: null; signedOut?: boolean }
   | { status: "authenticated"; user: Me };
 
 type AuthContextValue = AuthState & {
   signIn: (tokens: TokenOut) => Promise<Me>;
   /** Выход на сервере; beforeClear вызывается до очистки локальной сессии (навигация). */
-  signOut: (beforeClear?: () => void) => Promise<void>;
+  signOut: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -26,11 +27,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const [state, setState] = useState<AuthState>({ status: "loading", user: null });
   const userRef = useRef<Me | null>(null);
+  const signingOutRef = useRef(false);
 
   const becomeAnonymous = useCallback(() => {
     userRef.current = null;
     queryClient.clear();
-    setState({ status: "anonymous", user: null });
+    setState({ status: "anonymous", user: null, signedOut: signingOutRef.current });
+    signingOutRef.current = false;
   }, [queryClient]);
 
   const loadUser = useCallback(async () => {
@@ -88,9 +91,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [loadUser, queryClient],
   );
 
-  const signOut = useCallback(async (beforeClear?: () => void) => {
+  const signOut = useCallback(async () => {
     await logoutRequest();
-    beforeClear?.();
+    signingOutRef.current = true;
     broadcastAuth("logout");
     session.clear();
   }, []);

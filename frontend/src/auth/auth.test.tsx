@@ -138,5 +138,7 @@ describe("RequireRole + AuthProvider", () => {
     await userEvent.click(screen.getByRole("button", { name: "authenticated" }));
     await waitFor(() => expect(session.get()).toBeNull());
     expect(fetchMock.mock.calls[2][0]).toBe("/api/v1/auth/logout");
+    // вышел сам — на главную, без ?next= на страницу входа
+    expect(await screen.findByTestId("where")).toHaveTextContent(/^\/$/);
   });
 });

@@ -30,6 +30,19 @@ export type Passport = Schemas["PassportOut"];
 export type PassportVerify = Schemas["PassportVerifyOut"];
 
 export type PassportCheck = PassportVerify["status"];
+export type CatalogCategory = Schemas["CatalogCategoryOut"];
+export type CandidateCard = Schemas["CandidateCardOut"];
+export type OfferCreate = Schemas["OfferCreateIn"];
+export type Offer = Schemas["OfferOut"];
+export type EmployerOffer = Schemas["EmployerOfferOut"];
+export type OfferStatus = Schemas["OfferStatus"];
+export type OfferContacts = Schemas["OfferContactsOut"];
+export type CatalogFilters = {
+  category?: string;
+  grade?: Grade;
+  work_format?: WorkFormat;
+  skill?: string;
+};
 
 /** Содержимое паспорта (подписанный JSON, версия 2). */
 export type PassportPayload = {

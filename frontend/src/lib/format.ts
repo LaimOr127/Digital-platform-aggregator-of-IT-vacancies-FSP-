@@ -1,5 +1,5 @@
 // Подписи перечислений и форматирование значений для интерфейса.
-import type { CompanyStatus, Grade, VacancyStatus, VerificationTier, WorkFormat } from "../api/types";
+import type { CompanyStatus, Grade, OfferStatus, VacancyStatus, VerificationTier, WorkFormat } from "../api/types";
 
 const money = new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 0 });
 const date = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "short", year: "numeric" });
@@ -45,6 +45,13 @@ export const labels = {
     approved: "Одобрена",
     blocked: "Заблокирована",
   } satisfies Record<CompanyStatus, string>,
+  offerStatus: {
+    sent: "Ждёт ответа",
+    accepted: "Принят",
+    declined: "Отклонён",
+    withdrawn: "Отозван",
+    expired: "Истёк",
+  } satisfies Record<OfferStatus, string>,
   tier: {
     self_declared: "Заявлено кандидатом",
     resume_parsed: "Подтверждено резюме",

@@ -5,7 +5,7 @@ import { session } from "./session";
 const BASE = "/api/v1";
 type Method = "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
 type Query = Record<string, string | number | boolean | null | undefined>;
-type Options = { body?: unknown; query?: Query };
+type Options = { body?: unknown; query?: Query; headers?: Record<string, string> };
 
 function readCookie(name: string): string | null {
   const match = document.cookie.split("; ").find((part) => part.startsWith(`${name}=`));
@@ -21,8 +21,8 @@ function buildUrl(path: string, query?: Query): string {
   return `${BASE}${path}${qs ? `?${qs}` : ""}`;
 }
 
-function send(method: Method, url: string, body: unknown, token: string | null) {
-  const headers: Record<string, string> = {};
+function send(method: Method, url: string, body: unknown, token: string | null, extra: Record<string, string> = {}) {
+  const headers: Record<string, string> = { ...extra };
   if (body !== undefined) headers["Content-Type"] = "application/json";
   if (token) headers.Authorization = `Bearer ${token}`;
   return fetch(url, {
@@ -76,7 +76,7 @@ const transientError = () => new ApiError(503, "session_refresh_failed", "Нет
 export async function api<T = unknown>(method: Method, path: string, options: Options = {}): Promise<T> {
   const url = buildUrl(path, options.query);
   const token = session.get();
-  let res = await send(method, url, options.body, token);
+  let res = await send(method, url, options.body, token, options.headers);
   if (res.status === 401 && token) {
     // токен уже обновил параллельный запрос — повторяем с ним, без лишней ротации
     const current = session.get();
@@ -85,7 +85,7 @@ export async function api<T = unknown>(method: Method, path: string, options: Op
     if (outcome === "invalid") {
       session.clear();
     } else {
-      res = await send(method, url, options.body, session.get());
+      res = await send(method, url, options.body, session.get(), options.headers);
     }
   }
   if (!res.ok) throw await toApiError(res);

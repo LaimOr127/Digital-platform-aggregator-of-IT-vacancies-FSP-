@@ -1,7 +1,10 @@
 // Эндпоинты API в одном месте: компоненты не собирают URL сами.
 import { api } from "./client";
 import type {
+  CandidateCard,
   CandidateRegisterIn,
+  CatalogCategory,
+  CatalogFilters,
   Company,
   CompanyStatus,
   EmployerRegisterIn,
@@ -9,6 +12,11 @@ import type {
   FspStatus,
   LoginIn,
   Me,
+  Offer,
+  OfferContacts,
+  OfferCreate,
+  OfferStatus,
+  EmployerOffer,
   Page,
   Passport,
   PassportVerify,
@@ -66,6 +74,33 @@ export const employerApi = {
   publishVacancy: (id: string) => api<Vacancy>("POST", vacancyUrl(id, "/publish")),
   closeVacancy: (id: string) => api<Vacancy>("POST", vacancyUrl(id, "/close")),
   deleteVacancy: (id: string) => api<void>("DELETE", vacancyUrl(id)),
+};
+
+export const catalogApi = {
+  categories: () => api<CatalogCategory[]>("GET", "/employer/catalog/categories"),
+  candidates: (filters: CatalogFilters, cursor: string | undefined) =>
+    api<Page<CandidateCard>>("GET", "/employer/catalog/candidates", { query: { ...filters, cursor, limit: 20 } }),
+};
+
+const offerUrl = (id: string, action = "") => `/employer/offers/${encodeURIComponent(id)}${action}`;
+
+export const employerOffersApi = {
+  /** idempotencyKey: повтор запроса (двойной клик, сбой сети) не создаёт второй оффер */
+  send: (body: OfferCreate, idempotencyKey: string) =>
+    api<EmployerOffer>("POST", "/employer/offers", { body, headers: { "Idempotency-Key": idempotencyKey } }),
+  list: (status: OfferStatus | undefined, cursor: string | undefined) =>
+    api<Page<EmployerOffer>>("GET", "/employer/offers", { query: { status, cursor, limit: 20 } }),
+  withdraw: (id: string) => api<EmployerOffer>("POST", offerUrl(id, "/withdraw")),
+  contacts: (id: string) => api<OfferContacts>("GET", offerUrl(id, "/contacts")),
+};
+
+const inboxUrl = (id: string, action: string) => `/candidate/offers/${encodeURIComponent(id)}${action}`;
+
+export const candidateOffersApi = {
+  list: (status: OfferStatus | undefined, cursor: string | undefined) =>
+    api<Page<Offer>>("GET", "/candidate/offers", { query: { status, cursor, limit: 20 } }),
+  accept: (id: string) => api<Offer>("POST", inboxUrl(id, "/accept")),
+  decline: (id: string, reason: string) => api<Offer>("POST", inboxUrl(id, "/decline"), { body: { reason } }),
 };
 
 export const adminApi = {

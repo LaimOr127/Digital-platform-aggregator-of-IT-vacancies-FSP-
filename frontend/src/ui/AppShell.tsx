@@ -2,7 +2,7 @@
 import { LogOut } from "lucide-react";
 import { motion } from "motion/react";
 import { useState, type ReactNode } from "react";
-import { NavLink, useNavigate } from "react-router";
+import { NavLink } from "react-router";
 import { errorMessage } from "../api/errors";
 import { useAuth } from "../auth/AuthProvider";
 import { PORTALS } from "../auth/portal";
@@ -14,17 +14,15 @@ export type NavItem = { to: string; label: string; end?: boolean };
 
 export function AppShell({ children, actions, nav }: { children: ReactNode; actions?: ReactNode; nav?: NavItem[] }) {
   const auth = useAuth();
-  const navigate = useNavigate();
   const notify = useToast();
   const user = auth.status === "authenticated" ? auth.user : null;
 
   const [leaving, setLeaving] = useState(false);
-  // выход подтверждает сервер; уходим со страницы кабинета до очистки сессии,
-  // иначе защита маршрута отправит «гостя» на вход с ?next= текущего кабинета
+  // выход подтверждает сервер; после выхода защита маршрута сама уведёт на главную
   const signOut = async () => {
     setLeaving(true);
     try {
-      await auth.signOut(() => navigate("/", { replace: true }));
+      await auth.signOut();
     } catch (err) {
       notify(`Не удалось выйти: ${errorMessage(err)}`, "error");
       setLeaving(false);

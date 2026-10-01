@@ -10,10 +10,12 @@ type Props = {
   onConfirm: () => void;
   onClose: () => void;
   children: ReactNode;
+  /** danger — необратимое удаление/отзыв; primary — согласие (например, принять оффер) */
+  tone?: "danger" | "primary";
 };
 
 /** Подтверждение необратимого действия: закрыть нельзя, пока запрос выполняется. */
-export function ConfirmDialog({ open, title, confirmLabel, pending, onConfirm, onClose, children }: Props) {
+export function ConfirmDialog({ open, title, confirmLabel, pending, onConfirm, onClose, children, tone = "danger" }: Props) {
   return (
     <Dialog open={open} title={title} onClose={onClose} busy={pending}>
       <div className="text-sm text-muted">{children}</div>
@@ -21,7 +23,7 @@ export function ConfirmDialog({ open, title, confirmLabel, pending, onConfirm, o
         <Button variant="ghost" onClick={onClose} disabled={pending}>
           Отмена
         </Button>
-        <Button variant="danger" onClick={onConfirm} loading={pending}>
+        <Button variant={tone} onClick={onConfirm} loading={pending}>
           {confirmLabel}
         </Button>
       </div>

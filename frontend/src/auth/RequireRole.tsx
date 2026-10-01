@@ -10,6 +10,7 @@ export function RequireRole({ role, children }: { role: UserRole; children: Reac
   const auth = useAuth();
   const location = useLocation();
   if (auth.status === "loading") return <FullScreenSpinner />;
+  if (auth.status === "anonymous" && auth.signedOut) return <Navigate to="/" replace />;
   if (auth.status === "anonymous") {
     const next = encodeURIComponent(location.pathname + location.search);
     return <Navigate to={`/login?next=${next}`} replace />;

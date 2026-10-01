@@ -1,5 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { adminApi, authApi, candidateApi, employerApi, fspApi, passportApi, publicApi } from "./endpoints";
+import {
+  adminApi,
+  authApi,
+  candidateApi,
+  candidateOffersApi,
+  catalogApi,
+  employerApi,
+  employerOffersApi,
+  fspApi,
+  passportApi,
+  publicApi,
+} from "./endpoints";
 import { session } from "./session";
 
 let fetchMock: ReturnType<typeof vi.fn>;
@@ -42,9 +53,27 @@ describe("endpoints map to the backend API", () => {
     ["issue passport", () => passportApi.issue(true), "POST", "/api/v1/candidate/passport"],
     ["revoke passport", () => passportApi.revoke(), "DELETE", "/api/v1/candidate/passport"],
     ["public passport", () => publicApi.passport("p/1"), "GET", "/api/v1/public/passport/p%2F1"],
+    ["catalog categories", () => catalogApi.categories(), "GET", "/api/v1/employer/catalog/categories"],
+    ["catalog candidates", () => catalogApi.candidates({ category: "product-elite", grade: "middle" }, "c"), "GET", "/api/v1/employer/catalog/candidates?category=product-elite&grade=middle&cursor=c&limit=20"],
+    ["employer offers", () => employerOffersApi.list("sent", undefined), "GET", "/api/v1/employer/offers?status=sent&limit=20"],
+    ["withdraw offer", () => employerOffersApi.withdraw("o1"), "POST", "/api/v1/employer/offers/o1/withdraw"],
+    ["offer contacts", () => employerOffersApi.contacts("o1"), "GET", "/api/v1/employer/offers/o1/contacts"],
+    ["inbox", () => candidateOffersApi.list(undefined, undefined), "GET", "/api/v1/candidate/offers?limit=20"],
+    ["accept offer", () => candidateOffersApi.accept("o1"), "POST", "/api/v1/candidate/offers/o1/accept"],
+    ["decline offer", () => candidateOffersApi.decline("o1", "нет"), "POST", "/api/v1/candidate/offers/o1/decline"],
   ])("%s", async (_name, call, method, url) => {
     await call();
     expect(lastCall()).toMatchObject({ method, url });
+  });
+
+  it("sends offer with idempotency key header", async () => {
+    await employerOffersApi.send(
+      { anon_id: "a", vacancy_id: "v", salary_min: 1, salary_max: 2, message: "" },
+      "key-1",
+    );
+    const [url, init] = fetchMock.mock.calls.at(-1)!;
+    expect(url).toBe("/api/v1/employer/offers");
+    expect(init.headers["Idempotency-Key"]).toBe("key-1");
   });
 
   it("sends moderation reason in body", async () => {

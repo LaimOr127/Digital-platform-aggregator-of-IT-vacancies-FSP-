@@ -246,6 +246,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/candidate/offers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Входящие офферы */
+        get: operations["list_offers_api_v1_candidate_offers_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/candidate/offers/{offer_id}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Принять оффер (контакты передаются компании) */
+        post: operations["accept_offer_api_v1_candidate_offers__offer_id__accept_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/candidate/offers/{offer_id}/decline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Отклонить оффер */
+        post: operations["decline_offer_api_v1_candidate_offers__offer_id__decline_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/employer/company": {
         parameters: {
             query?: never;
@@ -334,6 +385,109 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/employer/catalog/categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Категории со счётчиками кандидатов */
+        get: operations["catalog_categories_api_v1_employer_catalog_categories_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/employer/catalog/candidates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Анонимные карточки кандидатов */
+        get: operations["catalog_candidates_api_v1_employer_catalog_candidates_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/employer/catalog/candidates/{anon_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Анонимная карточка кандидата */
+        get: operations["catalog_candidate_api_v1_employer_catalog_candidates__anon_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/employer/offers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Офферы компании */
+        get: operations["list_offers_api_v1_employer_offers_get"];
+        put?: never;
+        /** Отправить оффер */
+        post: operations["send_offer_api_v1_employer_offers_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/employer/offers/{offer_id}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Отозвать оффер */
+        post: operations["withdraw_offer_api_v1_employer_offers__offer_id__withdraw_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/employer/offers/{offer_id}/contacts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Контакты кандидата (после принятия оффера) */
+        get: operations["offer_contacts_api_v1_employer_offers__offer_id__contacts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/companies": {
         parameters: {
             query?: never;
@@ -376,7 +530,7 @@ export interface paths {
             cookie?: never;
         };
         /** Справочник навыков */
-        get: operations["list_skills_api_v1_public_skills_get"];
+        get: operations["skills_api_v1_public_skills_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -446,6 +600,45 @@ export interface components {
             /** Team */
             team: string | null;
         };
+        /**
+         * CandidateCardOut
+         * @description Анонимная карточка кандидата: без имени, контактов, ID ФСП и названий соревнований.
+         */
+        CandidateCardOut: {
+            /**
+             * Anon Id
+             * Format: uuid
+             */
+            anon_id: string;
+            /** Title */
+            title: string | null;
+            grade: components["schemas"]["Grade"] | null;
+            work_format: components["schemas"]["WorkFormat"] | null;
+            /** City */
+            city: string | null;
+            /** Salary Min */
+            salary_min: number | null;
+            /** Salary Max */
+            salary_max: number | null;
+            verification_tier: components["schemas"]["VerificationTier"];
+            /** Skills */
+            skills: string[];
+            /** Categories */
+            categories: components["schemas"]["CandidateCategoryOut"][];
+            /** Achievements */
+            achievements: string[];
+            /** About */
+            about: string | null;
+        };
+        /** CandidateCategoryOut */
+        CandidateCategoryOut: {
+            /** Slug */
+            slug: string;
+            /** Tier */
+            tier: string;
+            /** Title */
+            title: string;
+        };
         /** CandidateRegisterIn */
         CandidateRegisterIn: {
             /** Password */
@@ -457,6 +650,19 @@ export interface components {
             email: string;
             /** Full Name */
             full_name: string;
+        };
+        /** CatalogCategoryOut */
+        CatalogCategoryOut: {
+            /** Slug */
+            slug: string;
+            /** Discipline */
+            discipline: string;
+            /** Tier */
+            tier: string;
+            /** Title */
+            title: string;
+            /** Candidates */
+            candidates: number;
         };
         /** CategoryOut */
         CategoryOut: {
@@ -513,6 +719,45 @@ export interface components {
             telegram?: string | null;
             /** Email */
             email?: string | null;
+        };
+        /** EmployerOfferOut */
+        EmployerOfferOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            status: components["schemas"]["OfferStatus"];
+            /** Company Name */
+            company_name: string;
+            /** Vacancy Title */
+            vacancy_title: string;
+            grade: components["schemas"]["Grade"];
+            work_format: components["schemas"]["WorkFormat"];
+            /** City */
+            city: string | null;
+            /** Salary Min */
+            salary_min: number;
+            /** Salary Max */
+            salary_max: number;
+            /** Message */
+            message: string;
+            /** Decline Reason */
+            decline_reason: string | null;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /** Responded At */
+            responded_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** @description карточка, если кандидат ещё виден в каталоге */
+            candidate?: components["schemas"]["CandidateCardOut"] | null;
         };
         /** EmployerRegisterIn */
         EmployerRegisterIn: {
@@ -617,10 +862,117 @@ export interface components {
             /** Company Id */
             company_id?: string | null;
         };
+        /** OfferContactsOut */
+        OfferContactsOut: {
+            /** Full Name */
+            full_name: string | null;
+            /** Phone */
+            phone: string | null;
+            /** Telegram */
+            telegram: string | null;
+            /** Email */
+            email: string | null;
+        };
+        /**
+         * OfferCreateIn
+         * @description Вилка обязательна и проверяется общим правилом (честный найм).
+         */
+        OfferCreateIn: {
+            /** Salary Min */
+            salary_min: number;
+            /** Salary Max */
+            salary_max: number;
+            /**
+             * Anon Id
+             * Format: uuid
+             */
+            anon_id: string;
+            /**
+             * Vacancy Id
+             * Format: uuid
+             */
+            vacancy_id: string;
+            /**
+             * Message
+             * @default
+             */
+            message: string;
+        };
+        /** OfferDeclineIn */
+        OfferDeclineIn: {
+            /**
+             * Reason
+             * @default
+             */
+            reason: string;
+        };
+        /** OfferOut */
+        OfferOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            status: components["schemas"]["OfferStatus"];
+            /** Company Name */
+            company_name: string;
+            /** Vacancy Title */
+            vacancy_title: string;
+            grade: components["schemas"]["Grade"];
+            work_format: components["schemas"]["WorkFormat"];
+            /** City */
+            city: string | null;
+            /** Salary Min */
+            salary_min: number;
+            /** Salary Max */
+            salary_max: number;
+            /** Message */
+            message: string;
+            /** Decline Reason */
+            decline_reason: string | null;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /** Responded At */
+            responded_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /**
+         * OfferStatus
+         * @enum {string}
+         */
+        OfferStatus: "sent" | "accepted" | "declined" | "withdrawn" | "expired";
+        /** PageOut[CandidateCardOut] */
+        PageOut_CandidateCardOut_: {
+            /** Items */
+            items: components["schemas"]["CandidateCardOut"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
         /** PageOut[CompanyOut] */
         PageOut_CompanyOut_: {
             /** Items */
             items: components["schemas"]["CompanyOut"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /** PageOut[EmployerOfferOut] */
+        PageOut_EmployerOfferOut_: {
+            /** Items */
+            items: components["schemas"]["EmployerOfferOut"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /** PageOut[OfferOut] */
+        PageOut_OfferOut_: {
+            /** Items */
+            items: components["schemas"]["OfferOut"][];
             /** Next Cursor */
             next_cursor: string | null;
         };
@@ -1363,6 +1715,105 @@ export interface operations {
             };
         };
     };
+    list_offers_api_v1_candidate_offers_get: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["OfferStatus"] | null;
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageOut_OfferOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    accept_offer_api_v1_candidate_offers__offer_id__accept_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                offer_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    decline_offer_api_v1_candidate_offers__offer_id__decline_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                offer_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OfferDeclineIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_company_api_v1_employer_company_get: {
         parameters: {
             query?: never;
@@ -1606,6 +2057,223 @@ export interface operations {
             };
         };
     };
+    catalog_categories_api_v1_employer_catalog_categories_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogCategoryOut"][];
+                };
+            };
+        };
+    };
+    catalog_candidates_api_v1_employer_catalog_candidates_get: {
+        parameters: {
+            query?: {
+                category?: string | null;
+                grade?: components["schemas"]["Grade"] | null;
+                work_format?: components["schemas"]["WorkFormat"] | null;
+                skill?: string | null;
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageOut_CandidateCardOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    catalog_candidate_api_v1_employer_catalog_candidates__anon_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                anon_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CandidateCardOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_offers_api_v1_employer_offers_get: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["OfferStatus"] | null;
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageOut_EmployerOfferOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    send_offer_api_v1_employer_offers_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OfferCreateIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployerOfferOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    withdraw_offer_api_v1_employer_offers__offer_id__withdraw_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                offer_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployerOfferOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    offer_contacts_api_v1_employer_offers__offer_id__contacts_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                offer_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferContactsOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_companies_api_v1_admin_companies_get: {
         parameters: {
             query?: {
@@ -1674,7 +2342,7 @@ export interface operations {
             };
         };
     };
-    list_skills_api_v1_public_skills_get: {
+    skills_api_v1_public_skills_get: {
         parameters: {
             query?: never;
             header?: never;

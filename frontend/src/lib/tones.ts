@@ -1,5 +1,5 @@
 // Цвет бейджа для статусов — в одном месте для всех порталов.
-import type { CompanyStatus, VacancyStatus } from "../api/types";
+import type { CompanyStatus, OfferStatus, VacancyStatus } from "../api/types";
 import type { Tone } from "../ui/Badge";
 
 export const vacancyTone: Record<VacancyStatus, Tone> = {
@@ -7,6 +7,14 @@ export const vacancyTone: Record<VacancyStatus, Tone> = {
   active: "accent",
   closed: "info",
   blocked: "danger",
+};
+
+export const offerTone: Record<OfferStatus, Tone> = {
+  sent: "warn",
+  accepted: "accent",
+  declined: "neutral",
+  withdrawn: "neutral",
+  expired: "neutral",
 };
 
 export const tierTone: Record<string, Tone> = {

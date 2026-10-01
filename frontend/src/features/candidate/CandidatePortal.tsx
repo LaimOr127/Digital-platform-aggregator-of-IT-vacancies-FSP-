@@ -1,11 +1,13 @@
 import { Route, Routes } from "react-router";
 import { AppShell } from "../../ui/AppShell";
 import { FspPage } from "./fsp/FspPage";
+import { OffersInbox } from "./offers/OffersInbox";
 import { ProfilePage } from "./ProfilePage";
 
 const NAV = [
   { to: "/app", label: "Профиль", end: true },
   { to: "/app/fsp", label: "ФСП и паспорт навыков" },
+  { to: "/app/offers", label: "Офферы" },
 ];
 
 export default function CandidatePortal() {
@@ -14,6 +16,7 @@ export default function CandidatePortal() {
       <Routes>
         <Route index element={<ProfilePage />} />
         <Route path="fsp" element={<FspPage />} />
+        <Route path="offers" element={<OffersInbox />} />
         <Route path="*" element={<ProfilePage />} />
       </Routes>
     </AppShell>
