@@ -18,6 +18,17 @@ const sizes: Record<Size, string> = {
   lg: "h-12 px-6 text-base",
 };
 
+/** Классы кнопки — и для ссылок, оформленных как кнопка (<Link className={buttonClasses()}>). */
+export function buttonClasses(variant: Variant = "primary", size: Size = "md", className?: string): string {
+  return cn(
+    "inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors",
+    "disabled:cursor-not-allowed disabled:opacity-50",
+    variants[variant],
+    sizes[size],
+    className,
+  );
+}
+
 type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: Variant;
   size?: Size;
@@ -30,13 +41,7 @@ export function Button({ variant = "primary", size = "md", loading, disabled, cl
       type="button"
       disabled={disabled || loading}
       aria-busy={loading || undefined}
-      className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors",
-        "disabled:cursor-not-allowed disabled:opacity-50",
-        variants[variant],
-        sizes[size],
-        className,
-      )}
+      className={buttonClasses(variant, size, className)}
       {...rest}
     >
       {loading && <Spinner />}

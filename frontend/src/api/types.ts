@@ -9,6 +9,7 @@ export type TokenOut = Schemas["TokenOut"];
 export type CandidateRegisterIn = Schemas["CandidateRegisterIn"];
 export type EmployerRegisterIn = Schemas["EmployerRegisterIn"];
 export type LoginIn = Schemas["LoginIn"];
+export type Accepted = Schemas["AcceptedOut"];
 export type Profile = Schemas["ProfileOut"];
 export type ProfileUpdate = Schemas["ProfileUpdateIn"];
 export type Skill = Schemas["SkillOut"];

@@ -2,13 +2,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useState, type ReactNode } from "react";
 import { useForm, type FieldValues, type UseFormSetError } from "react-hook-form";
 import { authApi } from "../../api/endpoints";
-import type { TokenOut } from "../../api/types";
-import { useAuth } from "../../auth/AuthProvider";
 import { applyServerErrors } from "../../lib/forms";
 import { Alert } from "../../ui/Alert";
 import { Button } from "../../ui/Button";
 import { Field, Input } from "../../ui/form";
 import { Segmented } from "../../ui/Segmented";
+import { CheckEmail } from "./CheckEmail";
 import {
   candidateRegisterSchema,
   employerRegisterSchema,
@@ -20,14 +19,20 @@ type Role = "candidate" | "employer";
 
 const PASSWORD_HINT = "Не короче 10 символов, буквы и цифры или символы";
 
-/** Общий сценарий отправки: запрос -> вход (кабинет откроет AuthPage); ошибки -> поля формы. */
-function useRegister<T extends FieldValues>(fields: readonly string[], request: (v: T) => Promise<TokenOut>) {
-  const { signIn } = useAuth();
+type Registered = (email: string) => void;
+
+/** Общий сценарий отправки: запрос -> экран «проверьте почту»; ошибки -> поля формы. */
+function useRegister<T extends FieldValues & { email: string }>(
+  fields: readonly string[],
+  request: (v: T) => Promise<unknown>,
+  onDone: Registered,
+) {
   const [formError, setFormError] = useState<string | null>(null);
   const submit = (setError: UseFormSetError<T>) => async (values: T) => {
     setFormError(null);
     try {
-      await signIn(await request(values));
+      await request(values);
+      onDone(values.email);
     } catch (err) {
       setFormError(applyServerErrors(err, setError, fields));
     }
@@ -37,6 +42,8 @@ function useRegister<T extends FieldValues>(fields: readonly string[], request: 
 
 export function RegisterForm({ initialRole }: { initialRole: Role }) {
   const [role, setRole] = useState<Role>(initialRole);
+  const [sentTo, setSentTo] = useState<string | null>(null);
+  if (sentTo) return <CheckEmail email={sentTo} />;
   return (
     <div className="flex flex-col gap-6">
       <Segmented<Role>
@@ -48,16 +55,17 @@ export function RegisterForm({ initialRole }: { initialRole: Role }) {
           { value: "employer", label: "Я нанимаю" },
         ]}
       />
-      {role === "candidate" ? <CandidateForm /> : <EmployerForm />}
+      {role === "candidate" ? <CandidateForm onDone={setSentTo} /> : <EmployerForm onDone={setSentTo} />}
     </div>
   );
 }
 
-function CandidateForm() {
+function CandidateForm({ onDone }: { onDone: Registered }) {
   const form = useForm<CandidateRegisterForm>({ resolver: zodResolver(candidateRegisterSchema) });
   const { formError, submit } = useRegister<CandidateRegisterForm>(
     ["email", "password", "full_name"],
     authApi.registerCandidate,
+    onDone,
   );
   const { errors, isSubmitting } = form.formState;
   return (
@@ -75,11 +83,12 @@ function CandidateForm() {
   );
 }
 
-function EmployerForm() {
+function EmployerForm({ onDone }: { onDone: Registered }) {
   const form = useForm<EmployerRegisterForm>({ resolver: zodResolver(employerRegisterSchema) });
   const { formError, submit } = useRegister<EmployerRegisterForm>(
     ["email", "password", "company_name", "inn"],
     authApi.registerEmployer,
+    onDone,
   );
   const { errors, isSubmitting } = form.formState;
   return (

@@ -36,3 +36,12 @@ export const employerRegisterSchema = z.object({
 export type LoginForm = z.infer<typeof loginSchema>;
 export type CandidateRegisterForm = z.infer<typeof candidateRegisterSchema>;
 export type EmployerRegisterForm = z.input<typeof employerRegisterSchema>;
+
+export const forgotPasswordSchema = z.object({ email });
+
+export const resetPasswordSchema = z
+  .object({ password: passwordSchema, confirm: z.string() })
+  .refine((v) => v.password === v.confirm, { message: "Пароли не совпадают", path: ["confirm"] });
+
+export type ForgotPasswordForm = z.infer<typeof forgotPasswordSchema>;
+export type ResetPasswordForm = z.infer<typeof resetPasswordSchema>;

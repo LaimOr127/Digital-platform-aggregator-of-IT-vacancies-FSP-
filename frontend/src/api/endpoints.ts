@@ -1,6 +1,7 @@
 // Эндпоинты API в одном месте: компоненты не собирают URL сами.
 import { api } from "./client";
 import type {
+  Accepted,
   AdminUser,
   AdminVacancy,
   AuditEntry,
@@ -45,10 +46,14 @@ export const authApi = {
     api<MfaSetup>("POST", "/auth/2fa/setup", { body: { mfa_token: mfaToken, enrollment_code: enrollmentCode } }),
   mfaVerify: (mfaToken: string, code: string) =>
     api<TokenOut>("POST", "/auth/2fa/verify", { body: { mfa_token: mfaToken, code } }),
-  registerCandidate: (body: CandidateRegisterIn) =>
-    api<TokenOut>("POST", "/auth/register/candidate", { body }),
-  registerEmployer: (body: EmployerRegisterIn) =>
-    api<TokenOut>("POST", "/auth/register/employer", { body }),
+  /** регистрация не входит в аккаунт: сначала подтверждение почты по ссылке из письма */
+  registerCandidate: (body: CandidateRegisterIn) => api<Accepted>("POST", "/auth/register/candidate", { body }),
+  registerEmployer: (body: EmployerRegisterIn) => api<Accepted>("POST", "/auth/register/employer", { body }),
+  verifyEmail: (token: string) => api<void>("POST", "/auth/verify-email", { body: { token } }),
+  resendVerification: (email: string) => api<Accepted>("POST", "/auth/verify-email/resend", { body: { email } }),
+  forgotPassword: (email: string) => api<Accepted>("POST", "/auth/password/forgot", { body: { email } }),
+  resetPassword: (token: string, password: string) =>
+    api<void>("POST", "/auth/password/reset", { body: { token, password } }),
   me: () => api<Me>("GET", "/auth/me"),
 };
 
