@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -21,6 +22,7 @@ class FspLinkStartOut(BaseModel):
 
 
 class AchievementOut(BaseModel):
+    external_id: str
     discipline: str
     discipline_title: str
     competition_title: str
@@ -66,6 +68,18 @@ class PassportOut(BaseModel):
     key_id: str
 
 
-class PassportVerifyOut(PassportOut):
+PassportCheck = Literal["valid", "revoked", "expired", "bad_signature", "unknown_key"]
+
+
+class PassportVerifyOut(BaseModel):
+    """Публичная проверка. По отозванному паспорту данные не отдаются (отзыв согласия)."""
+
+    id: uuid.UUID
+    issued_at: datetime
+    revoked_at: datetime | None
+    status: PassportCheck
     valid: bool
+    payload: dict | None
+    signature: str | None
+    key_id: str | None
     public_key: str

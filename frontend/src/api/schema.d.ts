@@ -425,6 +425,8 @@ export interface components {
     schemas: {
         /** AchievementOut */
         AchievementOut: {
+            /** External Id */
+            external_id: string;
             /** Discipline */
             discipline: string;
             /** Discipline Title */
@@ -660,7 +662,10 @@ export interface components {
             /** Key Id */
             key_id: string;
         };
-        /** PassportVerifyOut */
+        /**
+         * PassportVerifyOut
+         * @description Публичная проверка. По отозванному паспорту данные не отдаются (отзыв согласия).
+         */
         PassportVerifyOut: {
             /**
              * Id
@@ -674,16 +679,21 @@ export interface components {
             issued_at: string;
             /** Revoked At */
             revoked_at: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "valid" | "revoked" | "expired" | "bad_signature" | "unknown_key";
+            /** Valid */
+            valid: boolean;
             /** Payload */
             payload: {
                 [key: string]: unknown;
-            };
+            } | null;
             /** Signature */
-            signature: string;
+            signature: string | null;
             /** Key Id */
-            key_id: string;
-            /** Valid */
-            valid: boolean;
+            key_id: string | null;
             /** Public Key */
             public_key: string;
         };

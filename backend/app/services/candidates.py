@@ -5,7 +5,6 @@ import json
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.crypto import FieldCipher, profile_field_context
-from app.core.errors import NotFoundError
 from app.core.logging import get_logger
 from app.models import CandidateProfile
 from app.repositories.candidates import CandidateProfileRepository, SkillRepository
@@ -27,10 +26,10 @@ class CandidateService:
         self.skills = SkillRepository(session)
 
     async def get_profile(self) -> ProfileOut:
-        return self._to_out(await self._own())
+        return self._to_out(await self.profiles.own_or_404())
 
     async def update_profile(self, data: ProfileUpdateIn) -> ProfileOut:
-        profile = await self._own()
+        profile = await self.profiles.own_or_404()
         changes = data.model_dump(exclude_unset=True)
         apply_fields(profile, changes, _PLAIN_FIELDS)
         apply_salary(profile, changes)
@@ -43,12 +42,6 @@ class CandidateService:
             profile.skills = await resolve_skills(self.skills, data.skills)
         await self.session.commit()
         return self._to_out(profile)
-
-    async def _own(self) -> CandidateProfile:
-        profile = await self.profiles.own()
-        if profile is None:
-            raise NotFoundError("profile not found")
-        return profile
 
     def _encrypt(self, p: CandidateProfile, field: str, value: str | None) -> str | None:
         return self.cipher.encrypt(value, profile_field_context(field, p.user_id))

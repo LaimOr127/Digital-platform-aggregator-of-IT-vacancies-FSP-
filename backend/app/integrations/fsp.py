@@ -1,8 +1,9 @@
 """Интеграция с API ФСП. Сервисы зависят от протокола FspClient: мок и реальный API
 подменяются реализацией, а тесты — фейком через DI."""
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Any, Protocol
 
 import httpx
 
@@ -82,24 +83,45 @@ class HttpFspClient:
         return response
 
     async def get_athlete(self, athlete_id: str) -> FspAthlete:
-        data = (await self._request("GET", f"/athletes/{_safe_id(athlete_id)}")).json()
-        return FspAthlete(data["id"], data["full_name"], data.get("region"), data.get("rank"))
+        data = await self._json("GET", f"/athletes/{_safe_id(athlete_id)}")
+        return _parse(
+            lambda: FspAthlete(
+                str(data["id"]), str(data["full_name"]), data.get("region"), data.get("rank")
+            )
+        )
 
     async def get_results(self, athlete_id: str) -> list[FspResult]:
-        rows = (await self._request("GET", f"/athletes/{_safe_id(athlete_id)}/results")).json()
-        return [_result(row) for row in rows]
+        rows = await self._json("GET", f"/athletes/{_safe_id(athlete_id)}/results")
+        return _parse(lambda: [_result(row) for row in rows])
 
     async def start_verification(self, athlete_id: str) -> FspVerificationStart:
-        data = (
-            await self._request("POST", "/verification/start", {"athlete_id": athlete_id})
-        ).json()
-        return FspVerificationStart(
-            data["request_id"], data["email_masked"], data["expires_in"], data.get("demo_code")
+        data = await self._json("POST", "/verification/start", {"athlete_id": athlete_id})
+        return _parse(
+            lambda: FspVerificationStart(
+                str(data["request_id"]),
+                str(data["email_masked"]),
+                int(data["expires_in"]),
+                data.get("demo_code"),
+            )
         )
 
     async def confirm_verification(self, request_id: str, code: str) -> str:
-        body = {"request_id": request_id, "code": code}
-        return (await self._request("POST", "/verification/confirm", body)).json()["athlete_id"]
+        data = await self._json(
+            "POST", "/verification/confirm", {"request_id": request_id, "code": code}
+        )
+        return _parse(lambda: str(data["athlete_id"]))
+
+    async def _json(self, method: str, path: str, body: dict | None = None) -> Any:
+        response = await self._request(method, path, body)
+        return _parse(response.json)
+
+
+def _parse[T](build: Callable[[], T]) -> T:
+    """Неожиданный ответ ФСП (не JSON, другой контракт) — «ФСП недоступна», а не 500."""
+    try:
+        return build()
+    except (ValueError, KeyError, TypeError) as exc:
+        raise ServiceUnavailableError("ФСП вернула неожиданный ответ") from exc
 
 
 def _safe_id(athlete_id: str) -> str:

@@ -14,7 +14,8 @@ from sqlalchemy.ext.asyncio import create_async_engine
 
 from app.db.provision import provision_app_role
 from app.db.session import Database
-from app.models import Base, Skill
+from app.models import Base, Category, Skill
+from app.services.categorization import all_categories
 
 APP_ROLE = "itmatch_test_app"
 TEST_SKILLS = [("python", "Python"), ("go", "Go"), ("postgresql", "PostgreSQL"), ("react", "React")]
@@ -27,6 +28,10 @@ async def create_sqlite_schema(database: Database) -> None:
         await conn.run_sync(Base.metadata.create_all)
     async with database.sessionmaker() as session:
         session.add_all(Skill(id=uuid.uuid4(), slug=s, name=n) for s, n in TEST_SKILLS)
+        session.add_all(
+            Category(slug=c.slug, discipline=c.discipline, tier=c.tier, title=c.title)
+            for c in all_categories()
+        )
         await session.commit()
 
 

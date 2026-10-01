@@ -57,7 +57,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "auth": settings.auth_rate_limit,
             "login_email": settings.login_email_rate_limit,
             "refresh": settings.refresh_rate_limit,
-            "fsp": settings.fsp_rate_limit,
+            "fsp_link": settings.fsp_link_rate_limit,
+            "fsp_athlete": settings.fsp_athlete_rate_limit,
+            "fsp_confirm": settings.fsp_confirm_rate_limit,
+            "fsp_sync": settings.fsp_sync_rate_limit,
         }
     )
     register_error_handlers(app)

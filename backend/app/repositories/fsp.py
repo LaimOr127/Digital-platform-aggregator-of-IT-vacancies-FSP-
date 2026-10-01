@@ -44,25 +44,31 @@ class FspAchievementRepository(_ProfileScoped[FspAchievement]):
         return list((await self.session.execute(stmt)).scalars())
 
 
-async def links_due(session: AsyncSession, before: datetime, limit: int) -> list[FspLink]:
-    """Привязки, которые пора синхронизировать (worker, контекст system)."""
+async def links_due(session: AsyncSession, now: datetime, limit: int) -> list[FspLink]:
+    """Привязки, которым пора синхронизироваться (worker, контекст system)."""
     stmt = (
         select(FspLink)
-        .where(or_(FspLink.last_synced_at.is_(None), FspLink.last_synced_at < before))
-        .order_by(FspLink.last_synced_at.nulls_first())
+        .where(or_(FspLink.next_sync_at.is_(None), FspLink.next_sync_at <= now))
+        .order_by(FspLink.next_sync_at.nulls_first())
         .limit(limit)
     )
     return list((await session.execute(stmt)).scalars())
 
 
+async def lock_link(session: AsyncSession, link_id: uuid.UUID) -> FspLink | None:
+    """Блокировка привязки на время синхронизации: кнопка «Обновить» и worker не гоняются."""
+    stmt = select(FspLink).where(FspLink.id == link_id).with_for_update()
+    return (await session.execute(stmt)).scalar_one_or_none()
+
+
 class CategoryRepository(BaseRepository[Category]):
     model = Category
 
-    async def ensure(self, slug: str, discipline: str, tier: str, title: str) -> Category:
-        existing = await self.first(Category.slug == slug)
-        if existing is not None:
-            return existing
-        return await self.add(Category(slug=slug, discipline=discipline, tier=tier, title=title))
+    async def by_slugs(self, slugs: list[str]) -> dict[str, Category]:
+        if not slugs:
+            return {}
+        stmt = self._select().where(Category.slug.in_(slugs))
+        return {c.slug: c for c in (await self.session.execute(stmt)).scalars()}
 
     async def replace_for_profile(
         self, profile_id: uuid.UUID, assigned: list[tuple[Category, list[str]]]

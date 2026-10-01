@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Response
 
 from app.api.deps import SessionDep, SignerDep
 from app.repositories.candidates import SkillRepository
@@ -18,8 +18,11 @@ async def list_skills(session: SessionDep) -> list[SkillOut]:
 
 @router.get("/passport/{passport_id}", summary="Проверить паспорт навыков (публично)")
 async def passport_verify(
-    passport_id: uuid.UUID, session: SessionDep, signer: SignerDep
+    passport_id: uuid.UUID, session: SessionDep, signer: SignerDep, response: Response
 ) -> PassportVerifyOut:
+    # отзыв должен действовать сразу: ответ не кэшируется и не индексируется поисковиками
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["X-Robots-Tag"] = "noindex, nofollow"
     return await verify_passport(session, signer, passport_id)
 
 

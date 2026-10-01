@@ -80,3 +80,18 @@ async def create_vacancy(client: AsyncClient, token: str, **overrides) -> dict:
     )
     assert r.status_code == 201, r.text
     return r.json()
+
+
+async def link_fsp(client: AsyncClient, token: str, athlete_id: str = "FSP-1") -> dict:
+    """Привязка ФСП через API с кодом фейкового клиента (общий шаг тестов ФСП и worker)."""
+    from tests.fake_fsp import CODE
+
+    r = await client.post(
+        "/api/v1/candidate/fsp/link", json={"athlete_id": athlete_id}, headers=bearer(token)
+    )
+    assert r.status_code == 200, r.text
+    r = await client.post(
+        "/api/v1/candidate/fsp/confirm", json={"code": CODE}, headers=bearer(token)
+    )
+    assert r.status_code == 200, r.text
+    return r.json()

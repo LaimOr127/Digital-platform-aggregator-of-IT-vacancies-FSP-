@@ -48,7 +48,11 @@ class Settings(BaseSettings):
     auth_rate_limit: str = "10/minute"  # вход/регистрация с одного IP
     login_email_rate_limit: str = "5/minute"  # попытки входа в один аккаунт с любых IP
     refresh_rate_limit: str = "60/minute"
-    fsp_rate_limit: str = "10/minute"  # запросы кода подтверждения ФСП
+    # ФСП: лимиты по пользователю и по аккаунту ФСП (перебор кода с пула IP не помогает)
+    fsp_link_rate_limit: str = "10/hour"
+    fsp_athlete_rate_limit: str = "5/hour"
+    fsp_confirm_rate_limit: str = "20/hour"
+    fsp_sync_rate_limit: str = "10/minute"
 
     @property
     def is_prod(self) -> bool:

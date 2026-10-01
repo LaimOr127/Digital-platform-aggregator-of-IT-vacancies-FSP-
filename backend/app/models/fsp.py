@@ -29,9 +29,16 @@ class FspLink(IdMixin, TimestampMixin, Base):
         ForeignKey("candidate_profiles.id", ondelete="CASCADE"), unique=True
     )
     athlete_id: Mapped[str] = mapped_column(String(32), unique=True)
+    # ФИО из ФСП: в паспорт идёт подтверждённое имя, а не введённое кандидатом
+    full_name: Mapped[str | None] = mapped_column(String(200), default=None)
     rank: Mapped[str | None] = mapped_column(String(16), default=None)
     region: Mapped[str | None] = mapped_column(String(120), default=None)
     last_synced_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+    # расписание worker: после ошибок пауза растёт, проблемная привязка не блокирует очередь
+    next_sync_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), default=None, index=True
+    )
+    sync_failures: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
 
 
 class FspAchievement(IdMixin, TimestampMixin, Base):

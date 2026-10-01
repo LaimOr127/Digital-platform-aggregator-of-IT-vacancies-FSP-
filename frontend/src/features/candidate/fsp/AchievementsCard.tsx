@@ -60,7 +60,7 @@ export function AchievementsCard({ achievements }: { achievements: Achievement[]
       <CardTitle>Результаты соревнований</CardTitle>
       <ol className="mt-5 flex flex-col">
         {achievements.map((a) => (
-          <li key={`${a.date}-${a.competition_title}`} className="flex gap-4 border-b border-line py-4 last:border-0 last:pb-0 first:pt-0">
+          <li key={a.external_id} className="flex gap-4 border-b border-line py-4 last:border-0 last:pb-0 first:pt-0">
             <span
               className={`grid size-10 shrink-0 place-items-center rounded-xl ${a.place && a.place <= 3 ? "bg-accent/15 text-accent" : "bg-surface-2 text-muted"}`}
               aria-hidden

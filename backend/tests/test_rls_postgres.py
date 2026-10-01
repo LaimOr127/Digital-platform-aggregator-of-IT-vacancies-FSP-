@@ -15,6 +15,7 @@ from tests.helpers import (
     company_id,
     create_admin,
     create_vacancy,
+    link_fsp,
     register_candidate,
     register_employer,
 )
@@ -137,3 +138,42 @@ async def test_app_role_cannot_change_schema(db: Database):
     async with db.sessionmaker() as session:
         with pytest.raises(DBAPIError, match="permission denied"):
             await session.execute(text("CREATE TABLE _probe (id int)"))
+
+
+async def test_fsp_link_hidden_from_employers_and_others(client: AsyncClient, db: Database, app):
+    """athlete_id деанонимизирует кандидата: привязку видит только владелец."""
+    owner = await register_candidate(client)
+    await link_fsp(client, owner)
+    await register_candidate(client)
+    employer = await register_employer(client)
+    await approve_company(client, await create_admin(db, app), await company_id(client, employer))
+    owner_id, other_id = await _user_ids(db, "candidate")
+    (employer_id,) = await _user_ids(db, "employer")
+    sql = "SELECT count(*) FROM fsp_links"
+    assert await _scalar(db, owner_id, "candidate", sql) == 1
+    assert await _scalar(db, other_id, "candidate", sql) == 0
+    assert await _scalar(db, employer_id, "employer", sql) == 0
+
+
+async def test_passports_readable_only_by_owner(client: AsyncClient, db: Database):
+    owner = await register_candidate(client)
+    await client.post("/api/v1/candidate/passport", json={"show_name": True}, headers=bearer(owner))
+    await register_candidate(client)
+    owner_id, other_id = await _user_ids(db, "candidate")
+    sql = "SELECT count(*) FROM passports"
+    assert await _scalar(db, owner_id, "candidate", sql) == 1
+    assert await _scalar(db, other_id, "candidate", sql) == 0
+    assert await _scalar(db, None, "", sql) == 0  # публичная проверка идёт через контекст system
+
+
+async def test_categories_dictionary_is_read_only_for_users(client: AsyncClient, db: Database):
+    await register_candidate(client)
+    (candidate_id,) = await _user_ids(db, "candidate")
+    assert await _scalar(db, candidate_id, "candidate", "SELECT count(*) FROM categories") == 15
+    changed = await _scalar(
+        db,
+        candidate_id,
+        "candidate",
+        "WITH u AS (UPDATE categories SET title = 'hack' RETURNING 1) SELECT count(*) FROM u",
+    )
+    assert changed == 0
