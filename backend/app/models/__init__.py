@@ -6,6 +6,7 @@ from app.models.candidate import CandidateProfile, Skill, profile_skills
 from app.models.category import Category, candidate_categories
 from app.models.company import CompanyMember, EmployerCompany
 from app.models.fsp import FspAchievement, FspLink, FspVerification
+from app.models.offer import ContactReveal, Offer
 from app.models.passport import Passport
 from app.models.user import RefreshToken, User
 from app.models.vacancy import Vacancy, vacancy_skills
@@ -16,10 +17,12 @@ __all__ = [
     "CandidateProfile",
     "Category",
     "CompanyMember",
+    "ContactReveal",
     "EmployerCompany",
     "FspAchievement",
     "FspLink",
     "FspVerification",
+    "Offer",
     "Passport",
     "RefreshToken",
     "Skill",

@@ -177,3 +177,33 @@ async def test_categories_dictionary_is_read_only_for_users(client: AsyncClient,
         "WITH u AS (UPDATE categories SET title = 'hack' RETURNING 1) SELECT count(*) FROM u",
     )
     assert changed == 0
+
+
+async def test_offers_visible_only_to_parties(client: AsyncClient, db: Database, app):
+    """Оффер видят только кандидат-адресат и сотрудники компании-отправителя."""
+    employer = await register_employer(client, company="Компания A")
+    rival = await register_employer(client, company="Компания B")
+    admin = await create_admin(db, app)
+    for token in (employer, rival):
+        await approve_company(client, admin, await company_id(client, token))
+    vacancy = await create_vacancy(client, employer)
+    await client.post(
+        f"/api/v1/employer/vacancies/{vacancy['id']}/publish", headers=bearer(employer)
+    )
+    candidate = await register_candidate(client)
+    await register_candidate(client)
+    anon_id = (await client.get("/api/v1/candidate/profile", headers=bearer(candidate))).json()[
+        "anon_id"
+    ]
+    body = {"anon_id": anon_id, "vacancy_id": vacancy["id"], "salary_min": 1, "salary_max": 2}
+    assert (
+        await client.post("/api/v1/employer/offers", json=body, headers=bearer(employer))
+    ).status_code == 201
+
+    employer_id, rival_id = await _user_ids(db, "employer")
+    candidate_id, other_id = await _user_ids(db, "candidate")
+    sql = "SELECT count(*) FROM offers"
+    assert await _scalar(db, employer_id, "employer", sql) == 1
+    assert await _scalar(db, candidate_id, "candidate", sql) == 1
+    assert await _scalar(db, rival_id, "employer", sql) == 0
+    assert await _scalar(db, other_id, "candidate", sql) == 0

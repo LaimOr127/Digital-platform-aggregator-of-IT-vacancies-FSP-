@@ -19,6 +19,10 @@ def profile_field_context(field: str, user_id: uuid.UUID) -> bytes:
     return f"candidate_profiles.{field}:{user_id}".encode()
 
 
+def offer_field_context(field: str, offer_id: uuid.UUID) -> bytes:
+    return f"offers.{field}:{offer_id}".encode()
+
+
 class FieldCipher:
     def __init__(self, hex_key: str) -> None:
         try:

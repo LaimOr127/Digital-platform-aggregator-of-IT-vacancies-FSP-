@@ -8,7 +8,7 @@ from datetime import UTC, datetime, timedelta
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.errors import AppError, ForbiddenError, NotFoundError
+from app.core.errors import ForbiddenError, InvalidStateError, NotFoundError
 from app.models import EmployerCompany, Vacancy
 from app.models.enums import VacancyStatus
 from app.repositories.base import Page
@@ -21,10 +21,6 @@ from app.services.common import apply_fields, apply_salary, resolve_skills
 
 VACANCY_TTL = timedelta(days=14)
 _PLAIN_FIELDS = ("title", "description", "grade", "work_format", "city")
-
-
-class InvalidStateError(AppError):
-    status_code, code = 409, "invalid_state"
 
 
 class EmployerService:

@@ -40,6 +40,14 @@ class MemberRole(StrEnum):
     RECRUITER = "recruiter"
 
 
+class OfferStatus(StrEnum):
+    SENT = "sent"
+    ACCEPTED = "accepted"
+    DECLINED = "declined"
+    WITHDRAWN = "withdrawn"
+    EXPIRED = "expired"
+
+
 class VacancyStatus(StrEnum):
     DRAFT = "draft"
     ACTIVE = "active"

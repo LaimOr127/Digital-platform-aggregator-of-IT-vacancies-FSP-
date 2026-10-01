@@ -20,6 +20,10 @@ class Action(StrEnum):
     VACANCY_READ = "vacancy.read"
     VACANCY_WRITE = "vacancy.write"
     VACANCY_PUBLISH = "vacancy.publish"
+    CATALOG_READ = "catalog.read"
+    OFFER_SEND = "offer.send"
+    OFFER_MANAGE = "offer.manage"
+    OFFER_RESPOND = "offer.respond"
     ADMIN_MODERATE = "admin.moderate"
     ADMIN_SUPER = "admin.super"
 
@@ -64,6 +68,15 @@ def _can_publish(p: Principal, resource: Any) -> bool:
     return _owns_company_resource(p, resource) and p.company_status == CompanyStatus.APPROVED
 
 
+def _approved_employer(p: Principal, _: Any) -> bool:
+    """Каталог кандидатов и офферы — только для одобренной модератором компании."""
+    return _is_employer_member(p, None) and p.company_status == CompanyStatus.APPROVED
+
+
+def _manages_offer(p: Principal, resource: Any) -> bool:
+    return _owns_company_resource(p, resource) and p.company_status != CompanyStatus.BLOCKED
+
+
 def _is_admin(p: Principal, _: Any) -> bool:
     return p.is_admin
 
@@ -78,6 +91,10 @@ _RULES: dict[Action, Callable[[Principal, Any], bool]] = {
     Action.VACANCY_READ: _owns_company_resource,
     Action.VACANCY_WRITE: _can_write_vacancy,
     Action.VACANCY_PUBLISH: _can_publish,
+    Action.CATALOG_READ: _approved_employer,
+    Action.OFFER_SEND: _approved_employer,
+    Action.OFFER_MANAGE: _manages_offer,
+    Action.OFFER_RESPOND: _is_candidate,
     Action.ADMIN_MODERATE: _is_admin,
     Action.ADMIN_SUPER: _is_superadmin,
 }

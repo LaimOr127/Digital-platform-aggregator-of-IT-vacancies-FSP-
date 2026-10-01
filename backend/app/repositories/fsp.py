@@ -64,6 +64,9 @@ async def lock_link(session: AsyncSession, link_id: uuid.UUID) -> FspLink | None
 class CategoryRepository(BaseRepository[Category]):
     model = Category
 
+    async def all_ordered(self) -> list[Category]:
+        return list((await self.session.execute(self._select().order_by(Category.slug))).scalars())
+
     async def by_slugs(self, slugs: list[str]) -> dict[str, Category]:
         if not slugs:
             return {}

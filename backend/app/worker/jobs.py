@@ -14,6 +14,7 @@ from app.integrations.fsp import FspClient
 from app.models import CandidateProfile, FspLink
 from app.repositories.audit import AuditRepository
 from app.repositories.fsp import links_due
+from app.repositories.offers import expire_overdue
 from app.services.fsp_sync import FspSyncer, backoff
 
 log = get_logger(__name__)
@@ -104,6 +105,24 @@ class FspSyncJob(Job):
         await session.commit()
 
 
+class OfferExpiryJob(Job):
+    """Офферы без ответа дольше срока переходят в «истёк»."""
+
+    name, interval_seconds = "offer-expiry", 600
+
+    def __init__(self, db: Database) -> None:
+        self.db = db
+
+    async def run(self) -> int:  # type: ignore[override]
+        async with self.db.sessionmaker() as session:
+            await set_rls_context(session, None, SYSTEM_ROLE)
+            expired = await expire_overdue(session, datetime.now(UTC))
+            await session.commit()
+            if expired:
+                log.info("offers expired: %d", expired)
+            return expired
+
+
 def build_jobs(settings: Settings, db: Database, client: FspClient) -> list[Job]:
     sync_every = timedelta(minutes=settings.fsp_sync_interval_minutes)
-    return [HeartbeatJob(), FspSyncJob(db, client, sync_every)]
+    return [HeartbeatJob(), FspSyncJob(db, client, sync_every), OfferExpiryJob(db)]

@@ -1,0 +1,95 @@
+"""Работодатель: каталог кандидатов по категориям и офферы."""
+
+import uuid
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, Header, Query, status
+
+from app.api.deps import CipherDep, PrincipalDep, SessionDep
+from app.models.enums import Grade, OfferStatus, WorkFormat
+from app.schemas.catalog import (
+    CandidateCardOut,
+    CatalogCategoryOut,
+    EmployerOfferOut,
+    OfferContactsOut,
+    OfferCreateIn,
+)
+from app.schemas.common import PageOut
+from app.services.catalog import CatalogService
+from app.services.offers import EmployerOfferService
+
+router = APIRouter(prefix="/employer", tags=["employer"])
+Limit = Annotated[int, Query(ge=1, le=50)]
+Slug = Annotated[str | None, Query(max_length=64, pattern=r"^[a-z0-9][a-z0-9+#.\-]*$")]
+
+
+def _catalog(session: SessionDep, principal: PrincipalDep) -> CatalogService:
+    return CatalogService(session, principal)
+
+
+def _offers(
+    session: SessionDep, principal: PrincipalDep, cipher: CipherDep
+) -> EmployerOfferService:
+    return EmployerOfferService(session, principal, cipher)
+
+
+CatalogDep = Annotated[CatalogService, Depends(_catalog)]
+OffersDep = Annotated[EmployerOfferService, Depends(_offers)]
+
+
+@router.get("/catalog/categories", summary="Категории со счётчиками кандидатов")
+async def catalog_categories(service: CatalogDep) -> list[CatalogCategoryOut]:
+    return await service.categories()
+
+
+@router.get("/catalog/candidates", summary="Анонимные карточки кандидатов")
+async def catalog_candidates(
+    service: CatalogDep,
+    category: Slug = None,
+    grade: Grade | None = None,
+    work_format: WorkFormat | None = None,
+    skill: Slug = None,
+    cursor: str | None = None,
+    limit: Limit = 20,
+) -> PageOut[CandidateCardOut]:
+    items, next_cursor = await service.candidates(
+        category, grade, work_format, skill, cursor, limit
+    )
+    return PageOut(items=items, next_cursor=next_cursor)
+
+
+@router.get("/catalog/candidates/{anon_id}", summary="Анонимная карточка кандидата")
+async def catalog_candidate(anon_id: uuid.UUID, service: CatalogDep) -> CandidateCardOut:
+    return await service.candidate(anon_id)
+
+
+@router.post("/offers", status_code=status.HTTP_201_CREATED, summary="Отправить оффер")
+async def send_offer(
+    data: OfferCreateIn,
+    service: OffersDep,
+    idempotency_key: Annotated[
+        str | None, Header(alias="Idempotency-Key", max_length=64, pattern=r"^[A-Za-z0-9_\-]+$")
+    ] = None,
+) -> EmployerOfferOut:
+    return await service.send(data, idempotency_key)
+
+
+@router.get("/offers", summary="Офферы компании")
+async def list_offers(
+    service: OffersDep,
+    status_filter: Annotated[OfferStatus | None, Query(alias="status")] = None,
+    cursor: str | None = None,
+    limit: Limit = 20,
+) -> PageOut[EmployerOfferOut]:
+    items, next_cursor = await service.list_offers(status_filter, cursor, limit)
+    return PageOut(items=items, next_cursor=next_cursor)
+
+
+@router.post("/offers/{offer_id}/withdraw", summary="Отозвать оффер")
+async def withdraw_offer(offer_id: uuid.UUID, service: OffersDep) -> EmployerOfferOut:
+    return await service.withdraw(offer_id)
+
+
+@router.get("/offers/{offer_id}/contacts", summary="Контакты кандидата (после принятия оффера)")
+async def offer_contacts(offer_id: uuid.UUID, service: OffersDep) -> OfferContactsOut:
+    return await service.contacts(offer_id)

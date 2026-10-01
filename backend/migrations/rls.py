@@ -23,6 +23,8 @@ def member_of(company_col: str) -> str:
 
 
 def policy(name: str, table: str, command: str, using: str, check: bool = True) -> Policy:
+    if command == "INSERT":  # для вставки PostgreSQL допускает только WITH CHECK
+        return name, table, f"CREATE POLICY {name} ON {table} FOR INSERT WITH CHECK ({using})"
     with_check = f" WITH CHECK ({using})" if check else ""
     return name, table, f"CREATE POLICY {name} ON {table} FOR {command} USING ({using}){with_check}"
 

@@ -38,6 +38,10 @@ class ConflictError(AppError):
     status_code, code = 409, "conflict"
 
 
+class InvalidStateError(AppError):
+    status_code, code = 409, "invalid_state"
+
+
 class RateLimitedError(AppError):
     status_code, code = 429, "rate_limited"
 
