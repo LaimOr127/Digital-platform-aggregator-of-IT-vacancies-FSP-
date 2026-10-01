@@ -12,6 +12,7 @@ from app.api.v1 import (
     employer,
     fsp,
     health,
+    profile_import,
     public,
 )
 
@@ -21,6 +22,7 @@ for module in (
     auth,
     account,
     candidate,
+    profile_import,
     fsp,
     candidate_offers,
     employer,

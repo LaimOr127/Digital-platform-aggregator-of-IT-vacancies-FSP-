@@ -16,6 +16,7 @@ from app.core.security import TokenService
 from app.core.signing import PassportSigner
 from app.db.session import get_database
 from app.integrations.fsp import HttpFspClient
+from app.services.resume.llm import LlmResumeParser
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -51,11 +52,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.cipher = FieldCipher(settings.secret("field_encryption_key"))
     app.state.signer = PassportSigner(settings.secret("passport_signing_key"))
     app.state.fsp_client = HttpFspClient(settings)
+    app.state.ai_parser = LlmResumeParser(settings)
     app.state.rate_limiter = RateLimiter()
     app.state.rate_limits = build_limits(
         {
             "auth": settings.auth_rate_limit,
             "email": settings.email_rate_limit,
+            "resume": settings.resume_rate_limit,
             "login_email": settings.login_email_rate_limit,
             "refresh": settings.refresh_rate_limit,
             "fsp_link": settings.fsp_link_rate_limit,

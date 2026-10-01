@@ -12,6 +12,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from app.data import ATHLETES, DISCIPLINES, mask_email, result_payload
+from app.questionnaire import questionnaire_payload
 from app.verification import VerificationError, VerificationStore
 
 API_KEY = os.environ.get("FSP_API_KEY", "")
@@ -68,6 +69,13 @@ async def athlete(athlete_id: str) -> dict:
 @app.get("/api/v1/athletes/{athlete_id}/results", dependencies=Protected)
 async def results(athlete_id: str) -> list[dict]:
     return [result_payload(r) for r in _athlete(athlete_id).results]
+
+
+@app.get("/api/v1/athletes/{athlete_id}/questionnaire", dependencies=Protected)
+async def questionnaire(athlete_id: str) -> dict:
+    """Анкета из личного кабинета ФСП + подтверждённый федерацией email."""
+    athlete = _athlete(athlete_id)
+    return {**questionnaire_payload(athlete.id), "email": athlete.email}
 
 
 @app.post("/api/v1/verification/start", dependencies=Protected)

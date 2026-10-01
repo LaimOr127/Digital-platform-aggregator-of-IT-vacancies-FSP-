@@ -1,7 +1,13 @@
 """Фейковый клиент ФСП для тестов: те же сигнатуры, что у HttpFspClient."""
 
 from app.core.errors import NotFoundError
-from app.integrations.fsp import FspAthlete, FspResult, FspVerificationError, FspVerificationStart
+from app.integrations.fsp import (
+    FspAthlete,
+    FspQuestionnaire,
+    FspResult,
+    FspVerificationError,
+    FspVerificationStart,
+)
 
 CODE = "424242"
 
@@ -28,6 +34,19 @@ class FakeFspClient:
             "FSP-3": (FspAthlete("FSP-3", "Олег", None, None), []),
         }
         self.requests: dict[str, str] = {}
+        self.questionnaires = {
+            "FSP-1": FspQuestionnaire(
+                email="anna@fsp.example.org",
+                city="Казань",
+                organization="КФУ",
+                specialization="Backend-разработчик",
+                experience_years=3,
+                stack=("Python", "postgresql", "COBOL-2077"),
+                about="Капитан команды.",
+                phone="+7 900 000-00-01",
+                telegram="@anna_dev",
+            )
+        }
 
     def _get(self, athlete_id: str):
         if athlete_id not in self.athletes:
@@ -39,6 +58,11 @@ class FakeFspClient:
 
     async def get_results(self, athlete_id: str) -> list[FspResult]:
         return list(self._get(athlete_id)[1])
+
+    async def get_questionnaire(self, athlete_id: str) -> FspQuestionnaire:
+        self._get(athlete_id)
+        empty = FspQuestionnaire(None, None, None, None, None, (), None, None, None)
+        return self.questionnaires.get(athlete_id, empty)
 
     async def start_verification(self, athlete_id: str) -> FspVerificationStart:
         self._get(athlete_id)

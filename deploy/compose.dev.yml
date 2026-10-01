@@ -7,6 +7,7 @@ services:
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload",
               "--proxy-headers", "--forwarded-allow-ips", "*"]
     volumes: ["../backend/app:/app/app:ro"]
+    networks: [edge, internal, egress]   # выход наружу — только для ИИ-сервиса (если задан ключ)
   worker:
     depends_on:
       mailpit: { condition: service_started }

@@ -59,6 +59,14 @@ class Settings(BaseSettings):
     # письма на один адрес (регистрация, повтор письма, сброс пароля): защита от почтовой бомбы
     email_rate_limit: str = "3/hour"
 
+    # ИИ-разбор резюме (необязательно): без ключа работает алгоритм на правилах.
+    # В ИИ-сервис уходит текст резюме без контактов и только с согласия кандидата.
+    anthropic_api_key: SecretStr = SecretStr("")
+    ai_model: str = "claude-sonnet-5-5"
+    ai_base_url: str = "https://api.anthropic.com"
+    ai_timeout_seconds: float = 30.0
+    resume_rate_limit: str = "20/hour"  # разборов резюме на пользователя
+
     # Почта (нужна только worker): ссылки в письмах ведут на public_url
     public_url: str = "http://localhost:8088"
     smtp_host: str = "mailpit"

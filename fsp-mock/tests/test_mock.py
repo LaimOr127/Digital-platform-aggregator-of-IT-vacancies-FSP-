@@ -112,3 +112,15 @@ def test_mask_hides_name_length():
 
     assert mask_email("ab@x.ru") == "a***@x.ru"
     assert mask_email("anna.smirnova@example.org") == "a***@example.org"
+
+
+def test_questionnaire_requires_key_and_returns_contacts(client):
+    assert TestClient(mock.app).get("/api/v1/athletes/FSP-24001/questionnaire").status_code == 401
+    data = client.get("/api/v1/athletes/fsp-24001/questionnaire").json()
+    assert data["city"] == "Казань" and "FastAPI" in data["stack"]
+    assert data["email"] == "anna.smirnova@example.org"
+
+
+def test_empty_questionnaire_for_athlete_without_one(client):
+    data = client.get("/api/v1/athletes/FSP-24007/questionnaire").json()
+    assert data["stack"] == [] and data["city"] is None and data["email"]

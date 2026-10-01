@@ -37,6 +37,21 @@ class FspResult:
 
 
 @dataclass(frozen=True)
+class FspQuestionnaire:
+    """Анкета из личного кабинета ФСП (для автозаполнения профиля после подтверждения)."""
+
+    email: str | None
+    city: str | None
+    organization: str | None
+    specialization: str | None
+    experience_years: int | None
+    stack: tuple[str, ...]
+    about: str | None
+    phone: str | None
+    telegram: str | None
+
+
+@dataclass(frozen=True)
 class FspVerificationStart:
     request_id: str
     email_masked: str
@@ -47,6 +62,7 @@ class FspVerificationStart:
 class FspClient(Protocol):
     async def get_athlete(self, athlete_id: str) -> FspAthlete: ...
     async def get_results(self, athlete_id: str) -> list[FspResult]: ...
+    async def get_questionnaire(self, athlete_id: str) -> FspQuestionnaire: ...
     async def start_verification(self, athlete_id: str) -> FspVerificationStart: ...
     async def confirm_verification(self, request_id: str, code: str) -> str: ...
 
@@ -93,6 +109,10 @@ class HttpFspClient:
     async def get_results(self, athlete_id: str) -> list[FspResult]:
         rows = await self._json("GET", f"/athletes/{_safe_id(athlete_id)}/results")
         return _parse(lambda: [_result(row) for row in rows])
+
+    async def get_questionnaire(self, athlete_id: str) -> FspQuestionnaire:
+        data = await self._json("GET", f"/athletes/{_safe_id(athlete_id)}/questionnaire")
+        return _parse(lambda: _questionnaire(data))
 
     async def start_verification(self, athlete_id: str) -> FspVerificationStart:
         data = await self._json("POST", "/verification/start", {"athlete_id": athlete_id})
@@ -143,4 +163,25 @@ def _result(row: dict) -> FspResult:
         stage=row.get("stage", "final"),
         role=row.get("role", "member"),
         team=row.get("team"),
+    )
+
+
+def _questionnaire(data: dict) -> FspQuestionnaire:
+    def text(key: str) -> str | None:
+        value = data.get(key)
+        if value is None:
+            return None
+        return str(value).strip() or None
+
+    years = data.get("experience_years")
+    return FspQuestionnaire(
+        email=text("email"),
+        city=text("city"),
+        organization=text("organization"),
+        specialization=text("specialization"),
+        experience_years=int(years) if years is not None else None,
+        stack=tuple(str(item) for item in data.get("stack") or ()),
+        about=text("about"),
+        phone=text("phone"),
+        telegram=text("telegram"),
     )
