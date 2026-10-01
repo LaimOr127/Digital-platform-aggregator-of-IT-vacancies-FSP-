@@ -7,6 +7,7 @@ from sqlalchemy.exc import IntegrityError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.core.logging import get_logger
+from app.core.validation import humanize
 
 log = get_logger(__name__)
 
@@ -89,7 +90,7 @@ def register_error_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(RequestValidationError)
     async def _validation(_: Request, exc: RequestValidationError) -> JSONResponse:
-        details = [{"loc": e["loc"], "msg": e["msg"]} for e in exc.errors()]
+        details = [{"loc": e["loc"], "msg": humanize(e)} for e in exc.errors()]
         return JSONResponse(_body("validation_error", "Некорректные данные", details), 422)
 
     @app.exception_handler(IntegrityError)
