@@ -6,6 +6,7 @@ from app.models.candidate import CandidateProfile, Skill, profile_skills
 from app.models.category import Category, candidate_categories
 from app.models.company import CompanyMember, EmployerCompany
 from app.models.fsp import FspAchievement, FspLink, FspVerification
+from app.models.interview import Interview
 from app.models.notify import EmailToken, OutboxMessage
 from app.models.offer import ContactReveal, Offer
 from app.models.passport import Passport
@@ -24,6 +25,7 @@ __all__ = [
     "FspAchievement",
     "FspLink",
     "FspVerification",
+    "Interview",
     "Offer",
     "OutboxMessage",
     "Passport",

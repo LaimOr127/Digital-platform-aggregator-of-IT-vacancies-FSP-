@@ -16,6 +16,7 @@ from app.integrations.notifier import Notifier
 from app.models import CandidateProfile, FspLink
 from app.repositories.audit import AuditRepository
 from app.repositories.fsp import links_due
+from app.repositories.interviews import expire_overdue as expire_interviews
 from app.repositories.offers import expire_overdue
 from app.services.fsp_sync import FspSyncer, backoff
 from app.services.outbox import OutboxDelivery
@@ -109,7 +110,7 @@ class FspSyncJob(Job):
 
 
 class OfferExpiryJob(Job):
-    """Офферы без ответа дольше срока переходят в «истёк»."""
+    """Офферы и приглашения на собеседование без ответа дольше срока — «истёк»."""
 
     name, interval_seconds = "offer-expiry", 600
 
@@ -119,7 +120,8 @@ class OfferExpiryJob(Job):
     async def run(self) -> int:  # type: ignore[override]
         async with self.db.sessionmaker() as session:
             await set_rls_context(session, None, SYSTEM_ROLE)
-            expired = await expire_overdue(session, datetime.now(UTC))
+            now = datetime.now(UTC)
+            expired = await expire_overdue(session, now) + await expire_interviews(session, now)
             await session.commit()
             if expired:
                 log.info("offers expired: %d", expired)

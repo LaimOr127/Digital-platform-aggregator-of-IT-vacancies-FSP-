@@ -55,6 +55,7 @@ class Settings(BaseSettings):
     fsp_confirm_rate_limit: str = "20/hour"
     fsp_sync_rate_limit: str = "10/minute"
     offer_send_rate_limit: str = "50/day"  # офферы одной компании: защита кандидатов от спама
+    interview_invite_rate_limit: str = "100/day"  # приглашения одной компании
     mfa_rate_limit: str = "10/hour"  # попытки кода 2FA на администратора
     # письма на один адрес (регистрация, повтор письма, сброс пароля): защита от почтовой бомбы
     email_rate_limit: str = "3/hour"

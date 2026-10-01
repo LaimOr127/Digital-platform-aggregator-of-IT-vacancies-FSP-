@@ -57,34 +57,17 @@ class CatalogRepository(BaseRepository[CandidateProfile]):
     async def search(
         self, filters: CatalogFilters, cursor: str | None, limit: int
     ) -> Page[CandidateProfile]:
-        conditions = []
-        category, grade, work_format, skill = (
-            filters.category,
-            filters.grade,
-            filters.work_format,
-            filters.skill,
+        return await self.list_page(*_conditions(filters), cursor=cursor, limit=limit)
+
+    async def search_all(self, filters: CatalogFilters, limit: int) -> list[CandidateProfile]:
+        """Все подходящие под фильтры (до limit, новые сверху) — для сортировки по соответствию."""
+        stmt = (
+            self._select()
+            .where(*_conditions(filters))
+            .order_by(CandidateProfile.created_at.desc(), CandidateProfile.id.desc())
+            .limit(limit)
         )
-        if filters.search_status:
-            conditions.append(CandidateProfile.search_status == filters.search_status)
-        if category:
-            in_category = (
-                select(candidate_categories.c.profile_id)
-                .join(Category, Category.id == candidate_categories.c.category_id)
-                .where(Category.slug == category)
-            )
-            conditions.append(CandidateProfile.id.in_(in_category))
-        if grade:
-            conditions.append(CandidateProfile.grade == grade)
-        if work_format:
-            conditions.append(CandidateProfile.work_format == work_format)
-        if skill:
-            with_skill = (
-                select(profile_skills.c.profile_id)
-                .join(Skill, Skill.id == profile_skills.c.skill_id)
-                .where(Skill.slug == skill)
-            )
-            conditions.append(CandidateProfile.id.in_(with_skill))
-        return await self.list_page(*conditions, cursor=cursor, limit=limit)
+        return list((await self.session.execute(stmt)).scalars())
 
     async def category_counts(self) -> dict[str, int]:
         stmt = (
@@ -120,3 +103,29 @@ class CatalogRepository(BaseRepository[CandidateProfile]):
         for achievement in (await self.session.execute(stmt)).scalars():
             result[achievement.profile_id].append(achievement)
         return result
+
+
+def _conditions(filters: CatalogFilters) -> list[Any]:
+    conditions: list[Any] = []
+    category, skill = filters.category, filters.skill
+    if filters.search_status:
+        conditions.append(CandidateProfile.search_status == filters.search_status)
+    if category:
+        in_category = (
+            select(candidate_categories.c.profile_id)
+            .join(Category, Category.id == candidate_categories.c.category_id)
+            .where(Category.slug == category)
+        )
+        conditions.append(CandidateProfile.id.in_(in_category))
+    if filters.grade:
+        conditions.append(CandidateProfile.grade == filters.grade)
+    if filters.work_format:
+        conditions.append(CandidateProfile.work_format == filters.work_format)
+    if skill:
+        with_skill = (
+            select(profile_skills.c.profile_id)
+            .join(Skill, Skill.id == profile_skills.c.skill_id)
+            .where(Skill.slug == skill)
+        )
+        conditions.append(CandidateProfile.id.in_(with_skill))
+    return conditions

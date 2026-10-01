@@ -1,4 +1,5 @@
-"""Офферы: работодатель предлагает -> кандидат принимает/отклоняет -> контакты раскрываются.
+"""Офферы: по итогам успешного собеседования работодатель предлагает -> кандидат
+принимает/отклоняет -> контакты раскрываются.
 
 Оффер — снимок вакансии и вилки. При принятии кандидат передаёт снимок своих контактов,
 зашифрованный с привязкой к офферу; работодатель видит только его, каждый просмотр в журнале.
@@ -15,12 +16,19 @@ from app.core.crypto import FieldCipher, offer_field_context, profile_field_cont
 from app.core.errors import ConflictError, ForbiddenError, InvalidStateError, NotFoundError
 from app.core.timeutil import as_aware
 from app.models import Offer
-from app.models.enums import OfferStatus, RecipientType, VacancyStatus
+from app.models.enums import (
+    InterviewResult,
+    InterviewStatus,
+    OfferStatus,
+    RecipientType,
+    VacancyStatus,
+)
 from app.repositories.audit import AuditRepository
 from app.repositories.base import Page
 from app.repositories.candidates import CandidateProfileRepository
 from app.repositories.catalog import CatalogRepository
 from app.repositories.companies import CompanyRepository
+from app.repositories.interviews import CompanyInterviewRepository
 from app.repositories.offers import (
     CandidateOfferRepository,
     CompanyOfferRepository,
@@ -66,14 +74,24 @@ class EmployerOfferService:
         policy.ensure(self.principal, Action.OFFER_SEND)
         if idempotency_key and (existing := await self.offers.by_idempotency_key(idempotency_key)):
             return await self._replay(existing, data)
-        vacancy = await VacancyRepository(self.session, self.company_id).get_or_404(data.vacancy_id)
+        interview = await CompanyInterviewRepository(self.session, self.company_id).lock_or_404(
+            data.interview_id
+        )
+        passed = interview.status == InterviewStatus.COMPLETED
+        if not passed or interview.result != InterviewResult.PASSED:
+            raise InvalidStateError("оффер отправляется после успешного собеседования")
+        if interview.vacancy_id is None:
+            raise InvalidStateError("вакансия собеседования удалена")
+        vacancy = await VacancyRepository(self.session, self.company_id).get_or_404(
+            interview.vacancy_id
+        )
         if vacancy.status != VacancyStatus.ACTIVE or (
             vacancy.expires_at and as_aware(vacancy.expires_at) <= datetime.now(UTC)
         ):
             raise InvalidStateError("оффер отправляется только по опубликованной вакансии")
-        profile = await self.catalog.by_anon_id(data.anon_id)
+        profile = await self.catalog.get(interview.profile_id)
         if profile is None:
-            raise NotFoundError("кандидат не найден или скрыл профиль")
+            raise NotFoundError("кандидат скрыл профиль или больше не ищет работу")
         now = datetime.now(UTC)
         if declined := await self.offers.declined_since(profile.id, now - DECLINE_COOLDOWN):
             retry = as_aware(declined.responded_at or now) + DECLINE_COOLDOWN
@@ -84,6 +102,7 @@ class EmployerOfferService:
             company_id=self.company_id,
             vacancy_id=vacancy.id,
             profile_id=profile.id,
+            interview_id=interview.id,
             created_by=self.principal.user_id,
             company_name=company.name,
             vacancy_title=vacancy.title,
@@ -101,7 +120,7 @@ class EmployerOfferService:
         except IntegrityError as exc:
             await self.session.rollback()
             raise ConflictError(
-                "кандидату уже отправлен оффер на эту вакансию — дождитесь ответа"
+                "по этому собеседованию или вакансии оффер уже отправлен — дождитесь ответа"
             ) from exc
         await self.audit.record("offer.sent", self.principal.user_id, "offer", offer.id)
         Outbox(self.session, self.cipher).enqueue(
@@ -161,13 +180,7 @@ class EmployerOfferService:
 
     async def _replay(self, existing: Offer, data: OfferCreateIn) -> EmployerOfferOut:
         """Повтор с тем же ключом возвращает тот же оффер; ключ от другого оффера — ошибка."""
-        profile = await self.catalog.by_anon_id(data.anon_id)
-        same = (
-            existing.vacancy_id == data.vacancy_id
-            and profile is not None
-            and existing.profile_id == profile.id
-        )
-        if not same:
+        if existing.interview_id != data.interview_id:
             raise ConflictError("Idempotency-Key уже использован для другого оффера")
         return (await self._with_cards([existing]))[0]
 

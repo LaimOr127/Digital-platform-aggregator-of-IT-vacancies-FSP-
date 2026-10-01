@@ -2,8 +2,8 @@
 
 from httpx import AsyncClient
 
+from tests.flows import CATALOG, INTERVIEWS, approved_employer, invite_body, verified_candidate
 from tests.helpers import bearer
-from tests.test_offers import CATALOG, OFFERS, approved_employer, offer_body, verified_candidate
 
 PROFILE = "/api/v1/candidate/profile"
 
@@ -45,8 +45,8 @@ async def test_not_looking_leaves_catalog_and_blocks_offers(client: AsyncClient,
     assert (await client.get(f"{CATALOG}/candidates", headers=headers)).json()["items"] == []
     card = await client.get(f"{CATALOG}/candidates/{candidate['anon_id']}", headers=headers)
     assert card.status_code == 404
-    offer = await client.post(OFFERS, json=offer_body(candidate, employer), headers=headers)
-    assert offer.status_code == 404
+    invited = await client.post(INTERVIEWS, json=invite_body(candidate, employer), headers=headers)
+    assert invited.status_code == 404
     categories = (await client.get(f"{CATALOG}/categories", headers=headers)).json()
     assert all(c["candidates"] == 0 for c in categories)
 

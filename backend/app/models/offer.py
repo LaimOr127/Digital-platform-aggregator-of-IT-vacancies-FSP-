@@ -39,6 +39,10 @@ class Offer(IdMixin, TimestampMixin, Base):
     created_by: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL"), default=None
     )
+    # оффер — итог успешного собеседования: один оффер на собеседование
+    interview_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("interviews.id", ondelete="SET NULL"), default=None, unique=True
+    )
     status: Mapped[OfferStatus] = mapped_column(
         str_enum(OfferStatus, "offer_status"), default=OfferStatus.SENT, index=True
     )

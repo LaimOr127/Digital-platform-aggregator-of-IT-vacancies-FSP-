@@ -107,7 +107,7 @@ async def test_broken_message_does_not_block_queue(client: AsyncClient, db, app)
 
 
 async def test_offer_and_answer_notify_both_sides(client: AsyncClient, db, app):
-    from tests.test_offers import approved_employer, send, verified_candidate
+    from tests.flows import approved_employer, send, verified_candidate
 
     employer = await approved_employer(client, db, app)
     candidate = await verified_candidate(client)
@@ -149,6 +149,20 @@ def test_every_template_renders_with_signature():
         },
         "offer_answered": {"vacancy": "B", "accepted": False},
         "company_status": {"company": "A", "status": "blocked"},
+        "interview_invited": {
+            "company": "A",
+            "vacancy": "B",
+            "interviewer": "CTO",
+            "slots": ["2026-10-05T09:00:00+00:00"],
+        },
+        "interview_scheduled": {
+            "company": "A",
+            "vacancy": "B",
+            "when": "2026-10-05T09:00:00+00:00",
+        },
+        "interview_declined": {"company": "A", "vacancy": "B"},
+        "interview_cancelled": {"company": "A", "vacancy": "B"},
+        "interview_result": {"company": "A", "vacancy": "B", "passed": True},
     }
     assert set(payloads) == set(TEMPLATES)
     for kind, payload in payloads.items():
@@ -156,3 +170,7 @@ def test_every_template_renders_with_signature():
         assert subject and "\n" not in subject and body.endswith("данными ФСП")
         assert "//" not in body.replace("https://", "")  # без двойного слеша в ссылках
     assert "100 000 – 200 000 ₽" in render("offer_received", payloads["offer_received"], "u")[1]
+    # время — по Москве
+    assert (
+        "05.10.2026 12:00 МСК" in render("interview_invited", payloads["interview_invited"], "u")[1]
+    )

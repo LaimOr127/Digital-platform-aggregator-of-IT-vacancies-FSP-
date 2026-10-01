@@ -1,4 +1,5 @@
-"""Каталог и офферы: анонимность, честная вилка, идемпотентность, раскрытие контактов."""
+"""Каталог и офферы: анонимность, оффер после собеседования, честная вилка, идемпотентность,
+раскрытие контактов."""
 
 from datetime import UTC, datetime, timedelta
 
@@ -9,115 +10,19 @@ from sqlalchemy import select, update
 from app.db.session import set_rls_context
 from app.models import ContactReveal, Offer
 from app.worker.jobs import OfferExpiryJob
-from tests.helpers import (
-    approve_company,
-    bearer,
-    company_id,
-    create_admin,
-    create_vacancy,
-    link_fsp,
-    register_candidate,
-    register_employer,
+from tests.flows import (
+    INBOX,
+    OFFERS,
+    accept_first_slot,
+    approved_employer,
+    invite,
+    mark_held,
+    offer_body,
+    passed_interview,
+    send,
+    verified_candidate,
 )
-
-CATALOG = "/api/v1/employer/catalog"
-OFFERS = "/api/v1/employer/offers"
-INBOX = "/api/v1/candidate/offers"
-
-
-async def approved_employer(client: AsyncClient, db, app, name: str = "ООО Найм") -> dict:
-    token = await register_employer(client, company=name)
-    await approve_company(client, await create_admin(db, app), await company_id(client, token))
-    vacancy = await create_vacancy(client, token)
-    await client.post(f"/api/v1/employer/vacancies/{vacancy['id']}/publish", headers=bearer(token))
-    return {"token": token, "vacancy": vacancy}
-
-
-async def verified_candidate(client: AsyncClient, athlete: str = "FSP-1") -> dict:
-    token = await register_candidate(client, name="Анна Смирнова")
-    await client.patch(
-        "/api/v1/candidate/profile",
-        json={
-            "title": "Backend",
-            "grade": "middle",
-            "skills": ["python"],
-            "contacts": {"telegram": "@anna"},
-        },
-        headers=bearer(token),
-    )
-    await link_fsp(client, token, athlete)
-    anon_id = (await client.get("/api/v1/candidate/profile", headers=bearer(token))).json()[
-        "anon_id"
-    ]
-    return {"token": token, "anon_id": anon_id}
-
-
-def offer_body(candidate: dict, employer: dict, **overrides) -> dict:
-    return {
-        "anon_id": candidate["anon_id"],
-        "vacancy_id": employer["vacancy"]["id"],
-        "salary_min": 250_000,
-        "salary_max": 320_000,
-        "message": "Нужен backend в команду платформы",
-        **overrides,
-    }
-
-
-async def send(client: AsyncClient, candidate: dict, employer: dict, **overrides) -> dict:
-    r = await client.post(
-        OFFERS, json=offer_body(candidate, employer, **overrides), headers=bearer(employer["token"])
-    )
-    assert r.status_code == 201, r.text
-    return r.json()
-
-
-async def test_catalog_requires_approved_company(client: AsyncClient):
-    pending = await register_employer(client)
-    assert (await client.get(f"{CATALOG}/categories", headers=bearer(pending))).status_code == 403
-
-
-async def test_catalog_shows_anonymous_cards(client: AsyncClient, db, app):
-    employer = await approved_employer(client, db, app)
-    candidate = await verified_candidate(client)
-    categories = (
-        await client.get(f"{CATALOG}/categories", headers=bearer(employer["token"]))
-    ).json()
-    assert len(categories) == 15
-    assert next(c for c in categories if c["slug"] == "product-elite")["candidates"] == 1
-
-    page = (
-        await client.get(
-            f"{CATALOG}/candidates",
-            params={"category": "product-elite"},
-            headers=bearer(employer["token"]),
-        )
-    ).json()
-    (card,) = page["items"]
-    assert card["anon_id"] == candidate["anon_id"] and card["skills"] == ["Python"]
-    text = str(card)
-    for secret in ("Анна", "@anna", "FSP-1", "Соревнование"):
-        assert secret not in text  # ни имени, ни контактов, ни ID ФСП, ни названий соревнований
-
-
-async def test_catalog_filters_and_hidden_profiles(client: AsyncClient, db, app):
-    employer = await approved_employer(client, db, app)
-    candidate = await verified_candidate(client)
-    token = bearer(employer["token"])
-    for params, expected in (
-        ({"grade": "middle"}, 1),
-        ({"grade": "senior"}, 0),
-        ({"skill": "go"}, 0),
-        ({"skill": "python"}, 1),
-    ):
-        page = (await client.get(f"{CATALOG}/candidates", params=params, headers=token)).json()
-        assert len(page["items"]) == expected, params
-    await client.patch(
-        "/api/v1/candidate/profile", json={"is_hidden": True}, headers=bearer(candidate["token"])
-    )
-    assert (await client.get(f"{CATALOG}/candidates", headers=token)).json()["items"] == []
-    assert (
-        await client.get(f"{CATALOG}/candidates/{candidate['anon_id']}", headers=token)
-    ).status_code == 404
+from tests.helpers import bearer, company_id, create_admin, register_candidate
 
 
 async def test_offer_lifecycle_and_contacts(client: AsyncClient, db, app):
@@ -165,17 +70,19 @@ async def test_decline_with_reason(client: AsyncClient, db, app):
     assert again.status_code == 409
 
 
-async def test_idempotency_key_and_duplicate_pending_offer(client: AsyncClient, db, app):
+async def test_idempotency_key_and_one_offer_per_interview(client: AsyncClient, db, app):
     employer = await approved_employer(client, db, app)
     candidate = await verified_candidate(client)
+    interview = await passed_interview(client, candidate, employer)
     headers = {**bearer(employer["token"]), "Idempotency-Key": "offer-1"}
-    first = await client.post(OFFERS, json=offer_body(candidate, employer), headers=headers)
-    retry = await client.post(OFFERS, json=offer_body(candidate, employer), headers=headers)
+    first = await client.post(OFFERS, json=offer_body(interview), headers=headers)
+    retry = await client.post(OFFERS, json=offer_body(interview), headers=headers)
     assert (
         first.status_code == retry.status_code == 201 and first.json()["id"] == retry.json()["id"]
     )
+    assert first.json()["interview_id"] == interview["id"]
     duplicate = await client.post(
-        OFFERS, json=offer_body(candidate, employer), headers=bearer(employer["token"])
+        OFFERS, json=offer_body(interview), headers=bearer(employer["token"])
     )
     assert duplicate.status_code == 409
 
@@ -186,22 +93,34 @@ async def test_idempotency_key_and_duplicate_pending_offer(client: AsyncClient, 
 async def test_offer_requires_valid_salary_range(client: AsyncClient, db, app, salary):
     employer = await approved_employer(client, db, app)
     candidate = await verified_candidate(client)
+    interview = await passed_interview(client, candidate, employer)
     r = await client.post(
-        OFFERS, json=offer_body(candidate, employer, **salary), headers=bearer(employer["token"])
+        OFFERS, json=offer_body(interview, **salary), headers=bearer(employer["token"])
     )
     assert r.status_code == 422
 
 
-async def test_offer_only_for_published_vacancy(client: AsyncClient, db, app):
+async def test_offer_only_after_passed_interview(client: AsyncClient, db, app):
     employer = await approved_employer(client, db, app)
     candidate = await verified_candidate(client)
-    draft = await create_vacancy(client, employer["token"], title="Черновик")
-    r = await client.post(
-        OFFERS,
-        json=offer_body(candidate, employer, vacancy_id=draft["id"]),
-        headers=bearer(employer["token"]),
+    headers = bearer(employer["token"])
+    interview = await invite(client, candidate, employer)
+    assert (
+        await client.post(OFFERS, json=offer_body(interview), headers=headers)
+    ).status_code == 409
+    await accept_first_slot(client, candidate, interview)
+    assert (
+        await client.post(OFFERS, json=offer_body(interview), headers=headers)
+    ).status_code == 409
+    await mark_held(client, interview["id"])
+    failed = await client.post(
+        f"/api/v1/employer/interviews/{interview['id']}/complete",
+        json={"result": "failed"},
+        headers=headers,
     )
-    assert r.status_code == 409
+    assert failed.json()["result"] == "failed"
+    r = await client.post(OFFERS, json=offer_body(interview), headers=headers)
+    assert r.status_code == 409 and "успешного собеседования" in r.json()["error"]["message"]
 
 
 async def test_withdraw_and_foreign_company_isolation(client: AsyncClient, db, app):
@@ -258,10 +177,12 @@ async def test_idempotency_key_cannot_be_reused_for_another_offer(client: AsyncC
     first = await verified_candidate(client, "FSP-1")
     second = await verified_candidate(client, "FSP-2")
     headers = {**bearer(employer["token"]), "Idempotency-Key": "same-key"}
+    first_interview = await passed_interview(client, first, employer)
+    second_interview = await passed_interview(client, second, employer)
     assert (
-        await client.post(OFFERS, json=offer_body(first, employer), headers=headers)
+        await client.post(OFFERS, json=offer_body(first_interview), headers=headers)
     ).status_code == 201
-    reused = await client.post(OFFERS, json=offer_body(second, employer), headers=headers)
+    reused = await client.post(OFFERS, json=offer_body(second_interview), headers=headers)
     assert reused.status_code == 409
 
 
@@ -272,9 +193,8 @@ async def test_no_repeat_offer_right_after_decline(client: AsyncClient, db, app)
     await client.post(
         f"{INBOX}/{offer['id']}/decline", json={"reason": ""}, headers=bearer(candidate["token"])
     )
-    again = await client.post(
-        OFFERS, json=offer_body(candidate, employer), headers=bearer(employer["token"])
-    )
+    interview = await passed_interview(client, candidate, employer)
+    again = await client.post(OFFERS, json=offer_body(interview), headers=bearer(employer["token"]))
     assert again.status_code == 409 and "повторно" in again.json()["error"]["message"]
 
 
@@ -324,8 +244,9 @@ async def test_offer_send_limited_per_company(client: AsyncClient, db, app):
     first = await verified_candidate(client, "FSP-1")
     second = await verified_candidate(client, "FSP-2")
     await send(client, first, employer)
+    interview = await passed_interview(client, second, employer)
     limited = await client.post(
-        OFFERS, json=offer_body(second, employer), headers=bearer(employer["token"])
+        OFFERS, json=offer_body(interview), headers=bearer(employer["token"])
     )
     assert limited.status_code == 429
 

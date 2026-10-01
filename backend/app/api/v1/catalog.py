@@ -52,11 +52,14 @@ async def catalog_candidates(
     work_format: WorkFormat | None = None,
     skill: Slug = None,
     search_status: SearchStatus | None = None,
+    vacancy_id: Annotated[
+        uuid.UUID | None, Query(description="сортировать по соответствию этой вакансии")
+    ] = None,
     cursor: str | None = None,
     limit: Limit = 20,
 ) -> PageOut[CandidateCardOut]:
     filters = CatalogFilters(category, grade, work_format, skill, search_status)
-    items, next_cursor = await service.candidates(filters, cursor, limit)
+    items, next_cursor = await service.candidates(filters, cursor, limit, vacancy_id)
     return PageOut(items=items, next_cursor=next_cursor)
 
 

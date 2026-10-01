@@ -21,6 +21,21 @@ class CandidateCategoryOut(BaseModel):
     title: str
 
 
+class MatchFactorOut(BaseModel):
+    key: str
+    label: str
+    weight: int
+    share: float = Field(ge=0, le=1)
+    detail: str
+
+
+class MatchOut(BaseModel):
+    """Соответствие вакансии: процент и вклад каждого фактора."""
+
+    score: int = Field(ge=0, le=100)
+    factors: list[MatchFactorOut]
+
+
 class CandidateCardOut(BaseModel):
     """Анонимная карточка кандидата: без имени, контактов, ID ФСП и названий соревнований."""
 
@@ -37,13 +52,13 @@ class CandidateCardOut(BaseModel):
     categories: list[CandidateCategoryOut]
     achievements: list[str]
     about: str | None
+    match: MatchOut | None = None
 
 
 class OfferCreateIn(SalaryRangeMixin):
-    """Вилка обязательна и проверяется общим правилом (честный найм)."""
+    """Оффер — по итогам успешного собеседования. Вилка обязательна (честный найм)."""
 
-    anon_id: uuid.UUID
-    vacancy_id: uuid.UUID
+    interview_id: uuid.UUID
     salary_min: int = Field(gt=0, le=10_000_000)
     salary_max: int = Field(gt=0, le=10_000_000)
     message: str = Field(default="", max_length=2000)
@@ -55,6 +70,7 @@ class OfferDeclineIn(BaseModel):
 
 class OfferOut(BaseModel):
     id: uuid.UUID
+    interview_id: uuid.UUID | None = None
     status: OfferStatus
     company_name: str
     vacancy_title: str

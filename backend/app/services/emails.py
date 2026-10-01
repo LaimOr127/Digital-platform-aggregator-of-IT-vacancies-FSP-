@@ -5,12 +5,19 @@
 """
 
 from collections.abc import Callable
+from datetime import datetime
 from typing import Any
+from zoneinfo import ZoneInfo
 
 Payload = dict[str, Any]
 Renderer = Callable[[Payload, str], tuple[str, str]]
 
 _SIGNATURE = "\n\n— IT Match, агрегатор ИТ-вакансий с данными ФСП"
+_MSK = ZoneInfo("Europe/Moscow")
+
+
+def _when(iso: str) -> str:
+    return datetime.fromisoformat(iso).astimezone(_MSK).strftime("%d.%m.%Y %H:%M МСК")
 
 
 def _salary(payload: Payload) -> str:
@@ -74,6 +81,49 @@ def _company_status(payload: Payload, url: str) -> tuple[str, str]:
     )
 
 
+def _interview_invited(payload: Payload, url: str) -> tuple[str, str]:
+    slots = "\n".join(f"• {_when(s)}" for s in payload["slots"])
+    return "Приглашение на собеседование", (
+        f"Компания «{payload['company']}» приглашает вас на собеседование по вакансии "
+        f"«{payload['vacancy']}». Проводит: {payload['interviewer']}.\n\n"
+        f"Варианты времени:\n{slots}\n\n"
+        f"Выберите удобное время или откажитесь в кабинете:\n{url}/app/interviews\n\n"
+        "Имя и контакты компания увидит только после того, как вы примете оффер."
+    )
+
+
+def _interview_scheduled(payload: Payload, url: str) -> tuple[str, str]:
+    return "Собеседование назначено", (
+        f"Кандидат выбрал время собеседования по вакансии «{payload['vacancy']}»: "
+        f"{_when(payload['when'])}.\n{url}/company/interviews"
+    )
+
+
+def _interview_declined(payload: Payload, url: str) -> tuple[str, str]:
+    return "Кандидат отказался от собеседования", (
+        f"Кандидат отказался от собеседования по вакансии «{payload['vacancy']}».\n"
+        f"{url}/company/interviews"
+    )
+
+
+def _interview_cancelled(payload: Payload, url: str) -> tuple[str, str]:
+    return "Собеседование отменено", (
+        f"Компания «{payload['company']}» отменила собеседование по вакансии "
+        f"«{payload['vacancy']}».\n{url}/app/interviews"
+    )
+
+
+def _interview_result(payload: Payload, url: str) -> tuple[str, str]:
+    if payload["passed"]:
+        text = "Собеседование пройдено — компания может прислать вам оффер."
+    else:
+        text = "К сожалению, компания не готова продолжить. Отзыв — в кабинете."
+    return "Итоги собеседования", (
+        f"Итоги собеседования по вакансии «{payload['vacancy']}» в компании "
+        f"«{payload['company']}»: {text}\n{url}/app/interviews"
+    )
+
+
 TEMPLATES: dict[str, Renderer] = {
     "verify_email": _verify_email,
     "account_exists": _account_exists,
@@ -81,6 +131,11 @@ TEMPLATES: dict[str, Renderer] = {
     "offer_received": _offer_received,
     "offer_answered": _offer_answered,
     "company_status": _company_status,
+    "interview_invited": _interview_invited,
+    "interview_scheduled": _interview_scheduled,
+    "interview_declined": _interview_declined,
+    "interview_cancelled": _interview_cancelled,
+    "interview_result": _interview_result,
 }
 
 

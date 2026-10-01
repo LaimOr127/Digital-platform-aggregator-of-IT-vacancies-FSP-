@@ -5,24 +5,38 @@
 """
 
 import uuid
+from dataclasses import asdict
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.errors import NotFoundError
+from app.core.errors import ForbiddenError, InvalidStateError, NotFoundError
 from app.models import CandidateProfile
 from app.repositories.base import Page
 from app.repositories.catalog import CatalogFilters, CatalogRepository
 from app.repositories.fsp import CategoryRepository
-from app.schemas.catalog import CandidateCardOut, CandidateCategoryOut, CatalogCategoryOut
+from app.repositories.vacancies import VacancyRepository
+from app.schemas.catalog import (
+    CandidateCardOut,
+    CandidateCategoryOut,
+    CatalogCategoryOut,
+    MatchFactorOut,
+    MatchOut,
+)
 from app.services.access import Action, Principal, policy
 from app.services.categorization import TIERS, describe_anonymous
 from app.services.fsp_sync import to_evidence
+from app.services.matching.factors import Candidate
+from app.services.matching.scorer import match
+
+# сортировка по соответствию оценивает до стольких кандидатов (новые — первыми)
+MAX_SCORED = 1000
 
 
 class CatalogService:
     def __init__(self, session: AsyncSession, principal: Principal) -> None:
         policy.ensure(principal, Action.CATALOG_READ)
         self.session = session
+        self.principal = principal
         self.catalog = CatalogRepository(session)
 
     async def categories(self) -> list[CatalogCategoryOut]:
@@ -41,10 +55,41 @@ class CatalogService:
         ]
 
     async def candidates(
-        self, filters: CatalogFilters, cursor: str | None, limit: int
+        self,
+        filters: CatalogFilters,
+        cursor: str | None,
+        limit: int,
+        vacancy_id: uuid.UUID | None = None,
     ) -> tuple[list[CandidateCardOut], str | None]:
+        if vacancy_id is not None:
+            return await self._by_match(filters, vacancy_id, cursor, limit)
         page: Page[CandidateProfile] = await self.catalog.search(filters, cursor, limit)
         return await build_cards(self.catalog, page.items), page.next_cursor
+
+    async def _by_match(
+        self, filters: CatalogFilters, vacancy_id: uuid.UUID, cursor: str | None, limit: int
+    ) -> tuple[list[CandidateCardOut], str | None]:
+        """Самые подходящие кандидаты — сверху; при равенстве — новые профили."""
+        vacancy = await VacancyRepository(self.session, self._company_id()).get_or_404(vacancy_id)
+        profiles = await self.catalog.search_all(filters, MAX_SCORED)
+        categories = await self.catalog.categories_for([p.id for p in profiles])
+        scored = [(match(vacancy, Candidate(p, categories.get(p.id, []))), p) for p in profiles]
+        scored.sort(key=lambda pair: pair[0].score, reverse=True)  # сортировка устойчивая
+        offset = _offset(cursor)
+        page = scored[offset : offset + limit]
+        cards = await build_cards(self.catalog, [p for _, p in page])
+        for card, (result, _) in zip(cards, page, strict=True):
+            card.match = MatchOut(
+                score=result.score,
+                factors=[MatchFactorOut(**asdict(f)) for f in result.factors],
+            )
+        has_more = offset + limit < len(scored)
+        return cards, f"{_OFFSET_PREFIX}{offset + limit}" if has_more else None
+
+    def _company_id(self) -> uuid.UUID:
+        if self.principal.company_id is None:
+            raise ForbiddenError("подбор по вакансии доступен работодателю")
+        return self.principal.company_id
 
     async def candidate(self, anon_id: uuid.UUID) -> CandidateCardOut:
         profile = await self.catalog.by_anon_id(anon_id)
@@ -82,3 +127,15 @@ async def build_cards(
         )
         for p in profiles
     ]
+
+
+_OFFSET_PREFIX = "m"
+
+
+def _offset(cursor: str | None) -> int:
+    """Курсор сортировки по соответствию — позиция в отсортированном списке."""
+    if not cursor:
+        return 0
+    if not cursor.startswith(_OFFSET_PREFIX) or not cursor[1:].isdigit():
+        raise InvalidStateError("некорректный курсор")
+    return int(cursor[1:])

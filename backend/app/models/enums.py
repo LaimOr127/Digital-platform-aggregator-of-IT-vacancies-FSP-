@@ -81,3 +81,22 @@ class SearchStatus(StrEnum):
     ACTIVE = "active"  # активно ищу
     OPEN = "open"  # рассматриваю предложения
     CLOSED = "closed"  # не ищу: профиль не в каталоге, новые офферы не приходят
+
+
+class InterviewStatus(StrEnum):
+    INVITED = "invited"  # ждёт выбора слота кандидатом
+    SCHEDULED = "scheduled"  # кандидат выбрал время
+    DECLINED = "declined"  # кандидат отказался
+    CANCELLED = "cancelled"  # компания отменила
+    COMPLETED = "completed"  # прошло, результат отмечен
+    EXPIRED = "expired"  # кандидат не ответил вовремя
+
+
+class InterviewResult(StrEnum):
+    PASSED = "passed"
+    FAILED = "failed"
+
+
+class InterviewFormat(StrEnum):
+    ONLINE = "online"
+    OFFICE = "office"

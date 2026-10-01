@@ -9,6 +9,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import DBAPIError
 
 from app.db.session import Database, set_rls_context
+from tests.flows import send
 from tests.helpers import (
     approve_company,
     bearer,
@@ -180,7 +181,7 @@ async def test_categories_dictionary_is_read_only_for_users(client: AsyncClient,
 
 
 async def test_offers_visible_only_to_parties(client: AsyncClient, db: Database, app):
-    """Оффер видят только кандидат-адресат и сотрудники компании-отправителя."""
+    """Оффер и собеседование видят только кандидат и сотрудники компании-отправителя."""
     employer = await register_employer(client, company="Компания A")
     rival = await register_employer(client, company="Компания B")
     admin = await create_admin(db, app)
@@ -195,15 +196,19 @@ async def test_offers_visible_only_to_parties(client: AsyncClient, db: Database,
     anon_id = (await client.get("/api/v1/candidate/profile", headers=bearer(candidate))).json()[
         "anon_id"
     ]
-    body = {"anon_id": anon_id, "vacancy_id": vacancy["id"], "salary_min": 1, "salary_max": 2}
-    assert (
-        await client.post("/api/v1/employer/offers", json=body, headers=bearer(employer))
-    ).status_code == 201
+    await send(
+        client,
+        {"token": candidate, "anon_id": anon_id},
+        {"token": employer, "vacancy": vacancy},
+        salary_min=1,
+        salary_max=2,
+    )
 
     employer_id, rival_id = await _user_ids(db, "employer")
     candidate_id, other_id = await _user_ids(db, "candidate")
-    sql = "SELECT count(*) FROM offers"
-    assert await _scalar(db, employer_id, "employer", sql) == 1
-    assert await _scalar(db, candidate_id, "candidate", sql) == 1
-    assert await _scalar(db, rival_id, "employer", sql) == 0
-    assert await _scalar(db, other_id, "candidate", sql) == 0
+    for table in ("offers", "interviews"):
+        sql = f"SELECT count(*) FROM {table}"  # noqa: S608 - имя таблицы из списка выше
+        assert await _scalar(db, employer_id, "employer", sql) == 1, table
+        assert await _scalar(db, candidate_id, "candidate", sql) == 1, table
+        assert await _scalar(db, rival_id, "employer", sql) == 0, table
+        assert await _scalar(db, other_id, "candidate", sql) == 0, table
