@@ -61,6 +61,12 @@ class MfaTokenIn(BaseModel):
     mfa_token: str = Field(min_length=10, max_length=2048)
 
 
+class MfaSetupIn(MfaTokenIn):
+    """Код подключения выдаёт CLI (make create-admin / make reset-admin-2fa)."""
+
+    enrollment_code: str = Field(min_length=8, max_length=64)
+
+
 class MfaVerifyIn(MfaTokenIn):
     code: str = Field(pattern=r"^\d{6}$")
 

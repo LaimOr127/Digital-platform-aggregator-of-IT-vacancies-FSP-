@@ -328,3 +328,22 @@ async def test_offer_send_limited_per_company(client: AsyncClient, db, app):
         OFFERS, json=offer_body(second, employer), headers=bearer(employer["token"])
     )
     assert limited.status_code == 429
+
+
+async def test_blocking_vacancy_withdraws_its_pending_offers(client: AsyncClient, db, app):
+    employer = await approved_employer(client, db, app)
+    candidate = await verified_candidate(client)
+    offer = await send(client, candidate, employer)
+    admin = await create_admin(db, app)
+    blocked = await client.post(
+        f"/api/v1/admin/vacancies/{employer['vacancy']['id']}/moderation",
+        json={"action": "block", "reason": "сбор персональных данных"},
+        headers=bearer(admin),
+    )
+    assert blocked.status_code == 200
+    # контакты кандидата не должны уйти по вакансии, заблокированной модератором
+    assert (
+        await client.post(f"{INBOX}/{offer['id']}/accept", headers=bearer(candidate["token"]))
+    ).status_code == 409
+    inbox = (await client.get(INBOX, headers=bearer(candidate["token"]))).json()["items"]
+    assert inbox[0]["status"] == "withdrawn"

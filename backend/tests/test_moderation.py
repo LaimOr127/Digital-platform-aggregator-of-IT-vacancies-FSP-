@@ -2,7 +2,6 @@
 
 from httpx import AsyncClient
 
-from app.services.auth import AuthService
 from tests.helpers import (
     PASSWORD,
     admin_login,
@@ -11,9 +10,9 @@ from tests.helpers import (
     company_id,
     create_admin,
     create_vacancy,
+    new_admin,
     register_candidate,
     register_employer,
-    unique_email,
 )
 
 ADMIN = "/api/v1/admin"
@@ -44,6 +43,10 @@ async def test_block_and_unblock_vacancy(client: AsyncClient, db, app):
         url, json={"action": "block", "reason": "нет вилки в описании"}, headers=bearer(admin)
     )
     assert blocked.json()["status"] == "blocked"
+    repeat = await client.post(
+        url, json={"action": "block", "reason": "нет вилки в описании"}, headers=bearer(admin)
+    )
+    assert repeat.status_code == 409  # без дублей в журнале аудита
     own = await client.get(f"/api/v1/employer/vacancies/{vacancy['id']}", headers=bearer(employer))
     assert own.json()["status"] == "blocked"
 
@@ -91,11 +94,7 @@ async def test_search_is_literal_not_a_pattern(client: AsyncClient, db, app):
 
 async def test_moderator_cannot_block_admins_or_self(client: AsyncClient, db, app):
     moderator = await create_admin(db, app, superadmin=False)
-    other_email = unique_email("admin")
-    async with db.sessionmaker() as session:
-        other = await AuthService(session, app.state.tokens, app.state.cipher).create_admin(
-            other_email, PASSWORD, False
-        )
+    other = await new_admin(db, app)
     me = (await client.get("/api/v1/auth/me", headers=bearer(moderator))).json()
     assert (
         await client.post(
@@ -115,11 +114,7 @@ async def test_moderator_cannot_block_admins_or_self(client: AsyncClient, db, ap
 
 async def test_superadmin_can_block_moderator(client: AsyncClient, db, app):
     superadmin = await create_admin(db, app, superadmin=True)
-    email = unique_email("admin")
-    async with db.sessionmaker() as session:
-        moderator = await AuthService(session, app.state.tokens, app.state.cipher).create_admin(
-            email, PASSWORD, False
-        )
+    moderator = await new_admin(db, app)
     r = await client.post(
         f"{ADMIN}/users/{moderator.id}/moderation",
         json={"action": "block"},
@@ -145,12 +140,27 @@ async def test_audit_log_lists_actions_with_actor(client: AsyncClient, db, app):
     assert blocked["actor_email"].startswith("admin-") and blocked["meta"]["reason"] == "x"
 
 
-async def test_admin_login_helper_reuses_secret(client: AsyncClient, db, app):
-    """Повторный вход администратора с уже настроенной 2FA."""
-    email = unique_email("admin")
-    async with db.sessionmaker() as session:
-        await AuthService(session, app.state.tokens, app.state.cipher).create_admin(
-            email, PASSWORD, False
-        )
-    token = await admin_login(client, email)
+async def test_moderator_has_admin_access_after_enrollment(client: AsyncClient, db, app):
+    admin = await new_admin(db, app)
+    token = await admin_login(client, admin.email, enrollment_code=admin.enrollment_code)
     assert (await client.get(f"{ADMIN}/companies", headers=bearer(token))).status_code == 200
+
+
+async def test_user_moderation_rejects_no_op(client: AsyncClient, db, app):
+    admin = await create_admin(db, app)
+    candidate = await register_candidate(client)
+    user_id = (await client.get("/api/v1/auth/me", headers=bearer(candidate))).json()["id"]
+    url = f"{ADMIN}/users/{user_id}/moderation"
+    unblock = await client.post(url, json={"action": "unblock"}, headers=bearer(admin))
+    assert unblock.status_code == 409
+    body = {"action": "block", "reason": "фейковый профиль"}
+    assert (await client.post(url, json=body, headers=bearer(admin))).status_code == 200
+    assert (await client.post(url, json=body, headers=bearer(admin))).status_code == 409
+
+
+async def test_audit_filter_is_a_literal_prefix(client: AsyncClient, db, app):
+    admin = await create_admin(db, app)
+    await register_candidate(client)
+    # "_" в фильтре — буква, а не шаблон LIKE: "auth_" не совпадает с "auth.register"
+    r = await client.get(f"{ADMIN}/audit", params={"action": "auth_"}, headers=bearer(admin))
+    assert r.status_code == 200 and r.json()["items"] == []

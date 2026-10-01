@@ -1,7 +1,9 @@
 """Инструменты модератора: вакансии, пользователи, журнал аудита. Каждое действие — в аудит.
 
 Модератор блокирует кандидатов и работодателей; администраторов — только суперадмин.
-Себя заблокировать нельзя. Блокировка пользователя отзывает все его сессии.
+Себя заблокировать нельзя. Блокировка пользователя отзывает все его сессии, блокировка
+вакансии — неотвеченные офферы по ней (контакты кандидатов по ней не уйдут).
+Повторное действие (заблокировать заблокированное) — ошибка 409, без дублей в аудите.
 """
 
 import uuid
@@ -20,6 +22,7 @@ from app.repositories.admin import (
 )
 from app.repositories.audit import AuditRepository
 from app.repositories.base import Page
+from app.repositories.offers import withdraw_pending_for_vacancy
 from app.repositories.users import RefreshTokenRepository
 from app.schemas.admin import AdminUserOut, AdminVacancyOut, AuditEntryOut
 from app.services.access import Action, Principal, policy
@@ -49,10 +52,15 @@ class ModerationService:
     ) -> AdminVacancyOut:
         vacancy = await self.vacancies.lock_or_404(vacancy_id)
         previous = vacancy.status
-        if action == "block":
+        blocking = action == "block"
+        if blocking == (previous == VacancyStatus.BLOCKED):
+            raise InvalidStateError(
+                "вакансия уже заблокирована" if blocking else "вакансия не заблокирована"
+            )
+        meta = {"from": previous, "reason": reason}
+        if blocking:
             vacancy.status = VacancyStatus.BLOCKED
-        elif vacancy.status != VacancyStatus.BLOCKED:
-            raise InvalidStateError("вакансия не заблокирована")
+            meta["offers"] = await withdraw_pending_for_vacancy(self.session, vacancy.id)
         else:
             vacancy.status = VacancyStatus.DRAFT  # компания проверит и опубликует заново
         await self.audit.record(
@@ -60,7 +68,7 @@ class ModerationService:
             self.principal.user_id,
             "vacancy",
             vacancy.id,
-            {"from": previous, "to": vacancy.status, "reason": reason},
+            {**meta, "to": vacancy.status},
         )
         await self.session.commit()
         return (await self._vacancies_out([vacancy]))[0]
@@ -93,8 +101,13 @@ class ModerationService:
         target = await self.users.lock_or_404(user_id)
         if target.role == UserRole.ADMIN:
             policy.ensure(self.principal, Action.ADMIN_SUPER)
-        target.is_active = action == "unblock"
-        if action == "block":
+        blocking = action == "block"
+        if blocking != target.is_active:
+            raise InvalidStateError(
+                "пользователь уже заблокирован" if blocking else "пользователь не заблокирован"
+            )
+        target.is_active = not blocking
+        if blocking:
             await RefreshTokenRepository(self.session).revoke_all_for_user(target.id)
         await self.audit.record(
             f"admin.user_{action}", self.principal.user_id, "user", target.id, {"reason": reason}
@@ -104,7 +117,8 @@ class ModerationService:
 
     # --- аудит --------------------------------------------------------------------------
     async def list_audit(self, action: str | None, cursor: str | None, limit: int) -> Paged:
-        conditions = [AuditLog.action.startswith(action)] if action else []
+        # autoescape: "_" в фильтре — буква, а не шаблон LIKE
+        conditions = [AuditLog.action.startswith(action, autoescape=True)] if action else []
         page = await AuditLogRepository(self.session).list_page(
             *conditions, cursor=cursor, limit=limit
         )

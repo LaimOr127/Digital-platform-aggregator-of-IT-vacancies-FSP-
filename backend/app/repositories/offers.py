@@ -97,9 +97,18 @@ async def expire_pair(
 
 async def withdraw_pending_for_company(session: AsyncSession, company_id: uuid.UUID) -> int:
     """Блокировка компании: её неотвеченные офферы отзываются — контакты ей больше не уйдут."""
+    return await _withdraw_pending(session, Offer.company_id == company_id)
+
+
+async def withdraw_pending_for_vacancy(session: AsyncSession, vacancy_id: uuid.UUID) -> int:
+    """Блокировка вакансии: неотвеченные офферы по ней отзываются."""
+    return await _withdraw_pending(session, Offer.vacancy_id == vacancy_id)
+
+
+async def _withdraw_pending(session: AsyncSession, scope: ColumnElement[bool]) -> int:
     result = await session.execute(
         update(Offer)
-        .where(Offer.company_id == company_id, Offer.status == OfferStatus.SENT)
+        .where(scope, Offer.status == OfferStatus.SENT)
         .values(status=OfferStatus.WITHDRAWN)
     )
     return result.rowcount  # type: ignore[attr-defined]

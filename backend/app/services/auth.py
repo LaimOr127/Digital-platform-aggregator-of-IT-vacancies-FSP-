@@ -27,6 +27,7 @@ from app.models.enums import MemberRole, UserRole
 from app.repositories.audit import AuditRepository
 from app.repositories.users import RefreshTokenRepository, UserRepository
 from app.schemas.auth import CandidateRegisterIn, EmployerRegisterIn
+from app.services.enrollment import mfa_stamp, start_enrollment
 
 _INVALID_CREDENTIALS = "неверный email или пароль"
 
@@ -74,12 +75,14 @@ class AuthService:
         )
         return await self._finish_registration(user)
 
-    async def create_admin(self, email: str, password: str, superadmin: bool) -> User:
-        """Только для CLI: через API администратора создать нельзя."""
+    async def create_admin(self, email: str, password: str, superadmin: bool) -> tuple[User, str]:
+        """Только для CLI: через API администратора создать нельзя.
+        Возвращает и код подключения 2FA — без него первый вход невозможен."""
         user = await self._create_user(email, password, UserRole.ADMIN, superadmin=superadmin)
+        code = start_enrollment(user)
         await self.audit.record("admin.created", None, "user", user.id, {"superadmin": superadmin})
         await self.session.commit()
-        return user
+        return user, code
 
     async def login(self, email: str, password: str) -> TokenPair | MfaChallenge:
         user = await self.users.by_email(email)
@@ -89,7 +92,8 @@ class AuthService:
         if user.role == UserRole.ADMIN:
             await self.audit.record("auth.mfa_challenge", user.id)
             await self.session.commit()
-            return MfaChallenge(self.tokens.issue_mfa(user.id), enrolled=user.totp_enabled)
+            token = self.tokens.issue_mfa(user.id, mfa_stamp(user))
+            return MfaChallenge(token, enrolled=user.totp_enabled)
         return await self.complete_login(user)
 
     async def complete_login(self, user: User) -> TokenPair:
@@ -106,6 +110,8 @@ class AuthService:
         user = await self.users.get(stored.user_id)
         if as_aware(stored.expires_at) <= datetime.now(UTC) or user is None or not user.is_active:
             raise UnauthorizedError("invalid refresh token")
+        if user.role == UserRole.ADMIN and not user.totp_enabled:
+            raise UnauthorizedError("invalid refresh token")  # сессия без 2FA не продлевается
         # Атомарно «погасить» токен: из двух одновременных запросов с одним токеном
         # выиграет один, второй считается повторным использованием и отзывает всю цепочку
         if not await self.refresh_tokens.consume(stored.id):

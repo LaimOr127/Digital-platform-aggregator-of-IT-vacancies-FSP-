@@ -34,6 +34,15 @@ class UnauthorizedError(AppError):
     status_code, code = 401, "unauthorized"
 
 
+class MfaExpiredError(UnauthorizedError):
+    """Токен шага 2FA недействителен или истёк — вход нужно начать заново."""
+
+    code = "mfa_expired"
+
+    def __init__(self, message: str = "сессия входа истекла — войдите заново") -> None:
+        super().__init__(message)
+
+
 class ConflictError(AppError):
     status_code, code = 409, "conflict"
 

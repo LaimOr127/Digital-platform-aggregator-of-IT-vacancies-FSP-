@@ -2,6 +2,7 @@
 
 import uuid
 from datetime import UTC, datetime, timedelta
+from types import SimpleNamespace
 
 import jwt
 import pytest
@@ -10,7 +11,7 @@ from pydantic import SecretStr
 from app.core.config import Settings
 from app.core.crypto import FieldCipher, profile_field_context
 from app.core.errors import UnauthorizedError
-from app.core.ratelimit import RateLimiter, parse_rate
+from app.core.ratelimit import RateLimiter, client_ip, parse_rate
 from app.core.security import TokenService, hash_password, hash_token, verify_password
 from app.repositories.base import InvalidCursorError, decode_cursor, encode_cursor
 
@@ -126,6 +127,30 @@ def test_rate_limiter_memory_bounded(monkeypatch):
         now[0] = float(i)
         assert limiter.hit(f"ip-{i}", 5, 3600)
     assert len(limiter._hits) <= 10
+
+
+def test_rate_limiter_eviction_respects_each_key_window(monkeypatch):
+    """Очистка по короткому окну не сбрасывает часовые счётчики других областей."""
+    monkeypatch.setattr("app.core.ratelimit._MAX_KEYS", 3)
+    now = [0.0]
+    limiter = RateLimiter(clock=lambda: now[0])
+    assert limiter.hit("mfa:admin", 1, 3600)
+    now[0] = 120.0
+    assert limiter.hit("login:a", 5, 60)
+    assert limiter.hit("login:b", 5, 60)
+    now[0] = 200.0
+    assert limiter.hit("login:c", 5, 60)  # переполнение: устаревают только минутные ключи
+    assert not limiter.hit("mfa:admin", 1, 3600)
+
+
+def test_client_ip_groups_ipv6_by_64():
+    def request(host: str):
+        return SimpleNamespace(client=SimpleNamespace(host=host))
+
+    assert client_ip(request("203.0.113.7")) == "203.0.113.7"
+    assert client_ip(request("2001:db8:1:2::a")) == client_ip(request("2001:db8:1:2:ffff::1"))
+    assert client_ip(request("2001:db8:1:2::a")) == "2001:db8:1:2::/64"
+    assert client_ip(request("testclient")) == "testclient"
 
 
 def test_parse_rate():

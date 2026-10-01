@@ -11,7 +11,7 @@ from argon2 import PasswordHasher
 from argon2.exceptions import InvalidHashError, VerificationError
 
 from app.core.config import Settings
-from app.core.errors import UnauthorizedError
+from app.core.errors import MfaExpiredError, UnauthorizedError
 
 _JWT_ALG = "HS256"
 _hasher = PasswordHasher()
@@ -45,6 +45,12 @@ class AccessClaims:
     role: str
 
 
+@dataclass(frozen=True)
+class MfaClaims:
+    user_id: uuid.UUID
+    stamp: int
+
+
 MFA_TTL = timedelta(minutes=5)
 
 
@@ -65,9 +71,10 @@ class TokenService:
     def issue_access(self, user_id: uuid.UUID, role: str) -> str:
         return self._encode({"sub": str(user_id), "role": role}, "access", self._access_ttl)
 
-    def issue_mfa(self, user_id: uuid.UUID) -> str:
-        """Пароль верный, нужен второй фактор: токен годен только для шага 2FA, 5 минут."""
-        return self._encode({"sub": str(user_id)}, "mfa", MFA_TTL)
+    def issue_mfa(self, user_id: uuid.UUID, stamp: int) -> str:
+        """Пароль верный, нужен второй фактор: токен годен только для шага 2FA, 5 минут.
+        stamp — состояние 2FA пользователя: после входа или сброса 2FA токен недействителен."""
+        return self._encode({"sub": str(user_id), "stp": stamp}, "mfa", MFA_TTL)
 
     def decode_access(self, token: str) -> AccessClaims:
         data = self._decode(token, "access")
@@ -76,11 +83,12 @@ class TokenService:
         except (ValueError, KeyError) as exc:
             raise UnauthorizedError("invalid token") from exc
 
-    def decode_mfa(self, token: str) -> uuid.UUID:
+    def decode_mfa(self, token: str) -> MfaClaims:
         try:
-            return uuid.UUID(self._decode(token, "mfa")["sub"])
-        except (ValueError, KeyError) as exc:
-            raise UnauthorizedError("сессия входа истекла — войдите заново") from exc
+            data = self._decode(token, "mfa")
+            return MfaClaims(user_id=uuid.UUID(data["sub"]), stamp=int(data["stp"]))
+        except (UnauthorizedError, ValueError, KeyError, TypeError) as exc:
+            raise MfaExpiredError from exc
 
     @property
     def access_ttl_seconds(self) -> int:

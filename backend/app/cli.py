@@ -15,10 +15,12 @@ from pydantic import EmailStr, TypeAdapter, ValidationError
 
 from app.core.config import get_settings
 from app.core.crypto import FieldCipher
+from app.core.errors import NotFoundError
 from app.core.security import TokenService
 from app.db.session import get_database
 from app.schemas.auth import PasswordMixin
 from app.services.auth import AuthService
+from app.services.enrollment import ENROLL_TTL
 from app.services.mfa import reset_mfa
 
 
@@ -32,10 +34,11 @@ async def create_admin(email: str, password: str, superadmin: bool) -> None:
                 TokenService(settings),
                 FieldCipher(settings.secret("field_encryption_key")),
             )
-            user = await service.create_admin(email, password, superadmin)
+            user, code = await service.create_admin(email, password, superadmin)
     finally:
         await db.dispose()
     sys.stdout.write(f"admin created: {user.id}\n")
+    _print_enrollment(code)
 
 
 async def reset_admin_mfa(email: str) -> None:
@@ -43,10 +46,20 @@ async def reset_admin_mfa(email: str) -> None:
     db = get_database()
     try:
         async with db.sessionmaker() as session:
-            user = await reset_mfa(session, email)
+            code = await reset_mfa(session, email)
+    except NotFoundError as exc:
+        sys.exit(exc.message)
     finally:
         await db.dispose()
-    sys.stdout.write(f"2fa reset: {user.id}\n")
+    sys.stdout.write("2fa reset: sessions revoked\n")
+    _print_enrollment(code)
+
+
+def _print_enrollment(code: str) -> None:
+    """Код подключения 2FA показывается один раз — передайте его администратору лично."""
+    sys.stdout.write(
+        f"2fa enrollment code (valid {ENROLL_TTL.total_seconds() // 3600:.0f}h, one-time): {code}\n"
+    )
 
 
 def _validate_email(email: str) -> str:

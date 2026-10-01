@@ -4,6 +4,7 @@
 Для нескольких реплик api заменяется реализацией на PostgreSQL с тем же интерфейсом.
 """
 
+import ipaddress
 import time
 from collections import defaultdict, deque
 from collections.abc import Callable
@@ -25,13 +26,16 @@ def parse_rate(rate: str) -> tuple[int, int]:
 class RateLimiter:
     def __init__(self, clock: Callable[[], float] = time.monotonic) -> None:
         self._hits: dict[str, deque[float]] = defaultdict(deque)
+        # окно каждого ключа: очистка не сбрасывает часовые счётчики по минутному окну
+        self._windows: dict[str, int] = {}
         self._clock = clock
 
     def hit(self, key: str, limit: int, window: int) -> bool:
         """True — запрос разрешён; False — лимит исчерпан."""
         now = self._clock()
         if key not in self._hits and len(self._hits) >= _MAX_KEYS:
-            self._evict(now, window)
+            self._evict(now)
+        self._windows[key] = window
         hits = self._hits[key]
         while hits and hits[0] <= now - window:
             hits.popleft()
@@ -40,16 +44,20 @@ class RateLimiter:
         hits.append(now)
         return True
 
-    def _evict(self, now: float, window: int) -> None:
-        """Память ограничена: сначала удаляем ключи без свежих запросов, затем — самые старые
-        (половину), чтобы перебор IP не делал очистку на каждом запросе."""
-        stale = [k for k, h in self._hits.items() if not h or h[-1] <= now - window]
+    def _evict(self, now: float) -> None:
+        """Память ограничена: сначала удаляем ключи, чьё собственное окно истекло, затем —
+        самые старые (половину), чтобы перебор IP не делал очистку на каждом запросе."""
+        stale = [k for k, h in self._hits.items() if not h or h[-1] <= now - self._windows[k]]
         for key in stale:
-            del self._hits[key]
+            self._drop(key)
         if len(self._hits) >= _MAX_KEYS:
             by_age = sorted(self._hits, key=lambda k: self._hits[k][-1])
             for key in by_age[: len(by_age) // 2]:
-                del self._hits[key]
+                self._drop(key)
+
+    def _drop(self, key: str) -> None:
+        del self._hits[key]
+        del self._windows[key]
 
 
 def build_limits(rates: dict[str, str]) -> dict[str, tuple[int, int]]:
@@ -58,8 +66,16 @@ def build_limits(rates: dict[str, str]) -> dict[str, tuple[int, int]]:
 
 
 def client_ip(request: Request) -> str:
-    """IP клиента после --proxy-headers uvicorn (за Caddy)."""
-    return request.client.host if request.client else "unknown"
+    """IP клиента после --proxy-headers uvicorn (за Caddy). IPv6 — по сети /64:
+    у одного клиента обычно вся подсеть, и смена адреса в ней не обходит лимит."""
+    host = request.client.host if request.client else "unknown"
+    try:
+        address = ipaddress.ip_address(host)
+    except ValueError:
+        return host
+    if address.version == 6:
+        return str(ipaddress.ip_network(f"{host}/64", strict=False))
+    return host
 
 
 def check_rate_limit(request: Request, scope: str, key: str | None = None) -> None:

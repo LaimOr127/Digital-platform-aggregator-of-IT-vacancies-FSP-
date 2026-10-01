@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, String, Text
+from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base, IdMixin, TimestampMixin, str_enum
@@ -21,6 +21,17 @@ class User(IdMixin, TimestampMixin, Base):
     totp_secret_enc: Mapped[str | None] = mapped_column(Text, default=None)
     totp_enabled: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     totp_last_step: Mapped[int | None] = mapped_column(BigInteger, default=None)
+    # одноразовый код подключения 2FA (выдаёт только CLI): без него пароль не позволяет
+    # привязать свой аутентификатор; хранится хешем
+    totp_enroll_hash: Mapped[str | None] = mapped_column(String(64), default=None)
+    totp_enroll_expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), default=None
+    )
+    # неверные коды подряд -> временная блокировка (в БД: переживает рестарт и сброс лимитера)
+    totp_failures: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    totp_locked_until: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), default=None
+    )
 
 
 class RefreshToken(IdMixin, TimestampMixin, Base):

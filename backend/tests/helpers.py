@@ -3,6 +3,7 @@
 import secrets
 import time
 import uuid
+from dataclasses import dataclass
 
 from httpx import ASGITransport, AsyncClient
 
@@ -40,27 +41,45 @@ async def register_employer(client: AsyncClient, company: str = "ООО Рома
     return r.json()["access_token"]
 
 
-async def create_admin(db: Database, app, superadmin: bool = False) -> str:
-    """Админ создаётся как в CLI и входит по-настоящему: пароль -> настройка 2FA -> код."""
+@dataclass(frozen=True)
+class NewAdmin:
+    id: uuid.UUID
+    email: str
+    enrollment_code: str
+
+
+async def new_admin(db: Database, app, superadmin: bool = False) -> NewAdmin:
+    """Администратор, как из CLI: ещё без 2FA, с кодом подключения."""
     email = unique_email("admin")
     async with db.sessionmaker() as session:
-        await AuthService(session, app.state.tokens, app.state.cipher).create_admin(
+        user, code = await AuthService(session, app.state.tokens, app.state.cipher).create_admin(
             email, PASSWORD, superadmin
         )
+    return NewAdmin(user.id, email, code)
+
+
+async def create_admin(db: Database, app, superadmin: bool = False) -> str:
+    """Админ создаётся как в CLI и входит по-настоящему: пароль -> настройка 2FA -> код."""
+    admin = await new_admin(db, app, superadmin)
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        return await admin_login(client, email)
+        return await admin_login(client, admin.email, enrollment_code=admin.enrollment_code)
 
 
-async def admin_login(client: AsyncClient, email: str, secret: str | None = None) -> str:
+async def admin_login(
+    client: AsyncClient, email: str, *, enrollment_code: str | None = None, secret: str = ""
+) -> str:
+    """Вход администратора: первый — с кодом подключения (настройка), далее — по секрету."""
     challenge = (
         await client.post("/api/v1/auth/login", json={"email": email, "password": PASSWORD})
     ).json()
     assert challenge["mfa_required"] is True, challenge
-    if secret is None:
+    if enrollment_code is not None:
         setup = await client.post(
-            "/api/v1/auth/2fa/setup", json={"mfa_token": challenge["mfa_token"]}
+            "/api/v1/auth/2fa/setup",
+            json={"mfa_token": challenge["mfa_token"], "enrollment_code": enrollment_code},
         )
+        assert setup.status_code == 200, setup.text
         secret = setup.json()["secret"]
     code = totp.code_at(secret, int(time.time()) // totp.STEP_SECONDS)
     r = await client.post(

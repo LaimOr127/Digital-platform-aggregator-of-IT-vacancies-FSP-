@@ -1,4 +1,4 @@
-"""2FA (TOTP) администраторов: зашифрованный секрет, флаг, последний принятый шаг
+"""2FA (TOTP) администраторов: секрет, код подключения, блокировка после неверных кодов
 
 Revision ID: 0006
 Revises: 0005
@@ -22,9 +22,28 @@ def upgrade() -> None:
         "users", sa.Column("totp_enabled", sa.Boolean(), server_default="false", nullable=False)
     )
     op.add_column("users", sa.Column("totp_last_step", sa.BigInteger(), nullable=True))
+    op.add_column("users", sa.Column("totp_enroll_hash", sa.String(64), nullable=True))
+    op.add_column(
+        "users", sa.Column("totp_enroll_expires_at", sa.DateTime(timezone=True), nullable=True)
+    )
+    op.add_column(
+        "users", sa.Column("totp_failures", sa.Integer(), server_default="0", nullable=False)
+    )
+    op.add_column(
+        "users", sa.Column("totp_locked_until", sa.DateTime(timezone=True), nullable=True)
+    )
+    # сессии администраторов, выданные до 2FA, недействительны: вход заново — уже с 2FA
+    op.execute(
+        "UPDATE refresh_tokens SET revoked_at = now() WHERE revoked_at IS NULL "
+        "AND user_id IN (SELECT id FROM users WHERE role = 'admin')"
+    )
 
 
 def downgrade() -> None:
+    op.drop_column("users", "totp_locked_until")
+    op.drop_column("users", "totp_failures")
+    op.drop_column("users", "totp_enroll_expires_at")
+    op.drop_column("users", "totp_enroll_hash")
     op.drop_column("users", "totp_last_step")
     op.drop_column("users", "totp_enabled")
     op.drop_column("users", "totp_secret_enc")

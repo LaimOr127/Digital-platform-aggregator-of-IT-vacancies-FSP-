@@ -16,8 +16,8 @@ from app.schemas.auth import (
     LoginIn,
     MeOut,
     MfaChallengeOut,
+    MfaSetupIn,
     MfaSetupOut,
-    MfaTokenIn,
     MfaVerifyIn,
     TokenOut,
 )
@@ -130,16 +130,16 @@ MfaServiceDep = Annotated[MfaService, Depends(_mfa)]
 
 def _mfa_limit(request: Request, mfa_token: str) -> None:
     """Попытки кода 2FA ограничены на администратора (по токену шага), не только по IP."""
-    user_id = request.app.state.tokens.decode_mfa(mfa_token)
-    check_rate_limit(request, "mfa", key=str(user_id))
+    claims = request.app.state.tokens.decode_mfa(mfa_token)
+    check_rate_limit(request, "mfa", key=str(claims.user_id))
 
 
 @router.post(
     "/2fa/setup", dependencies=[AuthLimited], summary="Настроить приложение-аутентификатор"
 )
-async def mfa_setup(data: MfaTokenIn, request: Request, service: MfaServiceDep) -> MfaSetupOut:
+async def mfa_setup(data: MfaSetupIn, request: Request, service: MfaServiceDep) -> MfaSetupOut:
     _mfa_limit(request, data.mfa_token)
-    secret, uri = await service.setup(data.mfa_token)
+    secret, uri = await service.setup(data.mfa_token, data.enrollment_code)
     return MfaSetupOut(secret=secret, otpauth_uri=uri)
 
 

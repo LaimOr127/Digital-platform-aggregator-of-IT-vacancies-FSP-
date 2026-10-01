@@ -41,8 +41,21 @@ async def test_create_superadmin(monkeypatch, db, capsys):
     await cli.create_admin("root@example.org", "Str0ng-pass-42", superadmin=True)
     async with db.sessionmaker() as session:
         user = (await session.execute(select(User))).scalar_one()
-    assert user.role == "admin" and user.is_superadmin
-    assert "admin created" in capsys.readouterr().out
+    assert user.role == "admin" and user.is_superadmin and not user.totp_enabled
+    out = capsys.readouterr().out
+    assert "admin created" in out and "2fa enrollment code" in out
+
+
+async def test_reset_2fa_prints_new_code_and_rejects_unknown(monkeypatch, db, capsys):
+    monkeypatch.setattr(cli, "get_database", lambda: db)
+    monkeypatch.setattr(db, "dispose", _noop)
+    await cli.create_admin("ops@example.org", "Str0ng-pass-42", superadmin=False)
+    first = capsys.readouterr().out.rsplit(" ", 1)[-1].strip()
+    await cli.reset_admin_mfa("ops@example.org")
+    second = capsys.readouterr().out.rsplit(" ", 1)[-1].strip()
+    assert first and second and first != second
+    with pytest.raises(SystemExit, match="администратор не найден"):
+        await cli.reset_admin_mfa("nobody@example.org")
 
 
 async def _noop() -> None:
