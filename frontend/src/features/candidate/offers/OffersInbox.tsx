@@ -1,19 +1,16 @@
 import { Building2, Check, Inbox, X } from "lucide-react";
 import { useState } from "react";
-import { errorMessage } from "../../../api/errors";
 import type { Offer, OfferStatus } from "../../../api/types";
 import { daysLeft, formatDate, formatSalaryRange, labels } from "../../../lib/format";
 import { offerTone } from "../../../lib/tones";
-import { Alert } from "../../../ui/Alert";
 import { PageHeader } from "../../../ui/AppShell";
 import { Badge } from "../../../ui/Badge";
 import { Button } from "../../../ui/Button";
+import { CursorListView } from "../../../ui/CursorListView";
 import { ConfirmDialog } from "../../../ui/ConfirmDialog";
 import { Dialog } from "../../../ui/Dialog";
-import { EmptyState } from "../../../ui/EmptyState";
 import { Field, Textarea } from "../../../ui/form";
 import { Segmented } from "../../../ui/Segmented";
-import { LoadingBlock } from "../../../ui/Spinner";
 import { useAction } from "../../../ui/useAction";
 import { useAcceptOffer, useDeclineOffer, useInbox } from "./hooks";
 
@@ -42,27 +39,18 @@ export function OffersInbox() {
       <div className="mb-6">
         <Segmented label="Фильтр офферов" value={filter} options={FILTERS} onChange={setFilter} />
       </div>
-      {inbox.error && !inbox.data && <Alert>{errorMessage(inbox.error)}</Alert>}
-      {!inbox.data && !inbox.error && <LoadingBlock />}
-      {inbox.data && inbox.items.length === 0 && (
-        <EmptyState
-          icon={<Inbox className="size-5" />}
-          title={filter === "sent" ? "Новых офферов нет" : "Офферов пока нет"}
-          text="Заполните профиль и привяжите ФСП — так вы попадёте в категории, где вас ищут работодатели."
-        />
-      )}
-      <div className="flex flex-col gap-4">
-        {inbox.items.map((offer) => (
+      <CursorListView
+        query={inbox}
+        empty={{
+          icon: <Inbox className="size-5" />,
+          title: filter === "sent" ? "Новых офферов нет" : "Офферов пока нет",
+          text: "Заполните профиль и привяжите ФСП — так вы попадёте в категории, где вас ищут работодатели.",
+        }}
+      >
+        {(offer) => (
           <OfferCard key={offer.id} offer={offer} onAccept={() => setAccepting(offer)} onDecline={() => setDeclining(offer)} />
-        ))}
-      </div>
-      {inbox.hasNextPage && (
-        <div className="mt-6 flex justify-center">
-          <Button variant="secondary" onClick={() => inbox.fetchNextPage()} loading={inbox.isFetchingNextPage}>
-            Показать ещё
-          </Button>
-        </div>
-      )}
+        )}
+      </CursorListView>
       <ConfirmDialog
         open={accepting !== null}
         title={`Принять оффер «${accepting?.company_name ?? ""}»?`}

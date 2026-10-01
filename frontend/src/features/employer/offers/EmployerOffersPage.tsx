@@ -4,14 +4,12 @@ import { errorMessage } from "../../../api/errors";
 import type { EmployerOffer, OfferContacts, OfferStatus } from "../../../api/types";
 import { daysLeft, formatDate, formatSalaryRange, labels } from "../../../lib/format";
 import { offerTone } from "../../../lib/tones";
-import { Alert } from "../../../ui/Alert";
 import { PageHeader } from "../../../ui/AppShell";
 import { Badge } from "../../../ui/Badge";
 import { Button } from "../../../ui/Button";
+import { CursorListView } from "../../../ui/CursorListView";
 import { ConfirmDialog } from "../../../ui/ConfirmDialog";
-import { EmptyState } from "../../../ui/EmptyState";
 import { Segmented } from "../../../ui/Segmented";
-import { LoadingBlock } from "../../../ui/Spinner";
 import { useToast } from "../../../ui/Toast";
 import { useAction } from "../../../ui/useAction";
 import { useEmployerOffers, useOfferContacts, useWithdrawOffer } from "../catalog/hooks";
@@ -43,27 +41,16 @@ export function EmployerOffersPage() {
       <div className="mb-6">
         <Segmented label="Статус офферов" value={filter} options={FILTERS} onChange={setFilter} />
       </div>
-      {offers.error && !offers.data && <Alert>{errorMessage(offers.error)}</Alert>}
-      {!offers.data && !offers.error && <LoadingBlock />}
-      {offers.data && offers.items.length === 0 && (
-        <EmptyState
-          icon={<Inbox className="size-5" />}
-          title="Офферов пока нет"
-          text="Найдите кандидата в каталоге и предложите ему вакансию с зарплатной вилкой."
-        />
-      )}
-      <div className="flex flex-col gap-4">
-        {offers.items.map((offer) => (
-          <OfferRow key={offer.id} offer={offer} onWithdraw={() => setWithdrawing(offer)} />
-        ))}
-      </div>
-      {offers.hasNextPage && (
-        <div className="mt-6 flex justify-center">
-          <Button variant="secondary" onClick={() => offers.fetchNextPage()} loading={offers.isFetchingNextPage}>
-            Показать ещё
-          </Button>
-        </div>
-      )}
+      <CursorListView
+        query={offers}
+        empty={{
+          icon: <Inbox className="size-5" />,
+          title: "Офферов пока нет",
+          text: "Найдите кандидата в каталоге и предложите ему вакансию с зарплатной вилкой.",
+        }}
+      >
+        {(offer) => <OfferRow key={offer.id} offer={offer} onWithdraw={() => setWithdrawing(offer)} />}
+      </CursorListView>
       <ConfirmDialog
         open={withdrawing !== null}
         title="Отозвать оффер?"

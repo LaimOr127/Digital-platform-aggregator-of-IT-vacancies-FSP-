@@ -8,6 +8,7 @@ import { labels, options, tierLabels } from "../../../lib/format";
 import { Alert } from "../../../ui/Alert";
 import { PageHeader } from "../../../ui/AppShell";
 import { Button } from "../../../ui/Button";
+import { CursorListView } from "../../../ui/CursorListView";
 import { EmptyState } from "../../../ui/EmptyState";
 import { Field, Select } from "../../../ui/form";
 import { LoadingBlock } from "../../../ui/Spinner";
@@ -47,17 +48,16 @@ function Catalog() {
         <CategoryGrid categories={categories.data} selected={filters.category} onSelect={(category) => update({ category })} />
       )}
       <Filters filters={filters} onChange={update} />
-      {candidates.error && !candidates.data && <Alert>{errorMessage(candidates.error)}</Alert>}
-      {!candidates.data && !candidates.error && <LoadingBlock />}
-      {candidates.data && candidates.items.length === 0 && (
-        <EmptyState
-          icon={<Users className="size-5" />}
-          title="Подходящих кандидатов пока нет"
-          text="Снимите часть фильтров или выберите соседнюю категорию."
-        />
-      )}
-      <div className="grid gap-4 md:grid-cols-2">
-        {candidates.items.map((card) => (
+      <CursorListView
+        query={candidates}
+        className="grid gap-4 md:grid-cols-2"
+        empty={{
+          icon: <Users className="size-5" />,
+          title: "Подходящих кандидатов пока нет",
+          text: "Снимите часть фильтров или выберите соседнюю категорию.",
+        }}
+      >
+        {(card) => (
           <CandidateCardView
             key={card.anon_id}
             card={card}
@@ -68,15 +68,8 @@ function Catalog() {
               </Button>
             }
           />
-        ))}
-      </div>
-      {candidates.hasNextPage && (
-        <div className="mt-6 flex justify-center">
-          <Button variant="secondary" onClick={() => candidates.fetchNextPage()} loading={candidates.isFetchingNextPage}>
-            Показать ещё
-          </Button>
-        </div>
-      )}
+        )}
+      </CursorListView>
       <OfferDialog key={offerTo?.anon_id ?? "none"} candidate={offerTo} onClose={() => setOfferTo(null)} />
     </>
   );

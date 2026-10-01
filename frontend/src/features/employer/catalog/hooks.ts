@@ -9,7 +9,10 @@ export const useCatalogCategories = (enabled: boolean) =>
   useQuery({ queryKey: ["catalog", "categories"], queryFn: catalogApi.categories, enabled });
 
 export const useCatalogCandidates = (filters: CatalogFilters, enabled: boolean) =>
-  useCursorList(["catalog", "candidates", filters], (cursor) => catalogApi.candidates(filters, cursor), enabled);
+  useCursorList(["catalog", "candidates", filters], (cursor) => catalogApi.candidates(filters, cursor), {
+    enabled,
+    keepPrevious: true,
+  });
 
 /** Офферы отправляются только по опубликованным вакансиям. */
 export const useActiveVacancies = () =>

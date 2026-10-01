@@ -1,5 +1,4 @@
 import { Briefcase, Plus } from "lucide-react";
-import { AnimatePresence } from "motion/react";
 import { useState } from "react";
 import { errorMessage } from "../../api/errors";
 import { useSkills } from "../../api/queries";
@@ -7,10 +6,9 @@ import type { Vacancy, VacancyStatus } from "../../api/types";
 import { Alert } from "../../ui/Alert";
 import { PageHeader } from "../../ui/AppShell";
 import { Button } from "../../ui/Button";
+import { CursorListView } from "../../ui/CursorListView";
 import { Dialog } from "../../ui/Dialog";
-import { EmptyState } from "../../ui/EmptyState";
 import { Segmented } from "../../ui/Segmented";
-import { LoadingBlock } from "../../ui/Spinner";
 import { useAction } from "../../ui/useAction";
 import { useCompany, useDeleteVacancy, useVacancies } from "./hooks";
 import { VacancyCard } from "./VacancyCard";
@@ -86,33 +84,18 @@ type ListProps = {
 
 function VacancyList({ status, canPublish, onCreate, onEdit, onDelete }: ListProps) {
   const query = useVacancies(status);
-  // ошибка без данных — вместо списка; ошибка догрузки — рядом с уже загруженным списком
-  if (query.error && !query.data) return <Alert>{errorMessage(query.error)}</Alert>;
-  if (!query.data) return <LoadingBlock />;
-  if (query.items.length === 0) {
-    return (
-      <EmptyState
-        icon={<Briefcase className="size-5" />}
-        title={status ? "Здесь пока пусто" : "Вакансий пока нет"}
-        text="Создайте черновик: название, грейд, стек и обязательная зарплатная вилка."
-        action={onCreate && <Button onClick={onCreate}>Создать вакансию</Button>}
-      />
-    );
-  }
   return (
-    <div className="flex flex-col gap-4">
-      <AnimatePresence initial={false}>
-        {query.items.map((v) => (
-          <VacancyCard key={v.id} vacancy={v} canPublish={canPublish} onEdit={onEdit} onDelete={onDelete} />
-        ))}
-      </AnimatePresence>
-      {query.error && <Alert>{errorMessage(query.error)}</Alert>}
-      {query.hasNextPage && (
-        <Button variant="secondary" className="self-center" onClick={() => query.fetchNextPage()} loading={query.isFetchingNextPage}>
-          Показать ещё
-        </Button>
-      )}
-    </div>
+    <CursorListView
+      query={query}
+      empty={{
+        icon: <Briefcase className="size-5" />,
+        title: status ? "Здесь пока пусто" : "Вакансий пока нет",
+        text: "Создайте черновик: название, грейд, стек и обязательная зарплатная вилка.",
+        action: onCreate && <Button onClick={onCreate}>Создать вакансию</Button>,
+      }}
+    >
+      {(v) => <VacancyCard key={v.id} vacancy={v} canPublish={canPublish} onEdit={onEdit} onDelete={onDelete} />}
+    </CursorListView>
   );
 }
 
