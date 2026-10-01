@@ -10,9 +10,9 @@ from fastapi import APIRouter, Cookie, Depends, Header, Request, Response, statu
 from app.api.deps import CipherDep, PrincipalDep, SessionDep, TokensDep
 from app.core.errors import ForbiddenError, UnauthorizedError
 from app.core.ratelimit import check_rate_limit
-from app.repositories.users import UserRepository
 from app.schemas.auth import CandidateRegisterIn, EmployerRegisterIn, LoginIn, MeOut, TokenOut
 from app.services.auth import AuthService, TokenPair
+from app.services.directory import current_user
 
 REFRESH_COOKIE = "refresh_token"
 CSRF_COOKIE = "csrf_token"
@@ -140,13 +140,4 @@ async def logout(
 
 @router.get("/me", summary="Текущий пользователь")
 async def me(principal: PrincipalDep, session: SessionDep) -> MeOut:
-    user = await UserRepository(session).get(principal.user_id)
-    if user is None:
-        raise UnauthorizedError("authentication required")
-    return MeOut(
-        id=user.id,
-        email=user.email,
-        role=user.role,
-        is_superadmin=user.is_superadmin,
-        company_id=principal.company_id,
-    )
+    return await current_user(session, principal)

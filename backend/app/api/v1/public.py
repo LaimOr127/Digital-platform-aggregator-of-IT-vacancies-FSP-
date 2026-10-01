@@ -3,17 +3,17 @@ import uuid
 from fastapi import APIRouter, Response
 
 from app.api.deps import SessionDep, SignerDep
-from app.repositories.candidates import SkillRepository
 from app.schemas.common import SkillOut
 from app.schemas.fsp import PassportVerifyOut
+from app.services.directory import list_skills
 from app.services.passport import verify_passport
 
 router = APIRouter(prefix="/public", tags=["public"])
 
 
 @router.get("/skills", summary="Справочник навыков")
-async def list_skills(session: SessionDep) -> list[SkillOut]:
-    return [SkillOut.model_validate(s) for s in await SkillRepository(session).all()]
+async def skills(session: SessionDep) -> list[SkillOut]:
+    return await list_skills(session)
 
 
 @router.get("/passport/{passport_id}", summary="Проверить паспорт навыков (публично)")
