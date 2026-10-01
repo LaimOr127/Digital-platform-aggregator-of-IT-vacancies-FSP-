@@ -3,6 +3,7 @@ import type {
   CompanyStatus,
   Grade,
   OfferStatus,
+  SearchStatus,
   UserRole,
   VacancyStatus,
   VerificationTier,
@@ -70,6 +71,11 @@ export const labels = {
     withdrawn: "Отозван",
     expired: "Истёк",
   } satisfies Record<OfferStatus, string>,
+  searchStatus: {
+    active: "Активно ищу работу",
+    open: "Рассматриваю предложения",
+    closed: "Не ищу работу",
+  } satisfies Record<SearchStatus, string>,
   role: {
     candidate: "Кандидат",
     employer: "Работодатель",

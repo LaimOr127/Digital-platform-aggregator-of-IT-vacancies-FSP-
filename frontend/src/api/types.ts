@@ -50,6 +50,7 @@ export type CatalogFilters = {
   grade?: Grade;
   work_format?: WorkFormat;
   skill?: string;
+  search_status?: SearchStatus;
 };
 
 /** Содержимое паспорта (подписанный JSON, версия 2). */
@@ -69,3 +70,8 @@ export type PassportPayload = {
   fsp: { athlete_id: string | null; rank: string | null; achievements: { discipline: string; summary: string }[] };
   categories: string[];
 };
+
+export type SearchStatus = Schemas["SearchStatus"];
+// поля со значением по умолчанию сервер отдаёт всегда (в схеме OpenAPI они необязательные)
+export type ProfileDraft = Required<Schemas["ProfileDraftOut"]>;
+export type ImportCapabilities = Schemas["ImportCapabilitiesOut"];

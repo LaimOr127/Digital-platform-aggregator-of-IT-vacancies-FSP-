@@ -1,6 +1,8 @@
 // Эндпоинты API в одном месте: компоненты не собирают URL сами.
 import { api } from "./client";
 import type {
+  ImportCapabilities,
+  ProfileDraft,
   Accepted,
   AdminUser,
   AdminVacancy,
@@ -136,4 +138,16 @@ export const adminApi = {
     api<AdminUser>("POST", `/admin/users/${encodeURIComponent(id)}/moderation`, { body: { action, reason } }),
   audit: (action: string | undefined, cursor: string | undefined) =>
     api<Page<AuditEntry>>("GET", "/admin/audit", { query: { action, cursor, limit: 50 } }),
+};
+
+export const importApi = {
+  capabilities: () => api<ImportCapabilities>("GET", "/candidate/import/capabilities"),
+  fromFsp: () => api<ProfileDraft>("GET", "/candidate/import/fsp"),
+  /** use_ai — согласие кандидата на разбор ИИ-сервисом (текст без контактов) */
+  fromResume: (file: File, useAi: boolean) => {
+    const form = new FormData();
+    form.append("file", file);
+    form.append("use_ai", String(useAi));
+    return api<ProfileDraft>("POST", "/candidate/import/resume", { body: form });
+  },
 };

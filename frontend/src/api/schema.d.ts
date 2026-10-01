@@ -260,6 +260,57 @@ export interface paths {
         patch: operations["update_profile_api_v1_candidate_profile_patch"];
         trace?: never;
     };
+    "/api/v1/candidate/import/capabilities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Доступен ли ИИ-разбор резюме */
+        get: operations["capabilities_api_v1_candidate_import_capabilities_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/candidate/import/fsp": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Черновик профиля из анкеты ФСП (после привязки аккаунта) */
+        get: operations["from_fsp_api_v1_candidate_import_fsp_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/candidate/import/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Черновик профиля из резюме (PDF/DOCX до 5 МБ) */
+        post: operations["from_resume_api_v1_candidate_import_resume_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/candidate/fsp": {
         parameters: {
             query?: never;
@@ -878,6 +929,20 @@ export interface components {
              */
             created_at: string;
         };
+        /** Body_from_resume_api_v1_candidate_import_resume_post */
+        Body_from_resume_api_v1_candidate_import_resume_post: {
+            /**
+             * File
+             * @description PDF или DOCX
+             */
+            file: string;
+            /**
+             * Use Ai
+             * @description согласие на разбор ИИ-сервисом
+             * @default false
+             */
+            use_ai: boolean;
+        };
         /**
          * CandidateCardOut
          * @description Анонимная карточка кандидата: без имени, контактов, ID ФСП и названий соревнований.
@@ -899,6 +964,7 @@ export interface components {
             /** Salary Max */
             salary_max: number | null;
             verification_tier: components["schemas"]["VerificationTier"];
+            search_status: components["schemas"]["SearchStatus"];
             /** Skills */
             skills: string[];
             /** Categories */
@@ -1119,6 +1185,16 @@ export interface components {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /** ImportCapabilitiesOut */
+        ImportCapabilitiesOut: {
+            /** Ai Available */
+            ai_available: boolean;
+            /**
+             * Max File Mb
+             * @default 5
+             */
+            max_file_mb: number;
         };
         /**
          * LinkTokenIn
@@ -1423,6 +1499,41 @@ export interface components {
             /** Password */
             password: string;
         };
+        /** ProfileDraftOut */
+        ProfileDraftOut: {
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "fsp" | "resume";
+            /** Full Name */
+            full_name?: string | null;
+            /** Title */
+            title?: string | null;
+            /** About */
+            about?: string | null;
+            grade?: components["schemas"]["Grade"] | null;
+            work_format?: components["schemas"]["WorkFormat"] | null;
+            /** City */
+            city?: string | null;
+            /** Salary Min */
+            salary_min?: number | null;
+            /** Salary Max */
+            salary_max?: number | null;
+            contacts?: components["schemas"]["Contacts"];
+            /** Skills */
+            skills?: components["schemas"]["SkillOut"][];
+            /**
+             * Unknown Skills
+             * @description нет в справочнике
+             */
+            unknown_skills?: string[];
+            /**
+             * Notes
+             * @description как получены значения
+             */
+            notes?: string[];
+        };
         /**
          * ProfileOut
          * @description Профиль глазами владельца: расшифрованные имя и контакты.
@@ -1451,6 +1562,7 @@ export interface components {
             verification_tier: components["schemas"]["VerificationTier"];
             /** Is Hidden */
             is_hidden: boolean;
+            search_status: components["schemas"]["SearchStatus"];
             /** Skills */
             skills: components["schemas"]["SkillOut"][];
         };
@@ -1473,12 +1585,19 @@ export interface components {
             city?: string | null;
             /** Is Hidden */
             is_hidden?: boolean | null;
+            search_status?: components["schemas"]["SearchStatus"] | null;
             /**
              * Skills
              * @description slug навыков
              */
             skills?: string[] | null;
         };
+        /**
+         * SearchStatus
+         * @description Статус поиска работы кандидата: виден работодателям в каталоге.
+         * @enum {string}
+         */
+        SearchStatus: "active" | "open" | "closed";
         /** SkillOut */
         SkillOut: {
             /** Slug */
@@ -2088,6 +2207,79 @@ export interface operations {
             };
         };
     };
+    capabilities_api_v1_candidate_import_capabilities_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportCapabilitiesOut"];
+                };
+            };
+        };
+    };
+    from_fsp_api_v1_candidate_import_fsp_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProfileDraftOut"];
+                };
+            };
+        };
+    };
+    from_resume_api_v1_candidate_import_resume_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_from_resume_api_v1_candidate_import_resume_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProfileDraftOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     fsp_status_api_v1_candidate_fsp_get: {
         parameters: {
             query?: never;
@@ -2652,6 +2844,7 @@ export interface operations {
                 grade?: components["schemas"]["Grade"] | null;
                 work_format?: components["schemas"]["WorkFormat"] | null;
                 skill?: string | null;
+                search_status?: components["schemas"]["SearchStatus"] | null;
                 cursor?: string | null;
                 limit?: number;
             };

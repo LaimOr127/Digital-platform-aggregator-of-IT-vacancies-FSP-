@@ -25,3 +25,4 @@ export function salaryRangeIssue(value: Range, ctx: z.RefinementCtx) {
 
 export const GRADES = ["intern", "junior", "middle", "senior", "lead"] as const;
 export const WORK_FORMATS = ["office", "hybrid", "remote"] as const;
+export const SEARCH_STATUSES = ["active", "open", "closed"] as const;

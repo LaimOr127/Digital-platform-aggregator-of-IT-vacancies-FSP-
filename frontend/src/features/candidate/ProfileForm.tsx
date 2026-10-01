@@ -1,22 +1,27 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Save } from "lucide-react";
-import type { ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { Controller, useForm } from "react-hook-form";
-import type { Profile, Skill } from "../../api/types";
+import type { Profile, ProfileDraft, Skill } from "../../api/types";
 import { labels, options } from "../../lib/format";
 import { applyServerErrors } from "../../lib/forms";
 import { Button } from "../../ui/Button";
 import { Card, CardTitle } from "../../ui/Card";
 import { Field, FieldGroup, Input, Select, Switch, Textarea } from "../../ui/form";
+import { Segmented } from "../../ui/Segmented";
 import { SkillPicker } from "../../ui/SkillPicker";
 import { useToast } from "../../ui/Toast";
 import { useUpdateProfile } from "./hooks";
+import type { FieldChange } from "./import/draft";
+import { DraftDialog } from "./import/DraftDialog";
+import { ImportCard } from "./import/ImportCard";
 import { formToUpdate, profileSchema, profileToForm, type ProfileFormInput, type ProfileFormOutput } from "./schemas";
 
 const FIELDS = [
   "full_name", "title", "about", "grade", "work_format", "city", "salary_min", "salary_max",
-  "skills", "is_hidden", "phone", "telegram", "contact_email",
+  "skills", "is_hidden", "search_status", "phone", "telegram", "contact_email",
 ];
+const SEARCH_OPTIONS = options(labels.searchStatus);
 const ALIASES = { "contacts.phone": "phone", "contacts.telegram": "telegram", "contacts.email": "contact_email" };
 
 function Section({ title, text, children }: { title: string; text?: string; children: ReactNode }) {
@@ -29,8 +34,12 @@ function Section({ title, text, children }: { title: string; text?: string; chil
   );
 }
 
-export function ProfileForm({ profile, skills }: { profile: Profile; skills: Skill[] }) {
+type Props = { profile: Profile; skills: Skill[]; fspLinked: boolean; autoFsp?: boolean };
+
+export function ProfileForm({ profile, skills, fspLinked, autoFsp }: Props) {
   const notify = useToast();
+  const [draft, setDraft] = useState<ProfileDraft | null>(null);
+  const skillNames = useMemo(() => new Map(skills.map((s) => [s.slug, s.name])), [skills]);
   const update = useUpdateProfile();
   const form = useForm<ProfileFormInput, unknown, ProfileFormOutput>({
     resolver: zodResolver(profileSchema),
@@ -43,7 +52,9 @@ export function ProfileForm({ profile, skills }: { profile: Profile; skills: Ski
 
   const onSubmit = form.handleSubmit(async (values) => {
     try {
-      await update.mutateAsync(formToUpdate(values));
+      const saved = await update.mutateAsync(formToUpdate(values));
+      // сохранённое — новая точка отсчёта: иначе поля, изменённые до сохранения, остаются «грязными»
+      form.reset(profileToForm(saved));
       notify("Профиль сохранён");
     } catch (err) {
       const message = applyServerErrors(err, form.setError, FIELDS, ALIASES);
@@ -51,8 +62,41 @@ export function ProfileForm({ profile, skills }: { profile: Profile; skills: Ski
     }
   });
 
+  const applyDraft = (changes: FieldChange[], newSkills: string[]) => {
+    const options = { shouldDirty: true, shouldValidate: true } as const;
+    for (const change of changes) form.setValue(change.field, change.value as never, options);
+    if (newSkills.length) form.setValue("skills", [...form.getValues("skills"), ...newSkills], options);
+    setDraft(null);
+    notify("Данные перенесены в форму — проверьте и сохраните профиль");
+  };
+
   return (
     <form onSubmit={onSubmit} noValidate className="flex flex-col gap-6 pb-24">
+      <ImportCard fspLinked={fspLinked} autoFsp={autoFsp} onDraft={setDraft} />
+      {draft && (
+        <DraftDialog
+          draft={draft}
+          form={form.getValues()}
+          skillNames={skillNames}
+          onApply={applyDraft}
+          onClose={() => setDraft(null)}
+        />
+      )}
+      <Card>
+        <CardTitle>Статус поиска</CardTitle>
+        <p className="mt-1 text-sm text-muted">
+          Работодатели видят его в каталоге. «Не ищу» убирает профиль из каталога — новые офферы не придут.
+        </p>
+        <div className="mt-4 overflow-x-auto">
+          <Controller
+            control={control}
+            name="search_status"
+            render={({ field }) => (
+              <Segmented label="Статус поиска" value={field.value} options={SEARCH_OPTIONS} onChange={field.onChange} />
+            )}
+          />
+        </div>
+      </Card>
       <Section title="Основное" text="По этим данным вы попадаете в категории, которые видят работодатели.">
         <Field label="Имя и фамилия" error={errors.full_name?.message} hint="Видно только после принятого оффера">
           <Input autoComplete="name" {...register("full_name")} />

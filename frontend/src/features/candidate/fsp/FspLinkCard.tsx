@@ -1,13 +1,14 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { KeyRound, Link2, MailCheck, RefreshCw, Unlink } from "lucide-react";
+import { KeyRound, Link2, MailCheck, RefreshCw, Sparkles, Unlink } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { Link } from "react-router";
 import type { FspLinkStart, FspStatus } from "../../../api/types";
 import { formatDate } from "../../../lib/format";
 import { applyServerErrors } from "../../../lib/forms";
 import { Alert } from "../../../ui/Alert";
 import { Badge } from "../../../ui/Badge";
-import { Button } from "../../../ui/Button";
+import { Button, buttonClasses } from "../../../ui/Button";
 import { Card, CardTitle } from "../../../ui/Card";
 import { ConfirmDialog } from "../../../ui/ConfirmDialog";
 import { Field, Input } from "../../../ui/form";
@@ -174,6 +175,10 @@ function LinkedAccount({ status }: { status: FspStatus }) {
             <dt className="text-muted">Обновлено</dt>
             <dd>{status.last_synced_at ? formatDate(status.last_synced_at) : "—"}</dd>
           </dl>
+          <Link to="/app?import=fsp" className={buttonClasses("primary", "sm", "mt-4")}>
+            <Sparkles className="size-3.5" aria-hidden />
+            Заполнить профиль из анкеты ФСП
+          </Link>
         </div>
         <div className="flex gap-2">
           <Button variant="secondary" size="sm" onClick={() => run(sync, undefined, "Данные ФСП обновлены")} loading={sync.isPending}>

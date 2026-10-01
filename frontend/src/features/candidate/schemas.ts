@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { Profile, ProfileUpdate } from "../../api/types";
-import { GRADES, WORK_FORMATS, optionalEnum, optionalMoney, optionalText, salaryRangeIssue } from "../../lib/fields";
+import { GRADES, SEARCH_STATUSES, WORK_FORMATS, optionalEnum, optionalMoney, optionalText, salaryRangeIssue } from "../../lib/fields";
 
 export const profileSchema = z
   .object({
@@ -20,6 +20,7 @@ export const profileSchema = z
     ),
     skills: z.array(z.string()).max(50, "Не больше 50 навыков"),
     is_hidden: z.boolean(),
+    search_status: z.enum(SEARCH_STATUSES),
   })
   .superRefine(salaryRangeIssue);
 
@@ -41,6 +42,7 @@ export function profileToForm(p: Profile): ProfileFormInput {
     contact_email: p.contacts.email ?? "",
     skills: p.skills.map((s) => s.slug),
     is_hidden: p.is_hidden,
+    search_status: p.search_status,
   };
 }
 

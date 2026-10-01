@@ -15,6 +15,7 @@ const empty: Profile = {
   salary_max: null,
   verification_tier: "self_declared",
   is_hidden: false,
+  search_status: "open",
   skills: [],
 };
 

@@ -23,13 +23,15 @@ function buildUrl(path: string, query?: Query): string {
 
 function send(method: Method, url: string, body: unknown, token: string | null, extra: Record<string, string> = {}) {
   const headers: Record<string, string> = { ...extra };
-  if (body !== undefined) headers["Content-Type"] = "application/json";
+  // FormData (загрузка файла): заголовок с границей частей браузер выставит сам
+  const isForm = body instanceof FormData;
+  if (body !== undefined && !isForm) headers["Content-Type"] = "application/json";
   if (token) headers.Authorization = `Bearer ${token}`;
   return fetch(url, {
     method,
     headers,
     credentials: "same-origin",
-    body: body === undefined ? undefined : JSON.stringify(body),
+    body: body === undefined ? undefined : isForm ? body : JSON.stringify(body),
   });
 }
 

@@ -2,7 +2,15 @@ import { Send, Users } from "lucide-react";
 import { useMemo, useState } from "react";
 import { errorMessage } from "../../../api/errors";
 import { useSkills } from "../../../api/queries";
-import type { CandidateCard, CatalogCategory, CatalogFilters, Company, Grade, WorkFormat } from "../../../api/types";
+import type {
+  CandidateCard,
+  CatalogCategory,
+  CatalogFilters,
+  Company,
+  Grade,
+  SearchStatus,
+  WorkFormat,
+} from "../../../api/types";
 import { cn } from "../../../lib/cn";
 import { labels, options, tierLabels } from "../../../lib/format";
 import { Alert } from "../../../ui/Alert";
@@ -117,7 +125,7 @@ function CategoryGrid({ categories, selected, onSelect }: GridProps) {
 function Filters({ filters, onChange }: { filters: CatalogFilters; onChange: (patch: Partial<CatalogFilters>) => void }) {
   const skills = useSkills();
   return (
-    <div className="mb-6 grid gap-4 sm:grid-cols-3">
+    <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       <Field label="Грейд">
         <Select
           placeholder="Любой"
@@ -132,6 +140,14 @@ function Filters({ filters, onChange }: { filters: CatalogFilters; onChange: (pa
           options={options(labels.workFormat)}
           value={filters.work_format ?? ""}
           onChange={(e) => onChange({ work_format: (e.target.value || undefined) as WorkFormat | undefined })}
+        />
+      </Field>
+      <Field label="Статус поиска">
+        <Select
+          placeholder="Любой"
+          options={options({ active: labels.searchStatus.active, open: labels.searchStatus.open })}
+          value={filters.search_status ?? ""}
+          onChange={(e) => onChange({ search_status: (e.target.value || undefined) as SearchStatus | undefined })}
         />
       </Field>
       <Field label="Навык">

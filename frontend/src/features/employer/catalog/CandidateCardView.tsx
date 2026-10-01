@@ -2,7 +2,7 @@ import { Award, MapPin } from "lucide-react";
 import type { ReactNode } from "react";
 import type { CandidateCard } from "../../../api/types";
 import { formatSalaryRange, labels, tierLabels } from "../../../lib/format";
-import { tierTone } from "../../../lib/tones";
+import { searchTone, tierTone } from "../../../lib/tones";
 import { Badge } from "../../../ui/Badge";
 
 const MAX_ACHIEVEMENTS = 3;
@@ -33,9 +33,12 @@ export function CandidateCardView({ card, action }: { card: CandidateCard; actio
             )}
           </p>
         </div>
-        <Badge tone={card.verification_tier === "verified_fsp" ? "accent" : "neutral"}>
-          {labels.tier[card.verification_tier]}
-        </Badge>
+        <div className="flex flex-wrap gap-2">
+          <Badge tone={searchTone[card.search_status]}>{labels.searchStatus[card.search_status]}</Badge>
+          <Badge tone={card.verification_tier === "verified_fsp" ? "accent" : "neutral"}>
+            {labels.tier[card.verification_tier]}
+          </Badge>
+        </div>
       </div>
 
       <p className="text-sm">

@@ -15,6 +15,7 @@ const profile: Profile = {
   salary_max: null,
   verification_tier: "self_declared",
   is_hidden: false,
+  search_status: "open",
   skills: [{ slug: "python", name: "Python" }],
 };
 
@@ -32,6 +33,7 @@ describe("profile form", () => {
       salary_max: null,
       skills: ["python"],
       is_hidden: false,
+      search_status: "open",
       contacts: { phone: null, telegram: "@anna", email: null },
     });
   });

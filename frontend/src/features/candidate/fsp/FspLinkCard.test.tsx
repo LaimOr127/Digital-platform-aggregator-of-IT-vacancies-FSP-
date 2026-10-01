@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { FspStatus } from "../../../api/types";
 import { ToastProvider } from "../../../ui/Toast";
@@ -29,7 +30,9 @@ function renderCard(status: FspStatus) {
   render(
     <QueryClientProvider client={new QueryClient()}>
       <ToastProvider>
-        <FspLinkCard status={status} />
+        <MemoryRouter>
+          <FspLinkCard status={status} />
+        </MemoryRouter>
       </ToastProvider>
     </QueryClientProvider>,
   );
@@ -74,5 +77,6 @@ describe("FspLinkCard", () => {
     renderCard({ ...base, linked: true, athlete_id: "FSP-24002", rank: "МС", region: "Томск" });
     expect(screen.getByText("Аккаунт ФСП FSP-24002")).toBeInTheDocument();
     expect(screen.getByText("МС")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Заполнить профиль из анкеты ФСП/ })).toHaveAttribute("href", "/app?import=fsp");
   });
 });

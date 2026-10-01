@@ -1,10 +1,12 @@
 import { BadgeCheck, CircleCheck, CircleDashed, Link2 } from "lucide-react";
 import { motion } from "motion/react";
-import { Link } from "react-router";
+import { useEffect, useState } from "react";
+import { Link, useSearchParams } from "react-router";
 import { useSkills } from "../../api/queries";
 import type { Profile } from "../../api/types";
 import { errorMessage } from "../../api/errors";
 import { labels } from "../../lib/format";
+import { searchTone } from "../../lib/tones";
 import { Alert } from "../../ui/Alert";
 import { PageHeader } from "../../ui/AppShell";
 import { Badge } from "../../ui/Badge";
@@ -18,6 +20,13 @@ export function ProfilePage() {
   const profile = useProfile();
   const skills = useSkills();
   const error = profile.error ?? skills.error;
+  // переход со страницы ФСП «заполнить профиль из анкеты»: флаг читается один раз и убирается
+  // из адреса, чтобы обновление страницы не открывало импорт снова
+  const [params, setParams] = useSearchParams();
+  const [autoFsp] = useState(() => params.get("import") === "fsp");
+  useEffect(() => {
+    if (params.has("import")) setParams({}, { replace: true });
+  }, [params, setParams]);
 
   return (
     <>
@@ -29,7 +38,12 @@ export function ProfilePage() {
       {!error && (!profile.data || !skills.data) && <LoadingBlock />}
       {profile.data && skills.data && (
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-          <ProfileForm profile={profile.data} skills={skills.data} />
+          <ProfileForm
+            profile={profile.data}
+            skills={skills.data}
+            fspLinked={profile.data.verification_tier === "verified_fsp"}
+            autoFsp={autoFsp}
+          />
           <aside className="flex flex-col gap-6 lg:sticky lg:top-24">
             <StatusCard profile={profile.data} />
             <FspPromoCard verified={profile.data.verification_tier === "verified_fsp"} />
@@ -47,8 +61,11 @@ function StatusCard({ profile }: { profile: Profile }) {
     <Card>
       <div className="flex items-center justify-between">
         <CardTitle>Статус профиля</CardTitle>
-        {profile.is_hidden ? <Badge tone="warn">Скрыт</Badge> : <Badge tone="accent">В каталоге</Badge>}
+        <CatalogBadge profile={profile} />
       </div>
+      <p className="mt-3 text-sm">
+        <Badge tone={searchTone[profile.search_status]}>{labels.searchStatus[profile.search_status]}</Badge>
+      </p>
       <div className="mt-5">
         <div className="flex items-baseline justify-between text-sm">
           <span className="text-muted">Заполненность</span>
@@ -90,6 +107,12 @@ function StatusCard({ profile }: { profile: Profile }) {
       </div>
     </Card>
   );
+}
+
+function CatalogBadge({ profile }: { profile: Profile }) {
+  if (profile.is_hidden) return <Badge tone="warn">Скрыт</Badge>;
+  if (profile.search_status === "closed") return <Badge tone="neutral">Не в каталоге</Badge>;
+  return <Badge tone="accent">В каталоге</Badge>;
 }
 
 function FspPromoCard({ verified }: { verified: boolean }) {
