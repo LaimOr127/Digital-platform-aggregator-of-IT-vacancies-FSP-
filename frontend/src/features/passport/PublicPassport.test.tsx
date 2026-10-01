@@ -11,7 +11,9 @@ const payload = {
   passport_id: "p1",
   issuer: "IT Match · ФСП",
   issued_at: "2026-10-01T10:00:00+00:00",
-  holder: { name: null },
+  holder: { name: null, source: null },
+  demo: false,
+  expires_at: "2027-10-01T10:00:00+00:00",
   title: "Backend",
   grade: "middle",
   skills: ["Python"],
@@ -21,7 +23,18 @@ const payload = {
 };
 
 function passport(overrides: object) {
-  return { id: "p1", issued_at: "2026-10-01T10:00:00Z", revoked_at: null, payload, signature: "sig", key_id: "k1", valid: true, public_key: "pk", ...overrides };
+  return {
+    id: "p1",
+    issued_at: "2026-10-01T10:00:00Z",
+    revoked_at: null,
+    status: "valid",
+    payload,
+    signature: "sig",
+    key_id: "k1",
+    valid: true,
+    public_key: "pk",
+    ...overrides,
+  };
 }
 
 function renderPage() {
@@ -45,22 +58,42 @@ afterEach(() => vi.unstubAllGlobals());
 describe("PublicPassport", () => {
   it("shows a valid anonymous passport with FSP data", async () => {
     renderPage();
-    expect(await screen.findByText("Подлинность подтверждена")).toBeInTheDocument();
+    expect(await screen.findByText("Подпись подлинная, паспорт действует")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Имя скрыто владельцем" })).toBeInTheDocument();
+    expect(screen.getByText(/не удостоверяет личность/)).toBeInTheDocument();
+    expect(screen.getByText(/заявлено кандидатом/)).toBeInTheDocument();
     expect(screen.getByText("Подтверждено ФСП")).toBeInTheDocument();
     expect(screen.getByText(/2 место — Чемпионат/)).toBeInTheDocument();
   });
 
-  it("warns about a revoked passport", async () => {
-    vi.stubGlobal("fetch", respond(passport({ valid: false, revoked_at: "2026-10-02T10:00:00Z" })));
+  it("shows only the revocation for a revoked passport", async () => {
+    vi.stubGlobal(
+      "fetch",
+      respond(passport({ valid: false, status: "revoked", revoked_at: "2026-10-02T10:00:00Z", payload: null, signature: null })),
+    );
     renderPage();
     expect(await screen.findByText("Паспорт отозван")).toBeInTheDocument();
+    expect(screen.queryByText(/Чемпионат/)).not.toBeInTheDocument();
   });
 
-  it("warns about a broken signature", async () => {
-    vi.stubGlobal("fetch", respond(passport({ valid: false })));
+  it.each([
+    ["bad_signature", "Подпись не совпадает"],
+    ["expired", "Срок действия истёк"],
+    ["unknown_key", "Подписан неактуальным ключом"],
+  ])("explains status %s", async (status, text) => {
+    vi.stubGlobal("fetch", respond(passport({ valid: false, status })));
     renderPage();
-    expect(await screen.findByText("Подпись не совпадает")).toBeInTheDocument();
+    expect(await screen.findByText(text)).toBeInTheDocument();
+  });
+
+  it("marks a verified name and the demo stand", async () => {
+    vi.stubGlobal(
+      "fetch",
+      respond(passport({ payload: { ...payload, demo: true, holder: { name: "Анна Смирнова", source: "fsp" } } })),
+    );
+    renderPage();
+    expect(await screen.findByText("Имя подтверждено ФСП")).toBeInTheDocument();
+    expect(screen.getByText(/демо-стенде/)).toBeInTheDocument();
   });
 
   it("reports unknown passport", async () => {

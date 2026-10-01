@@ -49,6 +49,7 @@ if [ -n "$DEMO" ]; then
   PID="$(curl -s -H "$AUTH" -H "$J" -d '{"show_name":false}' "$BASE/api/v1/candidate/passport" | sed -n 's/^{"id":"\([^"]*\)".*/\1/p')"
   check "Паспорт навыков проверяется публично"  1   "$(curl -s "$BASE/api/v1/public/passport/$PID" | grep -c '"valid":true')"
   check "Страница паспорта (SPA)"               200 "$(code "$BASE/passport/$PID")"
+  check "Паспорт не индексируется"              1   "$(curl -sI "$BASE/passport/$PID" | grep -ic '^x-robots-tag: noindex')"
   check "Отвязка ФСП отзывает паспорт"          204 "$(code -X DELETE -H "$AUTH" "$BASE/api/v1/candidate/fsp")"
   check "Отозванный паспорт не действителен"    1   "$(curl -s "$BASE/api/v1/public/passport/$PID" | grep -c '"valid":false')"
 else

@@ -77,3 +77,38 @@ def test_code_expires():
     now[0] = 601
     with pytest.raises(VerificationError, match="expired"):
         store.confirm(request_id, code)
+
+
+def test_new_code_invalidates_previous_request():
+    store = VerificationStore()
+    first, code = store.start("FSP-24001")
+    store.start("FSP-24001")
+    with pytest.raises(VerificationError, match="expired"):
+        store.confirm(first, code)
+
+
+def test_daily_failure_cap_per_athlete():
+    """Перебор через новые запросы кода упирается в суточный лимит неудач на аккаунт."""
+    from app.verification import MAX_DAILY_FAILURES
+
+    now = [0.0]
+    store = VerificationStore(clock=lambda: now[0])
+    failures = 0
+    while failures < MAX_DAILY_FAILURES:
+        request_id, code = store.start("FSP-24001")
+        wrong = "111111" if code != "111111" else "222222"
+        with pytest.raises(VerificationError):
+            store.confirm(request_id, wrong)
+        failures += 1
+    with pytest.raises(VerificationError) as exc:
+        store.start("FSP-24001")
+    assert exc.value.status == 429
+    now[0] = 86_401  # через сутки лимит снимается
+    assert store.start("FSP-24001")
+
+
+def test_mask_hides_name_length():
+    from app.data import mask_email
+
+    assert mask_email("ab@x.ru") == "a***@x.ru"
+    assert mask_email("anna.smirnova@example.org") == "a***@example.org"

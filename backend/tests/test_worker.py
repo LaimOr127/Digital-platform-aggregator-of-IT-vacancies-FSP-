@@ -1,43 +1,103 @@
-"""Фоновая синхронизация ФСП: обновляет просроченные привязки, переживает ошибки."""
+"""Фоновая синхронизация ФСП: расписание, паузы после ошибок, отвязка удалённых аккаунтов."""
 
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 
 from httpx import AsyncClient
+from sqlalchemy import select, update
 
 from app.core.config import Settings
+from app.core.errors import ServiceUnavailableError
+from app.db.session import set_rls_context
+from app.models import FspLink
+from app.services.fsp_sync import backoff
 from app.worker.jobs import FspSyncJob, HeartbeatJob, build_jobs
-from tests.fake_fsp import CODE, result
-from tests.helpers import bearer, register_candidate
+from tests.fake_fsp import result
+from tests.helpers import bearer, link_fsp, register_candidate
 
 FSP = "/api/v1/candidate/fsp"
+HOUR = timedelta(hours=1)
 
 
 async def linked(client: AsyncClient, athlete_id: str) -> str:
     token = await register_candidate(client)
-    await client.post(f"{FSP}/link", json={"athlete_id": athlete_id}, headers=bearer(token))
-    await client.post(f"{FSP}/confirm", json={"code": CODE}, headers=bearer(token))
+    await link_fsp(client, token, athlete_id)
     return token
 
 
-async def test_sync_job_updates_due_profiles(client: AsyncClient, db, fsp):
+async def make_due(db) -> None:
+    async with db.sessionmaker() as session:
+        await set_rls_context(session, None, "system")
+        await session.execute(update(FspLink).values(next_sync_at=datetime.now(UTC) - HOUR))
+        await session.commit()
+
+
+async def links(db) -> dict[str, FspLink]:
+    async with db.sessionmaker() as session:
+        await set_rls_context(session, None, "system")
+        return {
+            link.athlete_id: link for link in (await session.execute(select(FspLink))).scalars()
+        }
+
+
+async def test_sync_job_follows_schedule(client: AsyncClient, db, fsp):
     token = await linked(client, "FSP-2")
     athlete, results = fsp.athletes["FSP-2"]
     fsp.athletes["FSP-2"] = (athlete, [*results, result("r7", "security", "national", 1)])
-
-    fresh_only = FspSyncJob(db, fsp, sync_every=timedelta(hours=6))
-    assert await fresh_only.run() == 0  # только что синхронизирован — не трогаем
-
-    job = FspSyncJob(db, fsp, sync_every=timedelta(seconds=0))
+    job = FspSyncJob(db, fsp, sync_every=HOUR)
+    assert await job.run() == 0  # только что синхронизирован — не по расписанию
+    await make_due(db)
     assert await job.run() == 1
     body = (await client.get(FSP, headers=bearer(token))).json()
     assert [c["slug"] for c in body["categories"]] == ["security-elite"]
 
 
-async def test_sync_job_survives_failing_profile(client: AsyncClient, db, fsp):
+async def test_account_removed_in_fsp_is_detached(client: AsyncClient, db, fsp):
+    token = await linked(client, "FSP-1")
+    await linked(client, "FSP-2")
+    await make_due(db)
+    del fsp.athletes["FSP-1"]
+    assert await FspSyncJob(db, fsp, sync_every=HOUR).run() == 1
+    body = (await client.get(FSP, headers=bearer(token))).json()
+    assert body["linked"] is False and body["verification_tier"] == "self_declared"
+
+
+async def test_failing_link_is_postponed_and_does_not_block_queue(client: AsyncClient, db, fsp):
     await linked(client, "FSP-1")
     await linked(client, "FSP-2")
-    del fsp.athletes["FSP-1"]  # аккаунт пропал в ФСП — ошибка только для этого профиля
-    assert await FspSyncJob(db, fsp, sync_every=timedelta(seconds=0)).run() == 1
+    await make_due(db)
+    original = fsp.get_results
+
+    async def broken_for_first(athlete_id: str):
+        if athlete_id == "FSP-1":
+            raise RuntimeError("boom")
+        return await original(athlete_id)
+
+    fsp.get_results = broken_for_first
+    assert await FspSyncJob(db, fsp, sync_every=HOUR).run() == 1
+    state = await links(db)
+    assert state["FSP-1"].sync_failures == 1
+    assert state["FSP-1"].next_sync_at.replace(tzinfo=UTC) > datetime.now(UTC)
+
+
+async def test_fsp_outage_stops_the_batch(client: AsyncClient, db, fsp):
+    await linked(client, "FSP-1")
+    await linked(client, "FSP-2")
+    await make_due(db)
+    calls = []
+
+    async def down(athlete_id: str):
+        calls.append(athlete_id)
+        raise ServiceUnavailableError("down")
+
+    fsp.get_athlete = down
+    assert await FspSyncJob(db, fsp, sync_every=HOUR).run() == 0
+    assert len(calls) == 1  # после первой недоступности пакет прерван
+
+
+def test_backoff_grows_and_is_capped():
+    assert backoff(1) == timedelta(minutes=15)
+    assert backoff(3) == timedelta(hours=1)
+    assert backoff(50) == timedelta(hours=24)
 
 
 async def test_build_jobs(db, fsp):

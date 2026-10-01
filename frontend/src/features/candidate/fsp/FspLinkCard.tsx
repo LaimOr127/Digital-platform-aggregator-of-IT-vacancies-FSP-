@@ -9,7 +9,7 @@ import { Alert } from "../../../ui/Alert";
 import { Badge } from "../../../ui/Badge";
 import { Button } from "../../../ui/Button";
 import { Card, CardTitle } from "../../../ui/Card";
-import { Dialog } from "../../../ui/Dialog";
+import { ConfirmDialog } from "../../../ui/ConfirmDialog";
 import { Field, Input } from "../../../ui/form";
 import { useToast } from "../../../ui/Toast";
 import { useAction } from "../../../ui/useAction";
@@ -104,15 +104,19 @@ function CodeStep({ athleteId, started, onChangeId }: CodeStepProps) {
   const onSubmit = form.handleSubmit(async ({ code }) => {
     setFormError(null);
     try {
-      await confirm.mutateAsync(code);
-      notify("Аккаунт ФСП привязан — достижения загружены");
+      const status = await confirm.mutateAsync(code);
+      notify(
+        status?.last_synced_at
+          ? "Аккаунт ФСП привязан — достижения загружены"
+          : "Аккаунт ФСП привязан. ФСП сейчас не отвечает — достижения подгрузятся автоматически",
+      );
     } catch (err) {
       setFormError(applyServerErrors(err, form.setError, ["code"]));
     }
   });
   return (
     <form onSubmit={onSubmit} noValidate className="mt-6 flex flex-col gap-4">
-      <p className="text-sm">
+      <p className="text-sm" role="status">
         Код для <span className="font-medium">{athleteId}</span> отправлен
         {started ? ` на ${started.email_masked}` : " на почту аккаунта ФСП"}. Он действует 10 минут.
       </p>
@@ -126,7 +130,15 @@ function CodeStep({ athleteId, started, onChangeId }: CodeStepProps) {
       )}
       {formError && <Alert>{formError}</Alert>}
       <Field label="Код из письма" error={form.formState.errors.code?.message}>
-        <Input inputMode="numeric" autoComplete="one-time-code" maxLength={6} className="max-w-40 font-mono tracking-widest" {...form.register("code")} />
+        {/* фокус сразу на поле кода: шаг ввода ID (и кнопка в фокусе) исчезает */}
+        <Input
+          autoFocus
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          maxLength={6}
+          className="max-w-40 font-mono tracking-widest"
+          {...form.register("code")}
+        />
       </Field>
       <div className="flex flex-wrap gap-3">
         <Button type="submit" loading={confirm.isPending}>
@@ -174,24 +186,17 @@ function LinkedAccount({ status }: { status: FspStatus }) {
           </Button>
         </div>
       </div>
-      <Dialog open={confirming} title="Отвязать аккаунт ФСП?" onClose={() => setConfirming(false)} busy={unlink.isPending}>
-        <p className="text-sm text-muted">
-          Достижения и категории удалятся из профиля, уровень подтверждения станет «Заявлено кандидатом», а действующий
-          паспорт навыков будет отозван — он больше не подтверждён данными ФСП.
-        </p>
-        <div className="mt-6 flex justify-end gap-3">
-          <Button variant="ghost" onClick={() => setConfirming(false)} disabled={unlink.isPending}>
-            Отмена
-          </Button>
-          <Button
-            variant="danger"
-            loading={unlink.isPending}
-            onClick={() => run(unlink, undefined, "Аккаунт ФСП отвязан", () => setConfirming(false))}
-          >
-            Отвязать
-          </Button>
-        </div>
-      </Dialog>
+      <ConfirmDialog
+        open={confirming}
+        title="Отвязать аккаунт ФСП?"
+        confirmLabel="Отвязать"
+        pending={unlink.isPending}
+        onClose={() => setConfirming(false)}
+        onConfirm={() => run(unlink, undefined, "Аккаунт ФСП отвязан", () => setConfirming(false))}
+      >
+        Достижения и категории удалятся из профиля, уровень подтверждения станет «Заявлено кандидатом», а действующий
+        паспорт навыков будет отозван — он больше не подтверждён данными ФСП.
+      </ConfirmDialog>
     </Card>
   );
 }

@@ -18,6 +18,8 @@ env:            ## создать .env со случайными секрета�
 
 up: env check-dupes  ## поднять сервисы S
 	$(DC) up -d --build $(S)
+	@# Caddyfile смонтирован в контейнер: перезапуск подхватывает его изменения (admin API выключен)
+	@case " $(S) " in *" proxy "*) $(DC) restart proxy >/dev/null ;; esac
 
 down:           ## остановить и удалить сервисы S (тома сохраняются)
 	$(DC) rm -sf $(S)

@@ -51,8 +51,9 @@ class Athlete:
 
 
 def mask_email(email: str) -> str:
+    """Первая буква и домен: длина и конец имени не раскрываются."""
     name, _, domain = email.partition("@")
-    return f"{name[0]}{'*' * max(1, len(name) - 2)}{name[-1]}@{domain}"
+    return f"{name[:1]}***@{domain}"
 
 
 COMPETITIONS = {

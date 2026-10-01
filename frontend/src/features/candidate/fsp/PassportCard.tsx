@@ -5,7 +5,7 @@ import { formatDate, labels } from "../../../lib/format";
 import { Alert } from "../../../ui/Alert";
 import { Button } from "../../../ui/Button";
 import { Card, CardTitle } from "../../../ui/Card";
-import { Dialog } from "../../../ui/Dialog";
+import { ConfirmDialog } from "../../../ui/ConfirmDialog";
 import { Switch } from "../../../ui/form";
 import { QrCode } from "../../../ui/QrCode";
 import { useToast } from "../../../ui/Toast";
@@ -56,7 +56,7 @@ export function PassportCard({ passport, tier }: Props) {
       <div className="mt-5 flex flex-col gap-4 border-t border-line pt-5">
         <Switch
           label="Показывать имя и ID ФСП"
-          description="По умолчанию паспорт анонимный: работодатель увидит навыки и достижения без имени"
+          description="Имя берётся из ФСП (подтверждённое). Анонимный паспорт обобщает достижения, чтобы вас нельзя было найти по протоколам"
           checked={showName}
           onChange={(e) => setShowName(e.target.checked)}
         />
@@ -123,23 +123,17 @@ function ActivePassport({ passport }: { passport: Passport }) {
           </Button>
         </div>
       </div>
-      <Dialog open={confirming} title="Отозвать паспорт?" onClose={() => setConfirming(false)} busy={revoke.isPending}>
-        <p className="text-sm text-muted">
-          По ссылке и QR-коду работодатели увидят, что паспорт отозван. Новый паспорт можно выпустить в любой момент.
-        </p>
-        <div className="mt-6 flex justify-end gap-3">
-          <Button variant="ghost" onClick={() => setConfirming(false)} disabled={revoke.isPending}>
-            Отмена
-          </Button>
-          <Button
-            variant="danger"
-            loading={revoke.isPending}
-            onClick={() => run(revoke, undefined, "Паспорт отозван", () => setConfirming(false))}
-          >
-            Отозвать
-          </Button>
-        </div>
-      </Dialog>
+      <ConfirmDialog
+        open={confirming}
+        title="Отозвать паспорт?"
+        confirmLabel="Отозвать"
+        pending={revoke.isPending}
+        onClose={() => setConfirming(false)}
+        onConfirm={() => run(revoke, undefined, "Паспорт отозван", () => setConfirming(false))}
+      >
+        По ссылке и QR-коду работодатели увидят только то, что паспорт отозван, — без ваших данных. Новый паспорт можно
+        выпустить в любой момент.
+      </ConfirmDialog>
     </div>
   );
 }

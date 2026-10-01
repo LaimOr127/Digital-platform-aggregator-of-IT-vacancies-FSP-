@@ -4,6 +4,7 @@ from typing import Any
 from sqlalchemy import Select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.errors import NotFoundError
 from app.models import CandidateProfile, Skill
 from app.repositories.base import BaseRepository
 
@@ -22,6 +23,16 @@ class CandidateProfileRepository(BaseRepository[CandidateProfile]):
 
     async def own(self) -> CandidateProfile | None:
         return await self.first()
+
+    async def own_or_404(self, for_update: bool = False) -> CandidateProfile:
+        """Свой профиль; for_update блокирует строку (параллельные выпуск/отвязка/привязка)."""
+        stmt = self._select().limit(1)
+        if for_update:
+            stmt = stmt.with_for_update()
+        profile = (await self.session.execute(stmt)).scalar_one_or_none()
+        if profile is None:
+            raise NotFoundError("profile not found")
+        return profile
 
 
 class SkillRepository(BaseRepository[Skill]):

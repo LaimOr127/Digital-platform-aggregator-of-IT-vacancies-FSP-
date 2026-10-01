@@ -1,6 +1,6 @@
 // Публичная проверка паспорта навыков: открывается без входа по ссылке или QR-коду.
 import { useQuery } from "@tanstack/react-query";
-import { BadgeCheck, Printer, ShieldAlert, ShieldX } from "lucide-react";
+import { Printer } from "lucide-react";
 import type { ReactNode } from "react";
 import { useParams } from "react-router";
 import { ApiError, errorMessage } from "../../api/errors";
@@ -14,6 +14,7 @@ import { Card, CardTitle } from "../../ui/Card";
 import { Logo } from "../../ui/Logo";
 import { QrCode } from "../../ui/QrCode";
 import { LoadingBlock } from "../../ui/Spinner";
+import { Verdict } from "./Verdict";
 
 export default function PublicPassport() {
   const { id = "" } = useParams();
@@ -25,7 +26,7 @@ export default function PublicPassport() {
       <header className="no-print border-b border-line">
         <div className="mx-auto flex h-16 max-w-4xl items-center justify-between px-4 sm:px-6">
           <Logo />
-          {query.data && (
+          {query.data?.payload && (
             <Button variant="secondary" size="sm" onClick={() => window.print()}>
               <Printer className="size-4" aria-hidden />
               Сохранить PDF
@@ -47,51 +48,34 @@ export default function PublicPassport() {
   );
 }
 
-function Verdict({ passport }: { passport: PassportVerify }) {
-  if (passport.valid) {
+function PassportView({ passport }: { passport: PassportVerify }) {
+  const p = passport.payload as PassportPayload | null;
+  if (!p) {
     return (
-      <div role="status" className="flex items-start gap-3 rounded-2xl border border-accent/40 bg-accent/10 p-5">
-        <BadgeCheck className="mt-0.5 size-6 shrink-0 text-accent" aria-hidden />
-        <div>
-          <p className="font-semibold text-accent">Подлинность подтверждена</p>
-          <p className="mt-1 text-sm text-muted">
-            Электронная подпись совпадает, данные не менялись с момента выпуска, паспорт действует.
-          </p>
-        </div>
+      <div className="mt-4">
+        <Verdict passport={passport} verifiedByFsp={false} />
       </div>
     );
   }
-  const revoked = Boolean(passport.revoked_at);
-  const Icon = revoked ? ShieldX : ShieldAlert;
-  return (
-    <div role="alert" className="flex items-start gap-3 rounded-2xl border border-danger/40 bg-danger/10 p-5">
-      <Icon className="mt-0.5 size-6 shrink-0 text-danger" aria-hidden />
-      <div>
-        <p className="font-semibold text-danger">{revoked ? "Паспорт отозван" : "Подпись не совпадает"}</p>
-        <p className="mt-1 text-sm text-muted">
-          {revoked
-            ? `Владелец отозвал паспорт ${formatDate(passport.revoked_at!)} — данные ниже больше не подтверждаются.`
-            : "Данные паспорта изменены после выпуска — доверять им нельзя."}
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function PassportView({ passport }: { passport: PassportVerify }) {
-  const p = passport.payload as PassportPayload;
-  const headline = [p.title, p.grade ? labels.grade[p.grade] : null].filter(Boolean).join(" · ");
+  const verified = p.verification_tier === "verified_fsp";
+  const declared = [p.title, p.grade ? labels.grade[p.grade] : null].filter(Boolean).join(" · ");
   return (
     <div className="mt-4 flex flex-col gap-6">
-      <Verdict passport={passport} />
+      {p.demo && (
+        <Alert tone="warn">Паспорт выпущен на демо-стенде: данные ФСП тестовые, для найма не используются.</Alert>
+      )}
+      <Verdict passport={passport} verifiedByFsp={verified} />
       <Card className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">{p.holder.name ?? "Имя скрыто владельцем"}</h1>
-          {headline && <p className="mt-2 text-lg text-muted">{headline}</p>}
+          <p className="mt-1 text-sm text-muted">{holderNote(p)}</p>
+          {declared && (
+            <p className="mt-3 text-lg">
+              {declared} <span className="text-sm text-muted">· заявлено кандидатом</span>
+            </p>
+          )}
           <div className="mt-4 flex flex-wrap gap-2">
-            <Badge tone={p.verification_tier === "verified_fsp" ? "accent" : "neutral"}>
-              {labels.tier[p.verification_tier]}
-            </Badge>
+            <Badge tone={verified ? "accent" : "neutral"}>{labels.tier[p.verification_tier]}</Badge>
             {p.fsp.rank && <Badge tone="info">Разряд: {p.fsp.rank}</Badge>}
             {p.fsp.athlete_id && <Badge>ФСП {p.fsp.athlete_id}</Badge>}
           </div>
@@ -99,8 +83,15 @@ function PassportView({ passport }: { passport: PassportVerify }) {
         <QrCode value={window.location.href} size={120} label="QR-код этой страницы проверки" />
       </Card>
 
+      {!p.holder.name && (
+        <Alert tone="info">
+          Анонимный паспорт подтверждает навыки, но не удостоверяет личность того, кто его показывает. Попросите
+          кандидата выпустить паспорт с именем или подтвердить его в кабинете.
+        </Alert>
+      )}
+
       {p.categories.length > 0 && (
-        <Section title="Категории">
+        <Section title="Категории (по данным ФСП)">
           <ul className="flex flex-col gap-2">
             {p.categories.map((c) => (
               <li key={c} className="rounded-xl border border-line bg-surface-2 px-4 py-2.5 text-sm">
@@ -114,8 +105,8 @@ function PassportView({ passport }: { passport: PassportVerify }) {
       {p.fsp.achievements.length > 0 && (
         <Section title="Подтверждено Федерацией спортивного программирования">
           <ul className="flex flex-col gap-3">
-            {p.fsp.achievements.map((a) => (
-              <li key={a.summary} className="text-sm">
+            {p.fsp.achievements.map((a, i) => (
+              <li key={i} className="text-sm">
                 <span className="text-muted">{a.discipline}: </span>
                 {a.summary}
               </li>
@@ -139,7 +130,15 @@ function PassportView({ passport }: { passport: PassportVerify }) {
       <Section title="Как проверить подпись самостоятельно">
         <dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-[auto_1fr]">
           <dt className="text-muted">Выпущен</dt>
-          <dd>{formatDate(passport.issued_at)} · {p.issuer}</dd>
+          <dd>
+            {formatDate(passport.issued_at)} · {p.issuer}
+          </dd>
+          {p.expires_at && (
+            <>
+              <dt className="text-muted">Действует до</dt>
+              <dd>{formatDate(p.expires_at)}</dd>
+            </>
+          )}
           <dt className="text-muted">Номер паспорта</dt>
           <dd className="break-all font-mono text-xs">{passport.id}</dd>
           <dt className="text-muted">Ключ (Ed25519)</dt>
@@ -161,6 +160,11 @@ function PassportView({ passport }: { passport: PassportVerify }) {
       </Section>
     </div>
   );
+}
+
+function holderNote(p: PassportPayload): string {
+  if (!p.holder.name) return "Анонимный паспорт";
+  return p.holder.source === "fsp" ? "Имя подтверждено ФСП" : "Имя указано кандидатом, ФСП не подтверждено";
 }
 
 function Section({ title, children }: { title: string; children: ReactNode }) {

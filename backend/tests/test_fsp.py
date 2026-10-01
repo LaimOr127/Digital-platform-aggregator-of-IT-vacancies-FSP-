@@ -1,20 +1,21 @@
 """Привязка ФСП: код подтверждения, синхронизация, категории, уровень подтверждения."""
 
+from datetime import UTC, datetime, timedelta
+
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import update
 
+from app.core.errors import ServiceUnavailableError
+from app.db.session import set_rls_context
+from app.models import FspVerification
 from tests.fake_fsp import CODE, result
-from tests.helpers import bearer, register_candidate, register_employer
+from tests.helpers import bearer, link_fsp, register_candidate, register_employer
 
 FSP = "/api/v1/candidate/fsp"
 
 
-async def link(client: AsyncClient, token: str, athlete_id: str = "FSP-1") -> dict:
-    r = await client.post(f"{FSP}/link", json={"athlete_id": athlete_id}, headers=bearer(token))
-    assert r.status_code == 200, r.text
-    r = await client.post(f"{FSP}/confirm", json={"code": CODE}, headers=bearer(token))
-    assert r.status_code == 200, r.text
-    return r.json()
+link = link_fsp
 
 
 async def test_status_before_linking(client: AsyncClient):
@@ -77,6 +78,7 @@ async def test_athlete_cannot_be_linked_twice(client: AsyncClient):
     await client.post(f"{FSP}/link", json={"athlete_id": "FSP-1"}, headers=bearer(thief))
     r = await client.post(f"{FSP}/confirm", json={"code": CODE}, headers=bearer(thief))
     assert r.status_code == 409
+    assert r.json()["error"]["message"] == "этот аккаунт ФСП уже привязан к другому профилю"
     assert (await client.get(FSP, headers=bearer(thief))).json()["linked"] is False
 
 
@@ -125,3 +127,54 @@ async def test_sync_and_unlink_require_link(client: AsyncClient, path: str):
 async def test_employer_cannot_use_fsp(client: AsyncClient):
     token = await register_employer(client)
     assert (await client.get(FSP, headers=bearer(token))).status_code == 403
+
+
+async def test_fsp_outage_during_confirm_keeps_link(client: AsyncClient, fsp):
+    """Код одноразовый: если ФСП не отдала данные после подтверждения, привязка сохраняется."""
+    token = await register_candidate(client)
+    await client.post(f"{FSP}/link", json={"athlete_id": "FSP-1"}, headers=bearer(token))
+
+    async def down(_athlete_id: str):
+        raise ServiceUnavailableError("down")
+
+    fsp.get_results = down
+    body = (await client.post(f"{FSP}/confirm", json={"code": CODE}, headers=bearer(token))).json()
+    assert body["linked"] is True and body["achievements"] == [] and body["last_synced_at"] is None
+
+
+async def test_expired_request_is_not_pending(client: AsyncClient, db):
+    token = await register_candidate(client)
+    await client.post(f"{FSP}/link", json={"athlete_id": "FSP-1"}, headers=bearer(token))
+    async with db.sessionmaker() as session:
+        await set_rls_context(session, None, "system")
+        await session.execute(
+            update(FspVerification).values(expires_at=datetime.now(UTC) - timedelta(minutes=1))
+        )
+        await session.commit()
+    body = (await client.get(FSP, headers=bearer(token))).json()
+    assert body["pending_athlete_id"] is None
+    r = await client.post(f"{FSP}/confirm", json={"code": CODE}, headers=bearer(token))
+    assert r.status_code == 400
+
+
+async def test_code_requests_limited_per_athlete(client: AsyncClient):
+    """Письма владельцу аккаунта ФСП не чаще лимита, даже от разных пользователей."""
+    codes = []
+    for _ in range(6):
+        token = await register_candidate(client)
+        r = await client.post(f"{FSP}/link", json={"athlete_id": "FSP-2"}, headers=bearer(token))
+        codes.append(r.status_code)
+    assert codes == [200] * 5 + [429]
+
+
+async def test_confirm_limited_per_user(client: AsyncClient, app):
+    app.state.rate_limits["fsp_confirm"] = (2, 3600)
+    token = await register_candidate(client)
+    await client.post(f"{FSP}/link", json={"athlete_id": "FSP-1"}, headers=bearer(token))
+    statuses = [
+        (
+            await client.post(f"{FSP}/confirm", json={"code": "000000"}, headers=bearer(token))
+        ).status_code
+        for _ in range(3)
+    ]
+    assert statuses == [400, 400, 429]

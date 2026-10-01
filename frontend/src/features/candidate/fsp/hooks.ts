@@ -22,7 +22,11 @@ function useFspMutation<A>(fn: (arg: A) => Promise<FspStatus | void>) {
   });
 }
 
-export const useStartLink = () => useMutation({ mutationFn: fspApi.link });
+export function useStartLink() {
+  const client = useQueryClient();
+  // статус с ожидающей заявкой: при возврате на страницу сразу шаг ввода кода
+  return useMutation({ mutationFn: fspApi.link, onSuccess: () => client.invalidateQueries({ queryKey: FSP }) });
+}
 export const useConfirmLink = () => useFspMutation(fspApi.confirm);
 export const useSyncFsp = () => useFspMutation(() => fspApi.sync());
 export const useUnlinkFsp = () => useFspMutation(() => fspApi.unlink());

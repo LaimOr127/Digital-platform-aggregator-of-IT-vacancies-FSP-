@@ -29,13 +29,18 @@ export type Category = Schemas["CategoryOut"];
 export type Passport = Schemas["PassportOut"];
 export type PassportVerify = Schemas["PassportVerifyOut"];
 
-/** Содержимое паспорта (подписанный JSON, версия 1). */
+export type PassportCheck = PassportVerify["status"];
+
+/** Содержимое паспорта (подписанный JSON, версия 2). */
 export type PassportPayload = {
   version: number;
   passport_id: string;
   issuer: string;
+  demo?: boolean;
   issued_at: string;
-  holder: { name: string | null };
+  expires_at?: string;
+  /** source: fsp — имя подтверждено ФСП; self — указано кандидатом */
+  holder: { name: string | null; source?: "fsp" | "self" | null };
   title: string | null;
   grade: Grade | null;
   skills: string[];

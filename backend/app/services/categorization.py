@@ -68,6 +68,16 @@ def describe(e: Evidence) -> str:
     return f"{outcome} — {e.title} ({e.date[:4]}, {LEVEL_TITLES.get(e.level, e.level)} уровень)"
 
 
+def describe_anonymous(e: Evidence) -> str:
+    """Без названия соревнования: по публичным протоколам нельзя однозначно найти человека."""
+    outcome = (
+        "призёр"
+        if e.place and e.place <= _PRIZE
+        else ("финалист" if e.stage == "final" else "участник")
+    )
+    return f"{outcome} — {LEVEL_TITLES.get(e.level, e.level)} уровень, {e.date[:4]}"
+
+
 def build_match(discipline: str, tier: str, reasons: list[str]) -> CategoryMatch:
     title = f"{DISCIPLINES.get(discipline, discipline)}: {TIER_TITLES[tier]}"
     return CategoryMatch(f"{discipline}-{tier}", discipline, tier, title, tuple(sorted(reasons)))
@@ -100,6 +110,12 @@ class DisciplineTierRule(CategoryRule):
 
 
 RULES: tuple[CategoryRule, ...] = (DisciplineTierRule(),)
+
+
+def all_categories() -> list[CategoryMatch]:
+    """Полный справочник категорий (дисциплина x уровень): засевается заранее, чтобы
+    категоризация только ссылалась на него и не создавала строки конкурентно."""
+    return [build_match(d, t, []) for d in DISCIPLINES for t in reversed(TIERS)]
 
 
 def categorize(
