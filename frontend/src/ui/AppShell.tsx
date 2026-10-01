@@ -2,7 +2,7 @@
 import { LogOut } from "lucide-react";
 import { motion } from "motion/react";
 import { useState, type ReactNode } from "react";
-import { useNavigate } from "react-router";
+import { NavLink, useNavigate } from "react-router";
 import { errorMessage } from "../api/errors";
 import { useAuth } from "../auth/AuthProvider";
 import { PORTALS } from "../auth/portal";
@@ -10,7 +10,9 @@ import { Button } from "./Button";
 import { Logo } from "./Logo";
 import { useToast } from "./Toast";
 
-export function AppShell({ children, actions }: { children: ReactNode; actions?: ReactNode }) {
+export type NavItem = { to: string; label: string; end?: boolean };
+
+export function AppShell({ children, actions, nav }: { children: ReactNode; actions?: ReactNode; nav?: NavItem[] }) {
   const auth = useAuth();
   const navigate = useNavigate();
   const notify = useToast();
@@ -44,6 +46,24 @@ export function AppShell({ children, actions }: { children: ReactNode; actions?:
             </Button>
           </div>
         </div>
+        {nav && (
+          <nav aria-label="Разделы кабинета" className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-4 sm:px-6">
+            {nav.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.end}
+                className={({ isActive }) =>
+                  `-mb-px whitespace-nowrap border-b-2 px-3 py-2.5 text-sm transition-colors ${
+                    isActive ? "border-accent text-fg" : "border-transparent text-muted hover:text-fg"
+                  }`
+                }
+              >
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
+        )}
       </header>
       <motion.main
         initial={{ opacity: 0, y: 8 }}

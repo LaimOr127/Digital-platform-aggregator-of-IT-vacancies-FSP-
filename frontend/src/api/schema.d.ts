@@ -158,6 +158,94 @@ export interface paths {
         patch: operations["update_profile_api_v1_candidate_profile_patch"];
         trace?: never;
     };
+    "/api/v1/candidate/fsp": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Привязка ФСП, достижения и категории */
+        get: operations["fsp_status_api_v1_candidate_fsp_get"];
+        put?: never;
+        post?: never;
+        /** Отвязать аккаунт ФСП */
+        delete: operations["fsp_unlink_api_v1_candidate_fsp_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/candidate/fsp/link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Запросить код подтверждения ФСП */
+        post: operations["fsp_link_api_v1_candidate_fsp_link_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/candidate/fsp/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Подтвердить привязку кодом */
+        post: operations["fsp_confirm_api_v1_candidate_fsp_confirm_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/candidate/fsp/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Обновить достижения из ФСП */
+        post: operations["fsp_sync_api_v1_candidate_fsp_sync_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/candidate/passport": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Действующий паспорт навыков */
+        get: operations["passport_active_api_v1_candidate_passport_get"];
+        put?: never;
+        /** Выпустить паспорт */
+        post: operations["passport_issue_api_v1_candidate_passport_post"];
+        /** Отозвать паспорт */
+        delete: operations["passport_revoke_api_v1_candidate_passport_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/employer/company": {
         parameters: {
             query?: never;
@@ -297,10 +385,65 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/public/passport/{passport_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Проверить паспорт навыков (публично) */
+        get: operations["passport_verify_api_v1_public_passport__passport_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/passport-key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Публичный ключ для проверки подписи паспортов */
+        get: operations["passport_key_api_v1_public_passport_key_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AchievementOut */
+        AchievementOut: {
+            /** Discipline */
+            discipline: string;
+            /** Discipline Title */
+            discipline_title: string;
+            /** Competition Title */
+            competition_title: string;
+            /** Level */
+            level: string;
+            /** Date */
+            date: string;
+            /** Place */
+            place: number | null;
+            /** Stage */
+            stage: string;
+            /** Role */
+            role: string;
+            /** Team */
+            team: string | null;
+        };
         /** CandidateRegisterIn */
         CandidateRegisterIn: {
             /** Password */
@@ -312,6 +455,19 @@ export interface components {
             email: string;
             /** Full Name */
             full_name: string;
+        };
+        /** CategoryOut */
+        CategoryOut: {
+            /** Slug */
+            slug: string;
+            /** Discipline */
+            discipline: string;
+            /** Tier */
+            tier: string;
+            /** Title */
+            title: string;
+            /** Reasons */
+            reasons: string[];
         };
         /** CompanyOut */
         CompanyOut: {
@@ -370,6 +526,57 @@ export interface components {
             /** Inn */
             inn?: string | null;
         };
+        /** FspConfirmIn */
+        FspConfirmIn: {
+            /** Code */
+            code: string;
+        };
+        /** FspLinkIn */
+        FspLinkIn: {
+            /**
+             * Athlete Id
+             * @description ID спортсмена в ФСП
+             */
+            athlete_id: string;
+        };
+        /** FspLinkStartOut */
+        FspLinkStartOut: {
+            /** Email Masked */
+            email_masked: string;
+            /** Expires In */
+            expires_in: number;
+            /**
+             * Demo Code
+             * @description только в демо-режиме с моком
+             */
+            demo_code?: string | null;
+        };
+        /** FspStatusOut */
+        FspStatusOut: {
+            /** Linked */
+            linked: boolean;
+            /** Athlete Id */
+            athlete_id?: string | null;
+            /** Rank */
+            rank?: string | null;
+            /** Region */
+            region?: string | null;
+            /** Last Synced At */
+            last_synced_at?: string | null;
+            /** Pending Athlete Id */
+            pending_athlete_id?: string | null;
+            verification_tier: components["schemas"]["VerificationTier"];
+            /**
+             * Demo Mode
+             * @description стенд с моком ФСП: коды видны в интерфейсе
+             * @default false
+             */
+            demo_mode: boolean;
+            /** Achievements */
+            achievements: components["schemas"]["AchievementOut"][];
+            /** Categories */
+            categories: components["schemas"]["CategoryOut"][];
+        };
         /**
          * Grade
          * @enum {string}
@@ -421,6 +628,64 @@ export interface components {
             items: components["schemas"]["VacancyOut"][];
             /** Next Cursor */
             next_cursor: string | null;
+        };
+        /** PassportIssueIn */
+        PassportIssueIn: {
+            /**
+             * Show Name
+             * @default false
+             */
+            show_name: boolean;
+        };
+        /** PassportOut */
+        PassportOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Issued At
+             * Format: date-time
+             */
+            issued_at: string;
+            /** Revoked At */
+            revoked_at: string | null;
+            /** Payload */
+            payload: {
+                [key: string]: unknown;
+            };
+            /** Signature */
+            signature: string;
+            /** Key Id */
+            key_id: string;
+        };
+        /** PassportVerifyOut */
+        PassportVerifyOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Issued At
+             * Format: date-time
+             */
+            issued_at: string;
+            /** Revoked At */
+            revoked_at: string | null;
+            /** Payload */
+            payload: {
+                [key: string]: unknown;
+            };
+            /** Signature */
+            signature: string;
+            /** Key Id */
+            key_id: string;
+            /** Valid */
+            valid: boolean;
+            /** Public Key */
+            public_key: string;
         };
         /**
          * ProfileOut
@@ -893,6 +1158,201 @@ export interface operations {
             };
         };
     };
+    fsp_status_api_v1_candidate_fsp_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FspStatusOut"];
+                };
+            };
+        };
+    };
+    fsp_unlink_api_v1_candidate_fsp_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    fsp_link_api_v1_candidate_fsp_link_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FspLinkIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FspLinkStartOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    fsp_confirm_api_v1_candidate_fsp_confirm_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FspConfirmIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FspStatusOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    fsp_sync_api_v1_candidate_fsp_sync_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FspStatusOut"];
+                };
+            };
+        };
+    };
+    passport_active_api_v1_candidate_passport_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PassportOut"] | null;
+                };
+            };
+        };
+    };
+    passport_issue_api_v1_candidate_passport_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PassportIssueIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PassportOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    passport_revoke_api_v1_candidate_passport_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     get_company_api_v1_employer_company_get: {
         parameters: {
             query?: never;
@@ -1220,6 +1680,59 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SkillOut"][];
+                };
+            };
+        };
+    };
+    passport_verify_api_v1_public_passport__passport_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                passport_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PassportVerifyOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    passport_key_api_v1_public_passport_key_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: string;
+                    };
                 };
             };
         };

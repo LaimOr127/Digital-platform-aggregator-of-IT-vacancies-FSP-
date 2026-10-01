@@ -11,7 +11,7 @@ MODE  ?= dev
 COMPOSE_FILES = -f deploy/compose.base.yml $(foreach s,$(ALL),-f deploy/compose.$(s).yml) -f deploy/compose.$(MODE).yml
 DC = docker compose --env-file .env $(COMPOSE_FILES)
 
-.PHONY: env up down stop logs logs-dump ps build dev prod test test-backend test-frontend smoke check-db verify config secrets-check clean migrate create-admin check-dupes
+.PHONY: env up down stop logs logs-dump ps build dev prod test test-backend test-fsp-mock test-frontend smoke check-db verify config secrets-check clean migrate create-admin check-dupes
 
 env:            ## создать .env со случайными секретами
 	@./scripts/gen-env.sh
@@ -46,10 +46,14 @@ dev:
 prod:
 	$(MAKE) up MODE=prod
 
-test: test-backend test-frontend
+test: test-backend test-fsp-mock test-frontend
 
 test-backend:   ## линт + тесты в контейнерах: SQLite и одноразовый PostgreSQL с RLS
 	./scripts/test-backend.sh
+
+test-fsp-mock:  ## линт и тесты мока ФСП в контейнере
+	docker run --rm -v "$$PWD/fsp-mock:/src:ro" -w /src -e PYTHONDONTWRITEBYTECODE=1 python:3.12-slim \
+	  sh -c "pip install -q --disable-pip-version-check -r requirements-dev.txt && ruff check --no-cache . && pytest -q -p no:cacheprovider"
 
 test-frontend:  ## тесты и сборка фронта в контейнере (node_modules на ПК не появляются)
 	docker build -q --target build -t itmatch/web:build frontend

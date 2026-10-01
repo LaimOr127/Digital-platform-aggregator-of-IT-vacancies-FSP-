@@ -12,7 +12,7 @@ describe("applyServerErrors", () => {
 
   it("returns API message for non-field errors", () => {
     const err = new ApiError(409, "conflict", "email уже зарегистрирован");
-    expect(applyServerErrors(err, vi.fn(), ["email"])).toBe("email уже зарегистрирован");
+    expect(applyServerErrors(err, vi.fn(), ["email"])).toBe("Email уже зарегистрирован");
   });
 
   it("returns general message when a field is unknown to the form", () => {

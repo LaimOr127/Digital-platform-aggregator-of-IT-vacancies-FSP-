@@ -7,7 +7,6 @@
 import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.crypto import FieldCipher, profile_field_context
@@ -15,9 +14,9 @@ from app.core.errors import NotFoundError
 from app.core.signing import PassportSigner
 from app.models import CandidateProfile, Passport
 from app.repositories.audit import AuditRepository
-from app.repositories.base import BaseRepository
 from app.repositories.candidates import CandidateProfileRepository
 from app.repositories.fsp import CategoryRepository, FspAchievementRepository, FspLinkRepository
+from app.repositories.passports import PassportRepository
 from app.schemas.fsp import PassportOut, PassportVerifyOut
 from app.services.access import Action, Principal, policy
 from app.services.categorization import DISCIPLINES, describe
@@ -25,20 +24,6 @@ from app.services.fsp_sync import to_evidence
 
 PAYLOAD_VERSION = 1
 ISSUER = "IT Match · ФСП"
-
-
-class PassportRepository(BaseRepository[Passport]):
-    model = Passport
-
-    async def active_for(self, profile_id: uuid.UUID) -> Passport | None:
-        return await self.first(Passport.profile_id == profile_id, Passport.revoked_at.is_(None))
-
-    async def revoke_all(self, profile_id: uuid.UUID) -> None:
-        await self.session.execute(
-            update(Passport)
-            .where(Passport.profile_id == profile_id, Passport.revoked_at.is_(None))
-            .values(revoked_at=datetime.now(UTC))
-        )
 
 
 def to_out(passport: Passport) -> PassportOut:

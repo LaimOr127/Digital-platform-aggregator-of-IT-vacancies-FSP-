@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { adminApi, authApi, candidateApi, employerApi, publicApi } from "./endpoints";
+import { adminApi, authApi, candidateApi, employerApi, fspApi, passportApi, publicApi } from "./endpoints";
 import { session } from "./session";
 
 let fetchMock: ReturnType<typeof vi.fn>;
@@ -33,6 +33,15 @@ describe("endpoints map to the backend API", () => {
     ["delete", () => employerApi.deleteVacancy("v1"), "DELETE", "/api/v1/employer/vacancies/v1"],
     ["companies", () => adminApi.companies("pending", undefined), "GET", "/api/v1/admin/companies?status=pending&limit=20"],
     ["set status", () => adminApi.setCompanyStatus("c1", "blocked", "фейк"), "POST", "/api/v1/admin/companies/c1/status"],
+    ["fsp status", () => fspApi.status(), "GET", "/api/v1/candidate/fsp"],
+    ["fsp link", () => fspApi.link("FSP-1"), "POST", "/api/v1/candidate/fsp/link"],
+    ["fsp confirm", () => fspApi.confirm("123456"), "POST", "/api/v1/candidate/fsp/confirm"],
+    ["fsp sync", () => fspApi.sync(), "POST", "/api/v1/candidate/fsp/sync"],
+    ["fsp unlink", () => fspApi.unlink(), "DELETE", "/api/v1/candidate/fsp"],
+    ["passport", () => passportApi.active(), "GET", "/api/v1/candidate/passport"],
+    ["issue passport", () => passportApi.issue(true), "POST", "/api/v1/candidate/passport"],
+    ["revoke passport", () => passportApi.revoke(), "DELETE", "/api/v1/candidate/passport"],
+    ["public passport", () => publicApi.passport("p/1"), "GET", "/api/v1/public/passport/p%2F1"],
   ])("%s", async (_name, call, method, url) => {
     await call();
     expect(lastCall()).toMatchObject({ method, url });

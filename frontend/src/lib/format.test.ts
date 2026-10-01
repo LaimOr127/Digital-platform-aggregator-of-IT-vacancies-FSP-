@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { daysLeft, formatDate, formatSalaryRange, labels, options } from "./format";
+import { daysLeft, formatDate, formatSalaryRange, labels, options, outcomeLabel } from "./format";
 
 describe("formatSalaryRange", () => {
   it("formats full range with non-breaking thousands", () => {
@@ -35,6 +35,14 @@ describe("labels", () => {
   });
   it("builds select options in declared order", () => {
     expect(options(labels.workFormat).map((o) => o.value)).toEqual(["office", "hybrid", "remote"]);
+  });
+});
+
+describe("outcomeLabel", () => {
+  it("prefers place, then final, then participation", () => {
+    expect(outcomeLabel(2, "final")).toBe("2 место");
+    expect(outcomeLabel(null, "final")).toBe("Финалист");
+    expect(outcomeLabel(null, "qualification")).toBe("Участник");
   });
 });
 

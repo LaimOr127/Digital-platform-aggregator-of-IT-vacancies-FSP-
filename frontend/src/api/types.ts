@@ -22,3 +22,24 @@ export type VacancyStatus = Schemas["VacancyStatus"];
 export type VacancyCreate = Schemas["VacancyCreateIn"];
 export type VacancyUpdate = Schemas["VacancyUpdateIn"];
 export type Page<T> = { items: T[]; next_cursor: string | null };
+export type FspStatus = Schemas["FspStatusOut"];
+export type FspLinkStart = Schemas["FspLinkStartOut"];
+export type Achievement = Schemas["AchievementOut"];
+export type Category = Schemas["CategoryOut"];
+export type Passport = Schemas["PassportOut"];
+export type PassportVerify = Schemas["PassportVerifyOut"];
+
+/** Содержимое паспорта (подписанный JSON, версия 1). */
+export type PassportPayload = {
+  version: number;
+  passport_id: string;
+  issuer: string;
+  issued_at: string;
+  holder: { name: string | null };
+  title: string | null;
+  grade: Grade | null;
+  skills: string[];
+  verification_tier: VerificationTier;
+  fsp: { athlete_id: string | null; rank: string | null; achievements: { discipline: string; summary: string }[] };
+  categories: string[];
+};

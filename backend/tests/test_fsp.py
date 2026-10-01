@@ -21,6 +21,7 @@ async def test_status_before_linking(client: AsyncClient):
     token = await register_candidate(client)
     body = (await client.get(FSP, headers=bearer(token))).json()
     assert body["linked"] is False and body["verification_tier"] == "self_declared"
+    assert body["demo_mode"] is False
     assert body["achievements"] == [] and body["categories"] == []
 
 

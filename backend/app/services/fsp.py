@@ -22,6 +22,7 @@ from app.repositories.fsp import (
     FspLinkRepository,
     FspVerificationRepository,
 )
+from app.repositories.passports import PassportRepository
 from app.schemas.fsp import AchievementOut, CategoryOut, FspLinkStartOut, FspStatusOut
 from app.services.access import Action, Principal, policy
 from app.services.categorization import DISCIPLINES
@@ -56,6 +57,7 @@ class FspService:
             last_synced_at=link.last_synced_at if link else None,
             pending_athlete_id=pending.athlete_id if pending and not link else None,
             verification_tier=profile.verification_tier,
+            demo_mode=self.settings.fsp_demo_codes,
             achievements=[
                 AchievementOut(
                     discipline=a.discipline,
@@ -136,6 +138,8 @@ class FspService:
         link = await self._link(profile)
         await self.session.delete(link)
         await self.syncer.clear(profile)
+        # паспорт утверждал «подтверждено ФСП» — без привязки это уже неправда
+        await PassportRepository(self.session).revoke_all(profile.id)
         await self.audit.record("fsp.unlinked", self.principal.user_id, "fsp_link", link.id)
         await self.session.commit()
 

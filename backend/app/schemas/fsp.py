@@ -48,6 +48,7 @@ class FspStatusOut(BaseModel):
     last_synced_at: datetime | None = None
     pending_athlete_id: str | None = None
     verification_tier: VerificationTier
+    demo_mode: bool = Field(default=False, description="стенд с моком ФСП: коды видны в интерфейсе")
     achievements: list[AchievementOut]
     categories: list[CategoryOut]
 
