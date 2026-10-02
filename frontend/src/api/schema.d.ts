@@ -260,6 +260,23 @@ export interface paths {
         patch: operations["update_profile_api_v1_candidate_profile_patch"];
         trace?: never;
     };
+    "/api/v1/candidate/account/delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Удалить аккаунт и все данные (152-ФЗ; подтверждение паролем) */
+        post: operations["delete_account_api_v1_candidate_account_delete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/candidate/import/capabilities": {
         parameters: {
             query?: never;
@@ -744,6 +761,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/candidate/insights/salary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Радар зарплат по моему грейду и стеку */
+        get: operations["candidate_salary_api_v1_candidate_insights_salary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/candidate/insights/growth": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Путь роста: чего не хватает до следующего грейда */
+        get: operations["candidate_growth_api_v1_candidate_insights_growth_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/employer/insights/salary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Рынок зарплат для вакансии (грейд и навыки) */
+        get: operations["employer_salary_api_v1_employer_insights_salary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/companies": {
         parameters: {
             query?: never;
@@ -1015,6 +1083,14 @@ export interface components {
              * @default Проверьте почту: если адрес зарегистрирован, письмо уже отправлено
              */
             detail: string;
+        };
+        /**
+         * AccountDeleteIn
+         * @description Удаление аккаунта подтверждается паролем.
+         */
+        AccountDeleteIn: {
+            /** Password */
+            password: string;
         };
         /** AchievementOut */
         AchievementOut: {
@@ -1502,6 +1578,30 @@ export interface components {
          * @enum {string}
          */
         Grade: "intern" | "junior" | "middle" | "senior" | "lead";
+        /** GradeSalaryOut */
+        GradeSalaryOut: {
+            grade: components["schemas"]["Grade"];
+            band: components["schemas"]["SalaryBandOut"] | null;
+        };
+        /** GrowthOut */
+        GrowthOut: {
+            current_grade: components["schemas"]["Grade"] | null;
+            target_grade: components["schemas"]["Grade"] | null;
+            /** Vacancies Considered */
+            vacancies_considered: number;
+            /** Missing Skills */
+            missing_skills: components["schemas"]["SkillShareOut"][];
+            /** Strengths */
+            strengths: components["schemas"]["SkillShareOut"][];
+            /** Salary Now */
+            salary_now: number | null;
+            /** Salary Target */
+            salary_target: number | null;
+            /** Fsp Next */
+            fsp_next: string;
+            /** Min Group */
+            min_group: number;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -2079,6 +2179,46 @@ export interface components {
             skills?: string[] | null;
         };
         /**
+         * SalaryBandOut
+         * @description Распределение зарплат группы: только если в ней не меньше min_group значений.
+         */
+        SalaryBandOut: {
+            /** Count */
+            count: number;
+            /** P25 */
+            p25: number;
+            /** Median */
+            median: number;
+            /** P75 */
+            p75: number;
+        };
+        /** SalaryRadarOut */
+        SalaryRadarOut: {
+            grade: components["schemas"]["Grade"] | null;
+            /**
+             * Skills
+             * @description навыки, по которым выбраны похожие вакансии
+             */
+            skills: string[];
+            /** @description вилки вакансий (середина) */
+            vacancies: components["schemas"]["SalaryBandOut"] | null;
+            /** @description реальные офферы платформы */
+            offers: components["schemas"]["SalaryBandOut"] | null;
+            /** @description ожидания кандидатов того же уровня */
+            peers: components["schemas"]["SalaryBandOut"] | null;
+            /**
+             * Ladder
+             * @description вакансии с тем же стеком по грейдам
+             */
+            ladder: components["schemas"]["GradeSalaryOut"][];
+            /** Expectation */
+            expectation?: number | null;
+            /** Position */
+            position?: ("below" | "within" | "above") | null;
+            /** Min Group */
+            min_group: number;
+        };
+        /**
          * SearchStatus
          * @description Статус поиска работы кандидата: виден работодателям в каталоге.
          * @enum {string}
@@ -2090,6 +2230,18 @@ export interface components {
             slug: string;
             /** Name */
             name: string;
+        };
+        /** SkillShareOut */
+        SkillShareOut: {
+            /** Slug */
+            slug: string;
+            /** Name */
+            name: string;
+            /**
+             * Share
+             * @description доля вакансий, где навык требуется
+             */
+            share: number;
         };
         /** TokenOut */
         TokenOut: {
@@ -2681,6 +2833,37 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ProfileOut"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_account_api_v1_candidate_account_delete_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccountDeleteIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -3749,6 +3932,78 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OfferContactsOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    candidate_salary_api_v1_candidate_insights_salary_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalaryRadarOut"];
+                };
+            };
+        };
+    };
+    candidate_growth_api_v1_candidate_insights_growth_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GrowthOut"];
+                };
+            };
+        };
+    };
+    employer_salary_api_v1_employer_insights_salary_get: {
+        parameters: {
+            query: {
+                grade: components["schemas"]["Grade"];
+                skills?: string[];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalaryRadarOut"];
                 };
             };
             /** @description Validation Error */

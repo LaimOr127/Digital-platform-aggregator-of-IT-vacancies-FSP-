@@ -9,6 +9,7 @@ import {
   employerApi,
   employerOffersApi,
   fspApi,
+  insightsApi,
   interviewsApi,
   myInterviewsApi,
   passportApi,
@@ -86,6 +87,11 @@ describe("endpoints map to the backend API", () => {
     ["inbox", () => candidateOffersApi.list(undefined, undefined), "GET", "/api/v1/candidate/offers?limit=20"],
     ["accept offer", () => candidateOffersApi.accept("o1"), "POST", "/api/v1/candidate/offers/o1/accept"],
     ["decline offer", () => candidateOffersApi.decline("o1", "нет"), "POST", "/api/v1/candidate/offers/o1/decline"],
+    ["delete account", () => candidateApi.deleteAccount("x"), "POST", "/api/v1/candidate/account/delete"],
+    ["salary radar", () => insightsApi.salary(), "GET", "/api/v1/candidate/insights/salary"],
+    ["growth", () => insightsApi.growth(), "GET", "/api/v1/candidate/insights/growth"],
+    ["market", () => insightsApi.market("senior", ["python", "go"]), "GET", "/api/v1/employer/insights/salary?grade=senior&skills=python&skills=go"],
+    ["market without skills", () => insightsApi.market("junior", []), "GET", "/api/v1/employer/insights/salary?grade=junior"],
   ])("%s", async (_name, call, method, url) => {
     await call();
     expect(lastCall()).toMatchObject({ method, url });

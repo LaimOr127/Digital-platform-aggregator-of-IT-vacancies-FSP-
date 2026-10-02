@@ -9,7 +9,8 @@
 > аудита; подтверждение почты, восстановление пароля и уведомления по email; автозаполнение профиля
 > из анкеты ФСП и из резюме (алгоритм или ИИ), статус поиска работы кандидата; подбор кандидатов
 > по соответствию вакансии (0–100 %), собеседование перед оффером, подключение любой языковой модели
-> в админке. Готово ранее: ядро
+> в админке; радар зарплат и путь роста кандидата, рынок зарплат в форме вакансии, удаление аккаунта
+> кандидата по 152-ФЗ. Готово ранее: ядро
 > (аутентификация, RLS, AccessPolicy, кабинеты), интеграция с ФСП (мок API), автокатегоризация
 > и «Паспорт навыков».
 > План: [`docs/PLAN.md`](docs/PLAN.md), архитектура: [`docs/architecture.md`](docs/architecture.md).
@@ -50,7 +51,10 @@ http://localhost:8025 (Mailpit: локальный почтовый ящик —
    кандидат выбирает время в «Собеседованиях» (`/app/interviews`). После встречи компания отмечает итог
    (`/company/interviews`) и отправляет оффер с вилкой; когда кандидат его примет — компания видит имя
    и контакты (`/company/offers` → «Показать контакты»).
-5. Суперадмин подключает языковую модель: `/admin/ai` → «Подключить модель» (шаблоны OpenAI, Anthropic,
+5. «Рост и зарплаты» (`/app/insights`): сколько платят за ваш грейд и стек (вакансии, офферы, ожидания
+   коллег), где ваши ожидания, зарплаты по грейдам и чего не хватает до следующего грейда. Для наглядных
+   цифр — `make seed-demo N=2000 C=8`. Работодатель видит рынок прямо в форме вакансии.
+6. Суперадмин подключает языковую модель: `/admin/ai` → «Подключить модель» (шаблоны OpenAI, Anthropic,
    YandexGPT, DeepSeek, OpenRouter, локальная Ollama), «Проверить», «Сделать активной».
 
 ## Управление сервисами по отдельности
@@ -82,8 +86,8 @@ http://localhost:8025 (Mailpit: локальный почтовый ящик —
 | Группа | Эндпоинты |
 |---|---|
 | `auth` | `POST register/candidate`, `POST register/employer` (202: письмо со ссылкой), `POST verify-email`, `POST verify-email/resend`, `POST password/forgot`, `POST password/reset`, `POST login`, `POST 2fa/setup`, `POST 2fa/verify`, `POST refresh`, `POST logout`, `GET me` |
-| `candidate` | `GET/PATCH profile` (в т. ч. `search_status`); собеседования: `GET interviews`, `POST interviews/{id}/accept`, `POST interviews/{id}/decline`; автозаполнение: `GET import/capabilities`, `GET import/fsp`, `POST import/resume` (multipart); офферы: `GET offers`, `POST offers/{id}/accept`, `POST offers/{id}/decline`; ФСП: `GET fsp`, `POST fsp/link`, `POST fsp/confirm`, `POST fsp/sync`, `DELETE fsp`; паспорт: `GET/POST/DELETE passport` |
-| `employer` | собеседования: `GET/POST interviews`, `POST interviews/{id}/cancel`, `POST interviews/{id}/complete`; `GET company`, `GET/POST vacancies`, `GET/PATCH/DELETE vacancies/{id}`, `POST vacancies/{id}/publish`, `POST vacancies/{id}/close`; каталог: `GET catalog/categories`, `GET catalog/candidates` (`vacancy_id` — сортировка по соответствию), `GET catalog/candidates/{anon_id}`; офферы: `GET/POST offers` (по `interview_id` успешного собеседования, заголовок `Idempotency-Key`), `POST offers/{id}/withdraw`, `GET offers/{id}/contacts` |
+| `candidate` | `GET/PATCH profile` (в т. ч. `search_status`), `POST account/delete` (пароль); аналитика: `GET insights/salary`, `GET insights/growth`; собеседования: `GET interviews`, `POST interviews/{id}/accept`, `POST interviews/{id}/decline`; автозаполнение: `GET import/capabilities`, `GET import/fsp`, `POST import/resume` (multipart); офферы: `GET offers`, `POST offers/{id}/accept`, `POST offers/{id}/decline`; ФСП: `GET fsp`, `POST fsp/link`, `POST fsp/confirm`, `POST fsp/sync`, `DELETE fsp`; паспорт: `GET/POST/DELETE passport` |
+| `employer` | рынок зарплат: `GET insights/salary?grade=&skills=`; собеседования: `GET/POST interviews`, `POST interviews/{id}/cancel`, `POST interviews/{id}/complete`; `GET company`, `GET/POST vacancies`, `GET/PATCH/DELETE vacancies/{id}`, `POST vacancies/{id}/publish`, `POST vacancies/{id}/close`; каталог: `GET catalog/categories`, `GET catalog/candidates` (`vacancy_id` — сортировка по соответствию), `GET catalog/candidates/{anon_id}`; офферы: `GET/POST offers` (по `interview_id` успешного собеседования, заголовок `Idempotency-Key`), `POST offers/{id}/withdraw`, `GET offers/{id}/contacts` |
 | `admin` | `GET companies?status=`, `POST companies/{id}/status`, `GET vacancies?status=`, `POST vacancies/{id}/moderation`, `GET users?role=&q=`, `POST users/{id}/moderation`, `GET audit?action=`; модели ИИ (суперадмин): `GET/POST ai-providers`, `PATCH/DELETE ai-providers/{id}`, `POST ai-providers/{id}/activate`, `POST ai-providers/{id}/test`, `POST ai-providers/deactivate` |
 | `public` | `GET skills`, `GET passport/{id}` (проверка паспорта), `GET passport-key`, `GET health`, `GET health/ready` |
 
@@ -167,6 +171,18 @@ make create-admin EMAIL=admin@ваш-домен   # первый модерат�
   кандидат. Оффер — по успешному собеседованию, один на собеседование. На каждом шаге — письмо (время по МСК).
 - До принятия оффера кандидат анонимен; после — компания видит имя и контакты.
 
+## Рост и зарплаты
+- **Радар зарплат**: для грейда и навыков кандидата — вилки похожих вакансий (середина вилки), реальные
+  офферы платформы и ожидания других кандидатов того же уровня: квартили 25/50/75 % и где ожидания
+  кандидата («ниже рынка», «в рынке», «выше рынка»). Там же — вилки вакансий с тем же стеком по всем грейдам.
+- **Путь роста**: навыки, которые чаще всего требуют вакансии следующего грейда и которых нет в профиле
+  (с долей вакансий), сильные стороны, медиана зарплаты сейчас и на следующем грейде, следующий шаг в ФСП.
+- **Рынок для работодателя**: в форме вакансии — типичная вилка для выбранного грейда и стека и где
+  середина вилки компании.
+- **Обезличенность**: распределение показывается только для групп от 5 значений, а данные компаний
+  (вилки, офферы) — только если в группе не меньше 3 компаний: по медиане нельзя восстановить вилку
+  одной компании или зарплату одного человека. Значения округлены до тысячи.
+
 ## Каталог и офферы
 - **Статус поиска**: «Активно ищу», «Рассматриваю предложения», «Не ищу». Статус виден в каталоге и
   фильтруется; «Не ищу» убирает профиль из каталога и закрывает новые офферы.
@@ -224,6 +240,9 @@ make create-admin EMAIL=admin@ваш-домен   # первый модерат�
   модели — `AI_ALLOW_PRIVATE_NETWORK=true`.
 - Пароли — argon2id; refresh-токены хранятся хешами, ротируются атомарно, повторное использование
   отзывает цепочку; лимит попыток входа и по IP, и по аккаунту.
+- Удаление аккаунта кандидата (отзыв согласия, 152-ФЗ) — с подтверждением паролем: профиль, привязка ФСП,
+  паспорт, собеседования и офферы удаляются каскадом в БД, сессии завершаются; в журнале остаётся только
+  факт удаления без персональных данных. Аккаунт компании удаляется через поддержку.
 - Каталог кандидатов на уровне БД доступен только одобренным компаниям и без скрытых профилей;
   блокировка компании модератором блокирует и её вакансии.
 - Имя и контакты кандидата шифруются в БД (AES-256-GCM, ключ `FIELD_ENCRYPTION_KEY`), шифртекст

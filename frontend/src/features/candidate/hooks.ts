@@ -8,6 +8,10 @@ export function useUpdateProfile() {
   const client = useQueryClient();
   return useMutation({
     mutationFn: (body: ProfileUpdate) => candidateApi.updateProfile(body),
-    onSuccess: (profile) => client.setQueryData(["profile"], profile),
+    onSuccess: (profile) => {
+      client.setQueryData(["profile"], profile);
+      // радар и путь роста считаются от грейда, навыков и ожиданий профиля
+      void client.invalidateQueries({ queryKey: ["insights"] });
+    },
   });
 }

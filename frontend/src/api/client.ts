@@ -4,7 +4,8 @@ import { session } from "./session";
 
 const BASE = "/api/v1";
 type Method = "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
-type Query = Record<string, string | number | boolean | null | undefined>;
+type QueryValue = string | number | boolean | null | undefined;
+type Query = Record<string, QueryValue | readonly string[]>;
 type Options = { body?: unknown; query?: Query; headers?: Record<string, string> };
 
 function readCookie(name: string): string | null {
@@ -15,7 +16,11 @@ function readCookie(name: string): string | null {
 function buildUrl(path: string, query?: Query): string {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(query ?? {})) {
-    if (value !== undefined && value !== null && value !== "") params.append(key, String(value));
+    // список -> повтор параметра (?skills=a&skills=b), как ожидает FastAPI
+    const values: QueryValue[] = Array.isArray(value) ? value : [value as QueryValue];
+    for (const item of values) {
+      if (item !== undefined && item !== null && item !== "") params.append(key, String(item));
+    }
   }
   const qs = params.toString();
   return `${BASE}${path}${qs ? `?${qs}` : ""}`;

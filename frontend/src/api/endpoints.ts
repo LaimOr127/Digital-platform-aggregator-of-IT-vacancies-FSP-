@@ -5,6 +5,8 @@ import type {
   AiProviderInput,
   AiProviderUpdate,
   AiTest,
+  Growth,
+  SalaryRadar,
   EmployerInterview,
   Interview,
   InterviewInvite,
@@ -25,6 +27,7 @@ import type {
   EmployerRegisterIn,
   FspLinkStart,
   FspStatus,
+  Grade,
   LoginIn,
   LoginResult,
   Me,
@@ -90,6 +93,16 @@ export const passportApi = {
 export const candidateApi = {
   profile: () => api<Profile>("GET", "/candidate/profile"),
   updateProfile: (body: ProfileUpdate) => api<Profile>("PATCH", "/candidate/profile", { body }),
+  /** удаление аккаунта и всех данных (152-ФЗ); сервер завершает сессию */
+  deleteAccount: (password: string) => api<void>("POST", "/candidate/account/delete", { body: { password } }),
+};
+
+export const insightsApi = {
+  salary: () => api<SalaryRadar>("GET", "/candidate/insights/salary"),
+  growth: () => api<Growth>("GET", "/candidate/insights/growth"),
+  /** рынок для вакансии: та же аналитика по грейду и навыкам из формы */
+  market: (grade: Grade, skills: readonly string[]) =>
+    api<SalaryRadar>("GET", "/employer/insights/salary", { query: { grade, skills } }),
 };
 
 const vacancyUrl = (id: string, action = "") => `/employer/vacancies/${encodeURIComponent(id)}${action}`;
@@ -160,7 +173,6 @@ export const importApi = {
     return api<ProfileDraft>("POST", "/candidate/import/resume", { body: form });
   },
 };
-
 
 const interviewUrl = (base: string, id: string, action: string) => `${base}/${encodeURIComponent(id)}${action}`;
 

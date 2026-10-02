@@ -8,6 +8,7 @@ import { Field, FieldGroup, Input, Select, Textarea } from "../../ui/form";
 import { SkillPicker } from "../../ui/SkillPicker";
 import { useToast } from "../../ui/Toast";
 import { useCreateVacancy, useUpdateVacancy } from "./hooks";
+import { MarketHint } from "./MarketHint";
 import { emptyVacancy, vacancySchema, vacancyToForm, type VacancyFormInput, type VacancyFormOutput } from "./schemas";
 
 const FIELDS = ["title", "description", "grade", "work_format", "city", "salary_min", "salary_max", "skills"];
@@ -54,6 +55,7 @@ export function VacancyForm({ vacancy, skills, onDone }: Props) {
       <Field label="Зарплата до, ₽" error={errors.salary_max?.message}>
         <Input type="number" inputMode="numeric" min={0} step={5000} className="tabular" {...register("salary_max")} />
       </Field>
+      <MarketHint control={control} />
       <Field label="Город" error={errors.city?.message} className="sm:col-span-2">
         <Input placeholder="Можно оставить пустым для удалёнки" {...register("city")} />
       </Field>

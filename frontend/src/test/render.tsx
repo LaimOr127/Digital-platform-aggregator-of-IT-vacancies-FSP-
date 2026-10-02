@@ -26,8 +26,10 @@ export function bodyOf(mock: ReturnType<typeof vi.fn>, path: string) {
 }
 
 export function renderWithApp(element: ReactElement) {
+  // без повторов: ошибочный ответ сразу виден в интерфейсе, тест не ждёт паузы между попытками
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
-    <QueryClientProvider client={new QueryClient()}>
+    <QueryClientProvider client={client}>
       <ToastProvider>
         <MemoryRouter>{element}</MemoryRouter>
       </ToastProvider>
