@@ -44,6 +44,12 @@ class PasswordResetIn(PasswordMixin, LinkTokenIn):
     pass
 
 
+class AccountDeleteIn(BaseModel):
+    """Удаление аккаунта подтверждается паролем."""
+
+    password: str = Field(min_length=1, max_length=128)
+
+
 class AcceptedOut(BaseModel):
     """Ответ не зависит от того, зарегистрирован ли адрес."""
 

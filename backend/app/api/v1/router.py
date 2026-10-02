@@ -15,6 +15,7 @@ from app.api.v1 import (
     employer_interviews,
     fsp,
     health,
+    insights,
     profile_import,
     public,
 )
@@ -32,6 +33,7 @@ for module in (
     employer,
     employer_interviews,
     catalog,
+    insights,
     admin,
     admin_ai,
     public,

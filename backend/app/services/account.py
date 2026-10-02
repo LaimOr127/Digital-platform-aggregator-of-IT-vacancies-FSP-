@@ -12,8 +12,8 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.crypto import FieldCipher, profile_field_context
-from app.core.errors import InvalidLinkError
-from app.core.security import hash_password_async
+from app.core.errors import ForbiddenError, InvalidLinkError, UnauthorizedError
+from app.core.security import hash_password_async, verify_password_async
 from app.db.session import set_rls_context
 from app.models import CandidateProfile, CompanyMember, EmployerCompany, User
 from app.models.enums import EmailTokenPurpose, MemberRole, RecipientType, UserRole
@@ -110,6 +110,19 @@ class AccountService:
         user.email_verified = True
         await RefreshTokenRepository(self.session).revoke_all_for_user(user.id)
         await self.audit.record("auth.password_reset", user.id)
+        await self.session.commit()
+
+    # --- удаление аккаунта (152-ФЗ) -------------------------------------------------------------
+    async def delete_candidate(self, user_id: uuid.UUID, password: str) -> None:
+        """Отзыв согласия: аккаунт кандидата удаляется со всеми данными (профиль, ФСП, паспорт,
+        собеседования, офферы — каскадом в БД). В журнале остаётся только факт удаления."""
+        user = await self.users.get(user_id)
+        if user is None or user.role != UserRole.CANDIDATE:
+            raise ForbiddenError("аккаунт компании удаляется через поддержку")
+        if not await verify_password_async(user.password_hash, password):
+            raise UnauthorizedError("неверный пароль")
+        await self.audit.record("account.deleted", None, "user", user.id, {"role": user.role})
+        await self.session.delete(user)
         await self.session.commit()
 
     # --- общее ---------------------------------------------------------------------------------

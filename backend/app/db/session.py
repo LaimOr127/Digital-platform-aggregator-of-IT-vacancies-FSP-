@@ -6,6 +6,7 @@ RLS: в session.info["rls"] кладётся (user_id, role); в начале К
 
 import uuid
 from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from typing import Annotated
 
 from fastapi import Depends
@@ -66,12 +67,35 @@ async def set_rls_context(session: AsyncSession, user_id: uuid.UUID | None, role
         await session.execute(_SET_RLS_SQL, _rls_params((user_id, role)))
 
 
+@asynccontextmanager
+async def system_scope(session: AsyncSession) -> AsyncIterator[None]:
+    """Системная роль RLS на время блока — ТОЛЬКО для запросов, которые возвращают агрегаты
+    (медианы, счётчики) с порогом k-анонимности. Строки других пользователей наружу
+    не отдаются; после блока восстанавливается контекст пользователя."""
+    previous = session.sync_session.info.get(RLS_KEY)
+    await set_rls_context(session, None, SYSTEM_ROLE)
+    try:
+        yield
+    finally:
+        if previous is not None:
+            await set_rls_context(session, *previous)
+
+
+def _sqlite_foreign_keys(dbapi_connection, _record) -> None:
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA foreign_keys=ON")
+    cursor.close()
+
+
 class Database:
     def __init__(self, url: str) -> None:
         # hide_parameters: значения (email, шифртексты) не попадают в тексты ошибок и логи
         self.engine: AsyncEngine = create_async_engine(
             url, hide_parameters=True, **_engine_kwargs(url)
         )
+        if url.startswith("sqlite"):
+            # как в PostgreSQL: внешние ключи и каскадное удаление действуют и в тестах
+            event.listen(self.engine.sync_engine, "connect", _sqlite_foreign_keys)
         self.sessionmaker = async_sessionmaker(self.engine, expire_on_commit=False)
 
     async def ping(self) -> bool:

@@ -83,8 +83,8 @@ load:           ## нагрузочный тест (k6): make load EMP=<токе
 	docker run --rm --network itmatch_edge -v "$$PWD/scripts/load:/load:ro" \
 	  -e EMP="$(EMP)" -e CAND="$(CAND)" -e VAC="$(VAC)" grafana/k6:2.3.0 run --quiet /load/catalog.js
 
-seed-demo:      ## демо-кандидаты для каталога (только dev): make seed-demo N=500
-	$(DC) exec api python -m app.cli seed-demo --candidates "$(or $(N),500)"
+seed-demo:      ## демо-данные (только dev): make seed-demo N=500 C=6 — кандидаты и компании с вакансиями
+	$(DC) exec api python -m app.cli seed-demo --candidates "$(or $(N),500)" --companies "$(or $(C),6)"
 
 check-dupes:    ## копии файлов от iCloud/Finder ("file 2.py") ломают сборку — проверяем заранее
 	@./scripts/check-dupes.sh

@@ -17,7 +17,7 @@ from app.core.config import get_settings
 from app.core.crypto import FieldCipher
 from app.core.errors import NotFoundError
 from app.core.security import TokenService
-from app.db.demo import seed_candidates
+from app.db.demo import seed_candidates, seed_market
 from app.db.session import get_database
 from app.schemas.auth import PasswordMixin
 from app.services.auth import AuthService
@@ -63,20 +63,21 @@ def _print_enrollment(code: str) -> None:
     )
 
 
-async def seed_demo(count: int) -> None:
+async def seed_demo(count: int, companies: int, vacancies_each: int) -> None:
     settings = get_settings()
     if settings.is_prod:
         sys.exit("демо-данные не создаются в prod")
-    if not 1 <= count <= 20_000:
-        sys.exit("--candidates: от 1 до 20000")
+    if not 0 <= count <= 20_000 or not 0 <= companies <= 200 or not 0 <= vacancies_each <= 50:
+        sys.exit("лимиты: --candidates до 20000, --companies до 200, --vacancies до 50")
     db = get_database()
     try:
         async with db.sessionmaker() as session:
             cipher = FieldCipher(settings.secret("field_encryption_key"))
-            created = await seed_candidates(session, cipher, count)
+            created = await seed_candidates(session, cipher, count) if count else 0
+            vacancies = await seed_market(session, companies, vacancies_each) if companies else 0
     finally:
         await db.dispose()
-    sys.stdout.write(f"demo candidates created: {created}\n")
+    sys.stdout.write(f"demo candidates: {created}, demo vacancies: {vacancies}\n")
 
 
 def _validate_email(email: str) -> str:
@@ -107,9 +108,11 @@ def main() -> None:
     reset.add_argument("--email", required=True)
     demo = sub.add_parser("seed-demo", help="демо-кандидаты для каталога (только dev)")
     demo.add_argument("--candidates", type=int, default=500)
+    demo.add_argument("--companies", type=int, default=6)
+    demo.add_argument("--vacancies", type=int, default=8, help="вакансий у каждой компании")
     args = parser.parse_args()
     if args.command == "seed-demo":
-        asyncio.run(seed_demo(args.candidates))
+        asyncio.run(seed_demo(args.candidates, args.companies, args.vacancies))
         return
     email = _validate_email(args.email)
     if args.command == "create-admin":

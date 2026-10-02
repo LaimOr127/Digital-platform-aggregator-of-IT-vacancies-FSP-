@@ -8,24 +8,20 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 from pydantic import BaseModel
 
-from app.api.deps import CipherDep, FspClientDep, PrincipalDep, SessionDep
+from app.api.deps import CipherDep, FspClientDep, PrincipalDep, SessionDep, require
 from app.core.ratelimit import check_rate_limit
 from app.schemas.profile_import import ProfileDraftOut
-from app.services.access import Action, policy
+from app.services.access import Action
 from app.services.ai_providers import active_client
 from app.services.profile_import import FspImportService
 from app.services.resume.extract import MAX_BYTES, UnsupportedResumeError
 from app.services.resume.llm import AiResumeParser
 from app.services.resume.service import ResumeImportService
 
-
-def _candidate_only(principal: PrincipalDep) -> None:
-    """Проверка роли — до разбора тела: чужая роль получает 403, а не ошибку формы."""
-    policy.ensure(principal, Action.PROFILE_MANAGE_OWN)
-
-
 router = APIRouter(
-    prefix="/candidate/import", tags=["candidate"], dependencies=[Depends(_candidate_only)]
+    prefix="/candidate/import",
+    tags=["candidate"],
+    dependencies=[require(Action.PROFILE_MANAGE_OWN)],
 )
 
 

@@ -73,6 +73,11 @@ def _respond(request: Request, response: Response, pair: TokenPair) -> TokenOut:
     return TokenOut(access_token=pair.access_token, expires_in=pair.expires_in)
 
 
+def clear_session_cookies(response: Response) -> None:
+    response.delete_cookie(REFRESH_COOKIE, path=_REFRESH_PATH)
+    response.delete_cookie(CSRF_COOKIE, path="/")
+
+
 def _check_csrf(csrf_cookie: str | None, csrf_header: str | None) -> None:
     if not csrf_cookie or not csrf_header or not secrets.compare_digest(csrf_cookie, csrf_header):
         raise ForbiddenError("csrf check failed")
@@ -152,8 +157,7 @@ async def logout(
 ) -> None:
     _check_csrf(csrf_cookie, csrf_header)
     await service.logout(refresh_token)
-    response.delete_cookie(REFRESH_COOKIE, path=_REFRESH_PATH)
-    response.delete_cookie(CSRF_COOKIE, path="/")
+    clear_session_cookies(response)
 
 
 @router.get("/me", summary="Текущий пользователь")

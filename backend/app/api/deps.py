@@ -3,7 +3,7 @@
 Тесты подменяют их через app.dependency_overrides.
 """
 
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import Depends, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -19,7 +19,7 @@ from app.integrations.fsp import FspClient
 from app.models.enums import UserRole
 from app.repositories.companies import CompanyMemberRepository, CompanyRepository
 from app.repositories.users import UserRepository
-from app.services.access import Principal
+from app.services.access import Action, Principal, policy
 
 _bearer = HTTPBearer(auto_error=False)
 
@@ -83,3 +83,13 @@ async def get_principal(
 
 
 PrincipalDep = Annotated[Principal, Depends(get_principal)]
+
+
+def require(action: Action) -> Any:
+    """Проверка роли зависимостью маршрута: выполняется до разбора тела и параметров,
+    поэтому чужая роль получает 403, а не ошибку формы (и не узнаёт про поля)."""
+
+    def dependency(principal: PrincipalDep) -> None:
+        policy.ensure(principal, action)
+
+    return Depends(dependency)
