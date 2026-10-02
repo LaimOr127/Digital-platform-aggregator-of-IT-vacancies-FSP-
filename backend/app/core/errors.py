@@ -44,6 +44,16 @@ class MfaExpiredError(UnauthorizedError):
         super().__init__(message)
 
 
+class WrongPasswordError(ForbiddenError):
+    """Пароль для подтверждения действия неверен. Не 401: сессия действительна, и клиент
+    не должен принимать ответ за истёкший токен (обновлять его и повторять запрос)."""
+
+    code = "wrong_password"
+
+    def __init__(self, message: str = "неверный пароль") -> None:
+        super().__init__(message)
+
+
 class EmailNotVerifiedError(AppError):
     """Пароль верный, но почта не подтверждена: клиент предлагает отправить письмо ещё раз."""
 

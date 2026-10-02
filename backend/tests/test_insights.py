@@ -99,6 +99,13 @@ async def test_employer_market_hint(client: AsyncClient, db, app):
         headers=bearer(employers[0]["token"]),
     )
     assert r.status_code == 200 and r.json()["vacancies"]["count"] == 9  # 3 × 2 + 3 базовых
+    # столько навыков, сколько бывает у вакансии (30), — без 422
+    many = await client.get(
+        "/api/v1/employer/insights/salary",
+        params={"grade": "middle", "skills": [f"skill-{i}" for i in range(30)]},
+        headers=bearer(employers[0]["token"]),
+    )
+    assert many.status_code == 200
     me = await candidate(client, 100_000)
     assert (
         await client.get(
@@ -129,7 +136,8 @@ async def test_candidate_deletes_account_with_all_data(client: AsyncClient, db, 
     wrong = await client.post(
         "/api/v1/candidate/account/delete", json={"password": "wrong"}, headers=headers
     )
-    assert wrong.status_code == 401
+    # 403, а не 401: сессия действительна, клиент не должен обновлять токен
+    assert wrong.status_code == 403 and wrong.json()["error"]["code"] == "wrong_password"
     r = await client.post(
         "/api/v1/candidate/account/delete", json={"password": PASSWORD}, headers=headers
     )
@@ -156,3 +164,14 @@ async def test_employer_cannot_delete_through_candidate_endpoint(client: AsyncCl
         headers=bearer(employer["token"]),
     )
     assert r.status_code == 403
+
+
+async def test_password_guessing_on_deletion_is_limited_per_account(client: AsyncClient, app):
+    app.state.rate_limits["login_email"] = (2, 3600)
+    token = await register_candidate(client)
+    url = "/api/v1/candidate/account/delete"
+    codes = [
+        (await client.post(url, json={"password": "wrong"}, headers=bearer(token))).status_code
+        for _ in range(3)
+    ]
+    assert codes == [403, 403, 429]

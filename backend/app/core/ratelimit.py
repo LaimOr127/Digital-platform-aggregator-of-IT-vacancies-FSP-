@@ -91,4 +91,4 @@ async def check_rate_limit(request: Request, scope: str, key: str | None = None)
     limit, window = request.app.state.rate_limits[scope]
     limiter: Limiter = request.app.state.rate_limiter
     if not await limiter.hit(f"{scope}:{key or client_ip(request)}", limit, window):
-        raise RateLimitedError("too many requests")
+        raise RateLimitedError("слишком много попыток — попробуйте позже")

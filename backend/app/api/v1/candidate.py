@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Request, Response, status
 
 from app.api.deps import CipherDep, PrincipalDep, SessionDep, require
 from app.api.v1.auth import AuthLimited, clear_session_cookies
+from app.core.ratelimit import check_rate_limit
 from app.schemas.auth import AccountDeleteIn
 from app.schemas.candidate import ProfileOut, ProfileUpdateIn
 from app.services.access import Action
@@ -44,5 +45,7 @@ async def delete_account(
     session: SessionDep,
     cipher: CipherDep,
 ) -> None:
+    # лимит подбора пароля по аккаунту, как у входа: украденный access-токен не даёт перебора
+    await check_rate_limit(request, "login_email", key=f"account:{principal.user_id}")
     await AccountService(session, cipher).delete_candidate(principal.user_id, data.password)
     clear_session_cookies(response)

@@ -40,6 +40,7 @@ async def candidate_growth(service: ServiceDep) -> GrowthOut:
 async def employer_salary(
     service: ServiceDep,
     grade: Grade,
-    skills: Annotated[list[str], Query(max_length=20)] = [],  # noqa: B006 - FastAPI копирует
+    # столько же, сколько навыков у вакансии
+    skills: Annotated[list[str], Query(max_length=30)] = [],  # noqa: B006 - FastAPI копирует
 ) -> SalaryRadarOut:
     return await service.market(grade, skills)

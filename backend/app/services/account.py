@@ -12,7 +12,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.crypto import FieldCipher, profile_field_context
-from app.core.errors import ForbiddenError, InvalidLinkError, UnauthorizedError
+from app.core.errors import ForbiddenError, InvalidLinkError, WrongPasswordError
 from app.core.security import hash_password_async, verify_password_async
 from app.db.session import set_rls_context
 from app.models import CandidateProfile, CompanyMember, EmployerCompany, User
@@ -120,7 +120,7 @@ class AccountService:
         if user is None or user.role != UserRole.CANDIDATE:
             raise ForbiddenError("аккаунт компании удаляется через поддержку")
         if not await verify_password_async(user.password_hash, password):
-            raise UnauthorizedError("неверный пароль")
+            raise WrongPasswordError()
         await self.audit.record("account.deleted", None, "user", user.id, {"role": user.role})
         await self.session.delete(user)
         await self.session.commit()
