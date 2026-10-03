@@ -1,10 +1,11 @@
-"""CLI создания администратора: единственный способ получить роль admin."""
+"""Служебные команды CLI: администраторы (единственный способ получить роль admin), 2FA, почта."""
 
 import pytest
 from sqlalchemy import select
 
 from app import cli
-from app.models import User
+from app.models import AuditLog, User
+from tests.helpers import PASSWORD, login, unique_email
 
 
 def _fake_getpass(*answers: str):
@@ -57,6 +58,25 @@ async def test_reset_2fa_prints_new_code_and_rejects_unknown(monkeypatch, db, ca
     assert first and second and first != second
     with pytest.raises(SystemExit, match="администратор не найден"):
         await cli.reset_admin_mfa("nobody@example.org")
+
+
+async def test_confirm_email_lets_user_sign_in(monkeypatch, db, client, capsys):
+    """Стенд без SMTP: пользователь регистрируется сам, оператор подтверждает адрес."""
+    monkeypatch.setattr(cli, "get_database", lambda: db)
+    monkeypatch.setattr(db, "dispose", _noop)
+    email = unique_email("nomail")
+    await client.post(
+        "/api/v1/auth/register/candidate",
+        json={"email": email, "password": PASSWORD, "full_name": "Анна"},
+    )
+    await cli.confirm_email(email.upper())
+    assert "email confirmed" in capsys.readouterr().out
+    assert await login(client, email)
+    async with db.sessionmaker() as session:
+        actions = (await session.execute(select(AuditLog.action))).scalars().all()
+    assert "auth.email_confirmed_by_operator" in actions
+    with pytest.raises(SystemExit, match="не найден"):
+        await cli.confirm_email("nobody@example.org")
 
 
 async def _noop() -> None:

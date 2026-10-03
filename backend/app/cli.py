@@ -2,6 +2,7 @@
 
     make create-admin EMAIL=admin@example.org
     make reset-admin-2fa EMAIL=admin@example.org
+    make confirm-email EMAIL=user@example.org   # письмо не дошло: подтвердить адрес вручную
 
 Пароль запрашивается интерактивно (не попадает в историю shell и в логи).
 """
@@ -20,6 +21,7 @@ from app.core.security import TokenService
 from app.db.demo import seed_candidates, seed_market
 from app.db.session import get_database
 from app.schemas.auth import PasswordMixin
+from app.services.account import AccountService
 from app.services.auth import AuthService
 from app.services.enrollment import ENROLL_TTL
 from app.services.mfa import reset_mfa
@@ -54,6 +56,20 @@ async def reset_admin_mfa(email: str) -> None:
         await db.dispose()
     sys.stdout.write("2fa reset: sessions revoked\n")
     _print_enrollment(code)
+
+
+async def confirm_email(email: str) -> None:
+    settings = get_settings()
+    db = get_database()
+    try:
+        async with db.sessionmaker() as session:
+            cipher = FieldCipher(settings.secret("field_encryption_key"))
+            await AccountService(session, cipher).confirm_email_by_operator(email)
+    except NotFoundError as exc:
+        sys.exit(exc.message)
+    finally:
+        await db.dispose()
+    sys.stdout.write("email confirmed\n")
 
 
 def _print_enrollment(code: str) -> None:
@@ -106,6 +122,8 @@ def main() -> None:
     admin.add_argument("--superadmin", action="store_true")
     reset = sub.add_parser("reset-2fa", help="сбросить 2FA администратора")
     reset.add_argument("--email", required=True)
+    confirm = sub.add_parser("confirm-email", help="подтвердить почту пользователя вручную")
+    confirm.add_argument("--email", required=True)
     demo = sub.add_parser("seed-demo", help="демо-кандидаты для каталога (только dev)")
     demo.add_argument("--candidates", type=int, default=500)
     demo.add_argument("--companies", type=int, default=6)
@@ -119,6 +137,8 @@ def main() -> None:
         asyncio.run(create_admin(email, _read_password(), args.superadmin))
     elif args.command == "reset-2fa":
         asyncio.run(reset_admin_mfa(email))
+    elif args.command == "confirm-email":
+        asyncio.run(confirm_email(email))
 
 
 if __name__ == "__main__":

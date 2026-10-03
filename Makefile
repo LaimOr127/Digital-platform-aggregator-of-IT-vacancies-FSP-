@@ -11,7 +11,7 @@ MODE  ?= dev
 COMPOSE_FILES = -f deploy/compose.base.yml $(foreach s,$(ALL),-f deploy/compose.$(s).yml) -f deploy/compose.$(MODE).yml
 DC = docker compose --env-file .env $(COMPOSE_FILES)
 
-.PHONY: env up down stop logs logs-dump ps build dev prod test test-backend test-fsp-mock test-frontend smoke check-db verify config secrets-check clean migrate create-admin reset-admin-2fa check-dupes seed-demo load
+.PHONY: env up down stop logs logs-dump ps build dev prod test test-backend test-fsp-mock test-frontend smoke check-db verify config secrets-check clean migrate create-admin reset-admin-2fa confirm-email check-dupes seed-demo load
 
 env:            ## создать .env со случайными секретами
 	@./scripts/gen-env.sh
@@ -92,6 +92,10 @@ check-dupes:    ## копии файлов от iCloud/Finder ("file 2.py") ло
 reset-admin-2fa: ## сбросить 2FA администратора (потерян телефон): make reset-admin-2fa EMAIL=...
 	@test -n "$(EMAIL)" || { echo "укажите EMAIL=..."; exit 1; }
 	$(DC) exec api python -m app.cli reset-2fa --email "$(EMAIL)"
+
+confirm-email:  ## письмо не дошло (стенд без SMTP): make confirm-email EMAIL=... — подтвердить адрес вручную
+	@test -n "$(EMAIL)" || { echo "укажите EMAIL=..."; exit 1; }
+	$(DC) exec api python -m app.cli confirm-email --email "$(EMAIL)"
 
 secrets-check:  ## поиск утёкших секретов в файлах и истории git
 	docker run --rm -v "$$PWD:/repo" zricethezav/gitleaks:latest git /repo --no-banner

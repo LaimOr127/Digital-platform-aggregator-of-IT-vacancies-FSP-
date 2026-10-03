@@ -12,7 +12,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.crypto import FieldCipher, profile_field_context
-from app.core.errors import ForbiddenError, InvalidLinkError, WrongPasswordError
+from app.core.errors import ForbiddenError, InvalidLinkError, NotFoundError, WrongPasswordError
 from app.core.security import hash_password_async, verify_password_async
 from app.db.session import set_rls_context
 from app.models import CandidateProfile, CompanyMember, EmployerCompany, User
@@ -94,6 +94,16 @@ class AccountService:
         user = await self._consume(token, EmailTokenPurpose.VERIFY)
         user.email_verified = True
         await self.audit.record("auth.email_verified", user.id)
+        await self.session.commit()
+
+    async def confirm_email_by_operator(self, email: str) -> None:
+        """Только для CLI: оператор сервера подтверждает адрес, если письмо не дошло (стенд без
+        SMTP, письмо в спаме). Пользователь регистрируется сам — пароль оператор не знает."""
+        user = await self.users.by_email(email)
+        if user is None:
+            raise NotFoundError("пользователь с таким email не найден")
+        user.email_verified = True
+        await self.audit.record("auth.email_confirmed_by_operator", None, "user", user.id)
         await self.session.commit()
 
     # --- сброс пароля ------------------------------------------------------------------------
