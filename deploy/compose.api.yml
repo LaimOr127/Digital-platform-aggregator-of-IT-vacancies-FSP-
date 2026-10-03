@@ -8,6 +8,9 @@ services:
     environment:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       AI_MODEL: ${AI_MODEL:-claude-sonnet-5-5}
+      # on-prem модель в prod: включается явно в .env (в dev включено, см. compose.dev.yml)
+      AI_ALLOW_HTTP: ${AI_ALLOW_HTTP:-false}
+      AI_ALLOW_PRIVATE_NETWORK: ${AI_ALLOW_PRIVATE_NETWORK:-false}
     depends_on:
       db: { condition: service_healthy }
       migrate: { condition: service_completed_successfully }
