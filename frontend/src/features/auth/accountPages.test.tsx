@@ -55,9 +55,21 @@ describe("registration", () => {
     expect(screen.getByText("anna@example.org")).toBeInTheDocument();
     expect(session.get()).toBeNull(); // до подтверждения почты сессии нет
     await userEvent.click(screen.getByRole("button", { name: "Отправить письмо ещё раз" }));
-    expect(await screen.findByText("Письмо отправлено ещё раз")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /через \d+ с/ })).toBeDisabled();
+    // успех — по кнопке с отсчётом, без отдельной плашки
+    expect(await screen.findByRole("button", { name: /Письмо отправлено · ещё раз через \d+ с/ })).toBeDisabled();
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
     expect(bodyOf("/auth/verify-email/resend")).toEqual({ email: "anna@example.org" });
+  });
+});
+
+describe("pitch next to the form", () => {
+  it("speaks to the side that registers", async () => {
+    serve({});
+    renderAt(<AuthPage mode="register" />);
+    expect(await screen.findByText("Каждое предложение — с зарплатной вилкой")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("radio", { name: "Я нанимаю" }));
+    expect(screen.getByText("Только подтверждённые профили, без накрутки")).toBeInTheDocument();
+    expect(screen.queryByText("Каждое предложение — с зарплатной вилкой")).not.toBeInTheDocument();
   });
 });
 

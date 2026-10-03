@@ -1,14 +1,16 @@
+import { useState } from "react";
 import { Link, Navigate, useSearchParams } from "react-router";
 import { useAuth } from "../../auth/AuthProvider";
 import { safeNext } from "../../auth/portal";
 import { FullScreenSpinner } from "../../ui/Spinner";
 import { AuthLayout } from "./AuthLayout";
 import { LoginForm } from "./LoginForm";
-import { RegisterForm } from "./RegisterForm";
+import { RegisterForm, type Role } from "./RegisterForm";
 
 export default function AuthPage({ mode }: { mode: "login" | "register" }) {
   const auth = useAuth();
   const [params] = useSearchParams();
+  const [role, setRole] = useState<Role>(params.get("role") === "employer" ? "employer" : "candidate");
   if (auth.status === "loading") return <FullScreenSpinner />;
   // единственная точка редиректа после входа: учитывает ?next= своего портала
   if (auth.status === "authenticated") return <Navigate to={safeNext(params.get("next"), auth.user.role)} replace />;
@@ -16,6 +18,7 @@ export default function AuthPage({ mode }: { mode: "login" | "register" }) {
   const login = mode === "login";
   return (
     <AuthLayout
+      audience={role}
       title={login ? "Вход" : "Регистрация"}
       subtitle={
         <>
@@ -29,7 +32,7 @@ export default function AuthPage({ mode }: { mode: "login" | "register" }) {
       {login ? (
         <LoginForm />
       ) : (
-        <RegisterForm initialRole={params.get("role") === "employer" ? "employer" : "candidate"} />
+        <RegisterForm role={role} onRoleChange={setRole} />
       )}
     </AuthLayout>
   );

@@ -11,7 +11,7 @@ const COOLDOWN_SECONDS = 60;
 function useResendVerification(email: string) {
   const [left, setLeft] = useState(0);
   const [pending, setPending] = useState(false);
-  const [notice, setNotice] = useState<{ text: string; ok: boolean } | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (left <= 0) return;
@@ -23,24 +23,25 @@ function useResendVerification(email: string) {
     setPending(true);
     try {
       await authApi.resendVerification(email);
-      setNotice({ text: "Письмо отправлено ещё раз", ok: true });
+      // успех виден по кнопке (отсчёт до следующей отправки) — отдельная плашка не нужна
+      setError(null);
       setLeft(COOLDOWN_SECONDS);
     } catch (err) {
-      setNotice({ text: errorMessage(err), ok: false });
+      setError(errorMessage(err));
     } finally {
       setPending(false);
     }
   };
-  return { resend, pending, notice, left };
+  return { resend, pending, error, left };
 }
 
 export function ResendButton({ email }: { email: string }) {
-  const { resend, pending, notice, left } = useResendVerification(email);
+  const { resend, pending, error, left } = useResendVerification(email);
   return (
     <div className="flex flex-col gap-3">
-      {notice && <Alert tone={notice.ok ? "info" : "danger"}>{notice.text}</Alert>}
+      {error && <Alert tone="danger">{error}</Alert>}
       <Button variant="secondary" onClick={resend} loading={pending} disabled={left > 0}>
-        {left > 0 ? `Отправить ещё раз через ${left} с` : "Отправить письмо ещё раз"}
+        {left > 0 ? `Письмо отправлено · ещё раз через ${left} с` : "Отправить письмо ещё раз"}
       </Button>
     </div>
   );

@@ -15,7 +15,7 @@ import {
   type EmployerRegisterForm,
 } from "./schemas";
 
-type Role = "candidate" | "employer";
+export type Role = "candidate" | "employer";
 
 const PASSWORD_HINT = "Не короче 10 символов, буквы и цифры или символы";
 
@@ -40,8 +40,8 @@ function useRegister<T extends FieldValues & { email: string }>(
   return { formError, submit };
 }
 
-export function RegisterForm({ initialRole }: { initialRole: Role }) {
-  const [role, setRole] = useState<Role>(initialRole);
+/** Тип аккаунта хранит страница: от него зависит и текст рядом с формой. */
+export function RegisterForm({ role, onRoleChange }: { role: Role; onRoleChange: (role: Role) => void }) {
   const [sentTo, setSentTo] = useState<string | null>(null);
   if (sentTo) return <CheckEmail email={sentTo} />;
   return (
@@ -49,7 +49,7 @@ export function RegisterForm({ initialRole }: { initialRole: Role }) {
       <Segmented<Role>
         label="Тип аккаунта"
         value={role}
-        onChange={setRole}
+        onChange={onRoleChange}
         options={[
           { value: "candidate", label: "Я ищу работу" },
           { value: "employer", label: "Я нанимаю" },

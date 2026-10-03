@@ -27,7 +27,7 @@ const steps = {
 
 const principles = [
   { icon: Scale, title: "Вилка обязательна", text: "Без зарплаты вакансию не опубликовать, оффер без вилки не отправить." },
-  { icon: CalendarClock, title: "Вакансия живёт 14 дней", text: "Потом компания подтверждает её или закрывает — без вакансий-призраков." },
+  { icon: CalendarClock, title: "Вакансия живёт 14 дней", text: "Далее компания подтверждает её или закрывает." },
   { icon: EyeOff, title: "Анонимность до согласия", text: "Имя и контакты кандидата открываются только после принятого оффера." },
   { icon: ShieldCheck, title: "Только проверенные компании", text: "Каждая компания проходит модерацию, заблокированные теряют доступ." },
 ];
@@ -133,7 +133,7 @@ export function Landing() {
 
       <footer className="border-t border-line">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-8 text-sm text-muted sm:px-6">
-          <span>IT Match · трек Федерации спортивного программирования</span>
+          <span>IT Match</span>
           <a href="/api-docs/" className="hover:text-fg">
             Документация API
           </a>
