@@ -14,6 +14,7 @@ Email: anna.dev@example.org, телефон +7 (900) 123-45-67, Telegram @anna_b
 О себе
 Строю высоконагруженные сервисы на Python и Go, люблю PostgreSQL.
 Капитан команды на соревнованиях ФСП.
+Наставник для стажёров, выступаю с докладами, ответственный и коммуникабельный.
 
 Навыки
 Python, FastAPI, golang, Postgres, Docker, React

@@ -22,6 +22,8 @@ const profile: Profile = {
   search_status: "open",
   industries: [],
   roles: [],
+  soft_skills: [],
+  experience_years: null,
   show_fsp: true,
   show_salary: true,
   show_about: true,
@@ -43,17 +45,27 @@ const draft: ProfileDraft = {
   salary_max: null,
   contacts: { email: null, phone: null, telegram: "@anna" },
   skills: [{ slug: "go", name: "Go" }],
+  experience_years: 5,
+  roles: ["mentor"],
+  soft_skills: ["teamwork"],
   unknown_skills: ["Rust"],
   notes: ["Поля заполнены алгоритмом по тексту резюме — проверьте перед сохранением"],
 };
 
+const dictionaries = {
+  specializations: [],
+  industries: [],
+  roles: [{ value: "mentor", label: "Наставничество" }],
+  soft_skills: [{ value: "teamwork", label: "Работа в команде" }],
+};
 const json = (body: unknown) => new Response(JSON.stringify(body), { status: 200, headers: { "Content-Type": "application/json" } });
 let fetchMock: ReturnType<typeof vi.fn>;
 
 beforeEach(() => {
-  fetchMock = vi.fn(async (url: string) =>
-    String(url).endsWith("/capabilities") ? json({ ai_available: true, max_file_mb: 5 }) : json(draft),
-  );
+  fetchMock = vi.fn(async (url: string) => {
+    if (String(url).endsWith("/capabilities")) return json({ ai_available: true, max_file_mb: 5 });
+    return String(url).endsWith("/dictionaries") ? json(dictionaries) : json(draft);
+  });
   vi.stubGlobal("fetch", fetchMock);
 });
 afterEach(() => vi.unstubAllGlobals());
@@ -83,11 +95,14 @@ describe("profile autofill", () => {
     expect(within(dialog).getByRole("checkbox", { name: /Должность/ })).toBeChecked();
     expect(within(dialog).getByRole("checkbox", { name: /Город/ })).not.toBeChecked();
     expect(within(dialog).getByText(/Нет в справочнике.*Rust/)).toBeInTheDocument();
+    expect(await within(dialog).findByText("Наставничество, Работа в команде")).toBeInTheDocument();
     await userEvent.click(within(dialog).getByRole("button", { name: "Перенести в профиль" }));
 
     expect(screen.getByPlaceholderText("Backend-разработчик")).toHaveValue("Backend-разработчик");
     expect(screen.getByDisplayValue("Москва")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Убрать Go" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Наставничество", pressed: true })).toBeInTheDocument();
+    expect(screen.getByLabelText("Опыт в профессии, лет")).toHaveValue(5);
     expect(screen.getByText("Есть несохранённые изменения")).toBeInTheDocument();
   });
 
@@ -100,11 +115,11 @@ describe("profile autofill", () => {
   });
 
   it("treats the saved profile as the new baseline", async () => {
-    fetchMock.mockImplementation(async (_url: string, init?: RequestInit) =>
-      init?.method === "PATCH"
-        ? json({ ...profile, ...JSON.parse(String(init.body)), contacts: profile.contacts, skills: profile.skills })
-        : json({ ai_available: false, max_file_mb: 5 }),
-    );
+    fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
+      if (init?.method === "PATCH")
+        return json({ ...profile, ...JSON.parse(String(init.body)), contacts: profile.contacts, skills: profile.skills });
+      return String(url).endsWith("/dictionaries") ? json(dictionaries) : json({ ai_available: false, max_file_mb: 5 });
+    });
     renderForm();
     await userEvent.type(screen.getByPlaceholderText("Backend-разработчик"), "QA");
     expect(screen.getByText("Есть несохранённые изменения")).toBeInTheDocument();

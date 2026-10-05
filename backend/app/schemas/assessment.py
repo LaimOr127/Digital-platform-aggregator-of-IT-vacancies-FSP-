@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field, field_validator
 from app.models.enums import AssessmentResult, AssessmentStatus, Grade, Specialization
 from app.schemas.candidate import SkillSlug
 from app.schemas.common import SkillOut
-from app.services.specializations import INDUSTRIES, ROLES
+from app.services.specializations import INDUSTRIES, ROLES, known_keys
 
 
 class SurveyIn(BaseModel):
@@ -23,19 +23,12 @@ class SurveyIn(BaseModel):
     @field_validator("industries")
     @classmethod
     def _industries(cls, value: list[str]) -> list[str]:
-        return _known(value, INDUSTRIES, "отрасль")
+        return known_keys(value, INDUSTRIES, "отрасль")
 
     @field_validator("roles")
     @classmethod
     def _roles(cls, value: list[str]) -> list[str]:
-        return _known(value, ROLES, "роль")
-
-
-def _known(values: list[str], allowed: dict[str, str], label: str) -> list[str]:
-    unknown = [v for v in values if v not in allowed]
-    if unknown:
-        raise ValueError(f"неизвестная {label}: {', '.join(unknown)}")
-    return list(dict.fromkeys(values))
+        return known_keys(value, ROLES, "роль")
 
 
 class SurveyOut(BaseModel):
@@ -156,3 +149,4 @@ class DictionariesOut(BaseModel):
     specializations: list[SpecializationOut]
     industries: list[OptionOut]
     roles: list[OptionOut]
+    soft_skills: list[OptionOut]

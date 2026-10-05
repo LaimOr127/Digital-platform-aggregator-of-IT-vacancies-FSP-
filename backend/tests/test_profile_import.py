@@ -24,6 +24,8 @@ TOOL_INPUT = {
     "salary_min": 350000,
     "skills": ["Python", "Go", "Zig-2077"],
     "about": "Строю высоконагруженные сервисы.",
+    "roles": ["architect"],
+    "soft_skills": ["teamwork"],
 }
 
 
@@ -103,6 +105,9 @@ async def test_resume_draft_by_rules(client: AsyncClient):
     assert draft["salary_min"] == 350_000 and draft["work_format"] == "remote"
     assert {"python", "go", "postgresql", "react"} <= {s["slug"] for s in draft["skills"]}
     assert draft["contacts"]["email"] == "anna.dev@example.org"
+    # стаж, роли и софт-скиллы (ТЗ: автораспознавание резюме)
+    assert draft["experience_years"] == 6 and draft["roles"] == ["developer", "mentor"]
+    assert "leadership" in draft["soft_skills"]
 
 
 async def test_unsupported_and_oversized_files(client: AsyncClient):
@@ -120,6 +125,9 @@ async def test_ai_draft_without_contacts_sent(client: AsyncClient, app, db):
     assert draft["title"] == "Backend-разработчик"
     assert draft["about"] == "Строю высоконагруженные сервисы."
     assert draft["unknown_skills"] == ["Zig-2077"]
+    # роли и софт-скиллы: найденное правилами + добавленное ИИ
+    assert draft["roles"] == ["developer", "mentor", "architect"]
+    assert "teamwork" in draft["soft_skills"] and "leadership" in draft["soft_skills"]
     assert draft["contacts"]["telegram"] == "@anna_backend"  # найдено локально
     assert "Тестовая модель" in draft["notes"][0]
     [request] = sent

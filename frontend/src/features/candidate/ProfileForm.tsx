@@ -2,6 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Save } from "lucide-react";
 import { useMemo, useState, type ReactNode } from "react";
 import { Controller, useForm } from "react-hook-form";
+import { useDictionaries } from "../../api/queries";
 import type { Profile, ProfileDraft, Skill } from "../../api/types";
 import { labels, options } from "../../lib/format";
 import { applyServerErrors } from "../../lib/forms";
@@ -9,17 +10,19 @@ import { Button } from "../../ui/Button";
 import { Card, CardTitle } from "../../ui/Card";
 import { Field, FieldGroup, Input, Select, Switch, Textarea } from "../../ui/form";
 import { Segmented } from "../../ui/Segmented";
+import { ChipGroup } from "../../ui/ChipGroup";
 import { SkillPicker } from "../../ui/SkillPicker";
 import { useToast } from "../../ui/Toast";
 import { useUpdateProfile } from "./hooks";
-import type { FieldChange } from "./import/draft";
+import type { DraftLists, FieldChange } from "./import/draft";
 import { DraftDialog } from "./import/DraftDialog";
 import { ImportCard } from "./import/ImportCard";
 import { formToUpdate, profileSchema, profileToForm, type ProfileFormInput, type ProfileFormOutput } from "./schemas";
 
 const FIELDS = [
   "full_name", "title", "about", "grade", "work_format", "city", "salary_min", "salary_max",
-  "skills", "is_hidden", "search_status", "phone", "telegram", "contact_email",
+  "skills", "is_hidden", "search_status", "phone", "telegram", "contact_email", "experience_years",
+  "roles", "soft_skills",
 ];
 const SEARCH_OPTIONS = options(labels.searchStatus);
 const ALIASES = { "contacts.phone": "phone", "contacts.telegram": "telegram", "contacts.email": "contact_email" };
@@ -41,6 +44,7 @@ export function ProfileForm({ profile, skills, fspLinked, autoFsp }: Props) {
   const [draft, setDraft] = useState<ProfileDraft | null>(null);
   const skillNames = useMemo(() => new Map(skills.map((s) => [s.slug, s.name])), [skills]);
   const update = useUpdateProfile();
+  const dictionaries = useDictionaries().data;
   const form = useForm<ProfileFormInput, unknown, ProfileFormOutput>({
     resolver: zodResolver(profileSchema),
     values: profileToForm(profile),
@@ -62,10 +66,12 @@ export function ProfileForm({ profile, skills, fspLinked, autoFsp }: Props) {
     }
   });
 
-  const applyDraft = (changes: FieldChange[], newSkills: string[]) => {
+  const applyDraft = (changes: FieldChange[], added: DraftLists) => {
     const options = { shouldDirty: true, shouldValidate: true } as const;
     for (const change of changes) form.setValue(change.field, change.value as never, options);
-    if (newSkills.length) form.setValue("skills", [...form.getValues("skills"), ...newSkills], options);
+    for (const name of ["skills", "roles", "soft_skills"] as const) {
+      if (added[name].length) form.setValue(name, [...form.getValues(name), ...added[name]], options);
+    }
     setDraft(null);
     notify("Данные перенесены в форму — проверьте и сохраните профиль");
   };
@@ -113,6 +119,32 @@ export function ProfileForm({ profile, skills, fspLinked, autoFsp }: Props) {
         <Field label="Город" error={errors.city?.message}>
           <Input autoComplete="address-level2" {...register("city")} />
         </Field>
+      </Section>
+
+      <Section title="Опыт, роли и софт-скиллы" text="Заполняются из резюме автоматически — проверьте и поправьте.">
+        <Field label="Опыт в профессии, лет" error={errors.experience_years?.message}>
+          <Input type="number" inputMode="numeric" min={0} max={50} {...register("experience_years")} />
+        </Field>
+        {dictionaries && (
+          <>
+            <FieldGroup label="Роли" hint="До 5" error={errors.roles?.message} className="sm:col-span-2">
+              <Controller
+                control={control}
+                name="roles"
+                render={({ field }) => <ChipGroup options={dictionaries.roles} value={field.value} onChange={field.onChange} max={5} />}
+              />
+            </FieldGroup>
+            <FieldGroup label="Софт-скиллы" hint="До 8" error={errors.soft_skills?.message} className="sm:col-span-2">
+              <Controller
+                control={control}
+                name="soft_skills"
+                render={({ field }) => (
+                  <ChipGroup options={dictionaries.soft_skills} value={field.value} onChange={field.onChange} max={8} />
+                )}
+              />
+            </FieldGroup>
+          </>
+        )}
       </Section>
 
       <Section title="Ожидания по зарплате" text="Рубли в месяц до вычета налогов. Компании предлагают оффер с вилкой.">

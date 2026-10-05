@@ -8,7 +8,7 @@ from app.schemas.common import SkillOut
 from app.schemas.fsp import PassportVerifyOut
 from app.services.directory import list_skills
 from app.services.passport import verify_passport
-from app.services.specializations import INDUSTRIES, ROLES, SPECIALIZATIONS
+from app.services.specializations import INDUSTRIES, ROLES, SOFT_SKILLS, SPECIALIZATIONS
 
 router = APIRouter(prefix="/public", tags=["public"])
 
@@ -27,6 +27,7 @@ async def dictionaries() -> DictionariesOut:
         ],
         industries=[OptionOut(value=k, label=v) for k, v in INDUSTRIES.items()],
         roles=[OptionOut(value=k, label=v) for k, v in ROLES.items()],
+        soft_skills=[OptionOut(value=k, label=v) for k, v in SOFT_SKILLS.items()],
     )
 
 

@@ -18,6 +18,7 @@ from app.services.resume import rules
 from app.services.resume.extract import extract_text
 from app.services.resume.llm import AiProfile, AiResumeParser
 from app.services.skill_matching import SkillDictionary
+from app.services.specializations import ROLES, SOFT_SKILLS
 
 _EXTRACT_TIMEOUT = 15  # секунд: «тяжёлый» PDF не держит запрос бесконечно
 
@@ -69,6 +70,9 @@ def build_resume_draft(
         work_format=parsed.work_format,
         city=parsed.city,
         salary_min=parsed.salary_min,
+        experience_years=parsed.experience_years,
+        roles=parsed.roles,
+        soft_skills=parsed.soft_skills,
         contacts=Contacts(email=parsed.email, phone=parsed.phone, telegram=parsed.telegram),
         skills=skills_out(dictionary, slugs),
         notes=notes,
@@ -79,11 +83,25 @@ def merge_ai(
     draft: ProfileDraftOut, ai: AiProfile, dictionary: SkillDictionary, label: str
 ) -> None:
     """ИИ уточняет смысловые поля; контакты — только локальные (в ИИ они не передавались)."""
-    for name in ("full_name", "title", "about", "city", "work_format", "salary_min"):
+    fields = (
+        "full_name",
+        "title",
+        "about",
+        "city",
+        "work_format",
+        "salary_min",
+        "experience_years",
+    )
+    for name in fields:
         value = getattr(ai, name)
         if value:
             setattr(draft, name, value)
     draft.grade = ai.grade or grade_for_experience(ai.experience_years) or draft.grade
+    # роли и софт-скиллы — объединение: ИИ мог увидеть то, что правила пропустили
+    draft.roles = list(dict.fromkeys([*draft.roles, *(r for r in ai.roles if r in ROLES)]))
+    draft.soft_skills = list(
+        dict.fromkeys([*draft.soft_skills, *(s for s in ai.soft_skills if s in SOFT_SKILLS)])
+    )
     matched = dictionary.match_names(ai.skills)
     known = [s.slug for s in draft.skills]
     draft.skills = skills_out(dictionary, known + [s for s in matched.slugs if s not in known])

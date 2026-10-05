@@ -20,6 +20,11 @@ class ProfileDraftOut(BaseModel):
     city: str | None = None
     salary_min: int | None = None
     salary_max: int | None = None
+    experience_years: int | None = None
+    roles: list[str] = Field(default_factory=list, description="ключи справочника ролей")
+    soft_skills: list[str] = Field(
+        default_factory=list, description="ключи справочника софт-скиллов"
+    )
     contacts: Contacts = Field(default_factory=Contacts)
     skills: list[SkillOut] = Field(default_factory=list)
     unknown_skills: list[str] = Field(default_factory=list, description="нет в справочнике")

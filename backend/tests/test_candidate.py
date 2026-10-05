@@ -59,6 +59,19 @@ async def test_unknown_skill_rejected(client: AsyncClient):
     assert r.status_code == 422 and r.json()["error"]["code"] == "unknown_skills"
 
 
+async def test_experience_roles_and_soft_skills(client: AsyncClient):
+    token = await register_candidate(client)
+    body = {"experience_years": 4, "roles": ["mentor"], "soft_skills": ["teamwork", "teamwork"]}
+    saved = (await client.patch(PROFILE, json=body, headers=bearer(token))).json()
+    assert (saved["experience_years"], saved["roles"], saved["soft_skills"]) == (
+        4,
+        ["mentor"],
+        ["teamwork"],
+    )
+    bad = await client.patch(PROFILE, json={"soft_skills": ["telepathy"]}, headers=bearer(token))
+    assert bad.status_code == 422
+
+
 async def test_salary_range_validated_in_request(client: AsyncClient):
     token = await register_candidate(client)
     r = await client.patch(

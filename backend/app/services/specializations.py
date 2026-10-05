@@ -95,6 +95,25 @@ ROLES = {
     "mentor": "Наставничество",
 }
 
+SOFT_SKILLS = {
+    "communication": "Коммуникация",
+    "teamwork": "Работа в команде",
+    "leadership": "Лидерство",
+    "ownership": "Ответственность",
+    "learning": "Обучаемость",
+    "problem_solving": "Решение сложных задач",
+    "time_management": "Самоорганизация",
+    "presenting": "Публичные выступления",
+}
+
+
+def known_keys(values: list[str], allowed: dict[str, str], label: str) -> list[str]:
+    """Значения из справочника без повторов; неизвестное значение — ошибка валидации."""
+    unknown = [v for v in values if v not in allowed]
+    if unknown:
+        raise ValueError(f"неизвестная {label}: {', '.join(unknown)}")
+    return list(dict.fromkeys(values))
+
 
 def level(grade: Grade) -> int:
     """Уровень сложности 1..5 (стажёр..lead) — общая шкала заданий и оценки кандидата."""

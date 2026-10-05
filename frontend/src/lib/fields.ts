@@ -12,6 +12,10 @@ export const optionalEnum = <T extends readonly [string, ...string[]]>(values: T
 const moneyNumber = z.number("Введите число").int("Целое число").positive("Больше нуля").max(10_000_000, "Слишком много");
 
 export const optionalMoney = z.preprocess((v) => (empty(v) ? null : Number(v)), moneyNumber.nullable());
+const yearsNumber = z.number("Укажите стаж").int("Целое число").min(0, "Не меньше 0").max(50, "Не больше 50");
+
+export const requiredYears = z.preprocess((v) => (empty(v) ? undefined : Number(v)), yearsNumber);
+export const optionalYears = z.preprocess((v) => (empty(v) ? null : Number(v)), yearsNumber.nullable());
 export const requiredMoney = z.preprocess((v) => (empty(v) ? undefined : Number(v)), moneyNumber);
 
 type Range = { salary_min?: number | null; salary_max?: number | null };

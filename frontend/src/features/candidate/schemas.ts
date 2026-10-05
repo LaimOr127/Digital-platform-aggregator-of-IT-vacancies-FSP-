@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { Profile, ProfileUpdate } from "../../api/types";
-import { GRADES, SEARCH_STATUSES, WORK_FORMATS, optionalEnum, optionalMoney, optionalText, salaryRangeIssue } from "../../lib/fields";
+import { GRADES, SEARCH_STATUSES, WORK_FORMATS, optionalEnum, optionalMoney, optionalText, optionalYears, salaryRangeIssue } from "../../lib/fields";
 
 export const profileSchema = z
   .object({
@@ -19,6 +19,9 @@ export const profileSchema = z
       "Некорректный email",
     ),
     skills: z.array(z.string()).max(50, "Не больше 50 навыков"),
+    experience_years: optionalYears,
+    roles: z.array(z.string()).max(5, "Не больше 5 ролей"),
+    soft_skills: z.array(z.string()).max(8, "Не больше 8 качеств"),
     is_hidden: z.boolean(),
     search_status: z.enum(SEARCH_STATUSES),
   })
@@ -41,6 +44,9 @@ export function profileToForm(p: Profile): ProfileFormInput {
     telegram: p.contacts.telegram ?? "",
     contact_email: p.contacts.email ?? "",
     skills: p.skills.map((s) => s.slug),
+    experience_years: p.experience_years ?? "",
+    roles: p.roles,
+    soft_skills: p.soft_skills,
     is_hidden: p.is_hidden,
     search_status: p.search_status,
   };

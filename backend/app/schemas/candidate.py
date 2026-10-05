@@ -1,10 +1,11 @@
 import uuid
 from typing import Annotated
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 from app.models.enums import Grade, SearchStatus, Specialization, VerificationTier, WorkFormat
 from app.schemas.common import SalaryRangeMixin, SkillOut
+from app.services.specializations import ROLES, SOFT_SKILLS, known_keys
 
 SkillSlug = Annotated[str, Field(pattern=r"^[a-z0-9][a-z0-9+#.\-]{0,63}$")]
 
@@ -29,6 +30,21 @@ class ProfileUpdateIn(SalaryRangeMixin):
     show_salary: bool | None = None
     show_about: bool | None = None
     skills: list[SkillSlug] | None = Field(default=None, max_length=50, description="slug навыков")
+    experience_years: int | None = Field(default=None, ge=0, le=50)
+    roles: list[str] | None = Field(
+        default=None, max_length=5, description="см. /public/dictionaries"
+    )
+    soft_skills: list[str] | None = Field(default=None, max_length=8)
+
+    @field_validator("roles")
+    @classmethod
+    def _roles(cls, value: list[str] | None) -> list[str] | None:
+        return None if value is None else known_keys(value, ROLES, "роль")
+
+    @field_validator("soft_skills")
+    @classmethod
+    def _soft_skills(cls, value: list[str] | None) -> list[str] | None:
+        return None if value is None else known_keys(value, SOFT_SKILLS, "софт-скилл")
 
 
 class ProfileOut(BaseModel):
@@ -59,3 +75,4 @@ class ProfileOut(BaseModel):
     experience_years: int | None = None
     industries: list[str] = []
     roles: list[str] = []
+    soft_skills: list[str] = []

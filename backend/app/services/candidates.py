@@ -16,6 +16,9 @@ from app.services.common import apply_fields, apply_salary, resolve_skills
 
 log = get_logger(__name__)
 _PLAIN_FIELDS = (
+    "experience_years",
+    "roles",
+    "soft_skills",
     "title",
     "about",
     "grade",
@@ -94,6 +97,7 @@ class CandidateService:
             experience_years=p.experience_years,
             industries=p.industries or [],
             roles=p.roles or [],
+            soft_skills=p.soft_skills or [],
             show_fsp=p.show_fsp,
             show_salary=p.show_salary,
             show_about=p.show_about,

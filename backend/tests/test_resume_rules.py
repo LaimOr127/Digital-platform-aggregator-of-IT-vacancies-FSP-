@@ -43,6 +43,17 @@ def test_rules_extract_profile_fields():
     assert parsed.about.startswith("Строю высоконагруженные") and "Навыки" not in parsed.about
 
 
+def test_rules_extract_roles_and_soft_skills():
+    parsed = rules.parse(RESUME_TEXT)
+    assert parsed.roles == ["developer", "mentor"]
+    assert set(parsed.soft_skills) == {"leadership", "presenting", "ownership", "communication"}
+
+
+def test_no_roles_or_soft_skills_in_plain_text():
+    parsed = rules.parse("Иван Петров\nPython, Docker")
+    assert parsed.roles == [] and parsed.soft_skills == []
+
+
 def test_salary_in_thousands():
     assert rules.parse("Иван Петров\nЗарплата: 250к").salary_min == 250_000
 

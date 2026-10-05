@@ -6,7 +6,7 @@ import type { ProfileFormInput } from "../schemas";
 
 type TextField = "full_name" | "title" | "about" | "city" | "phone" | "telegram" | "contact_email";
 type ChoiceField = "grade" | "work_format";
-type MoneyField = "salary_min" | "salary_max";
+type MoneyField = "salary_min" | "salary_max" | "experience_years";
 export type DraftField = TextField | ChoiceField | MoneyField;
 
 export type FieldChange = {
@@ -28,6 +28,7 @@ const TEXT_LABELS: Record<DraftField, string> = {
   city: "Город",
   salary_min: "Зарплата от",
   salary_max: "Зарплата до",
+  experience_years: "Опыт, лет",
   about: "О себе",
   telegram: "Telegram",
   phone: "Телефон",
@@ -43,6 +44,7 @@ function suggestedValues(draft: ProfileDraft): Partial<Record<DraftField, string
     city: draft.city ?? undefined,
     salary_min: draft.salary_min ?? undefined,
     salary_max: draft.salary_max ?? undefined,
+    experience_years: draft.experience_years ?? undefined,
     about: draft.about ?? undefined,
     telegram: draft.contacts.telegram ?? undefined,
     phone: draft.contacts.phone ?? undefined,
@@ -69,11 +71,23 @@ export function fieldChanges(draft: ProfileDraft, form: ProfileFormInput): Field
   return changes;
 }
 
-/** Навыки из черновика, которых ещё нет в профиле (в пределах лимита). */
-export function newSkills(draft: ProfileDraft, form: ProfileFormInput, max = 50): string[] {
-  const have = new Set(form.skills);
-  return draft.skills
-    .map((s) => s.slug)
-    .filter((slug) => !have.has(slug))
-    .slice(0, Math.max(0, max - have.size));
+export type DraftLists = { skills: string[]; roles: string[]; soft_skills: string[] };
+
+/** Значения из черновика, которых ещё нет в профиле (в пределах лимита). */
+function added(suggested: string[], have: string[], max: number): string[] {
+  const present = new Set(have);
+  return suggested.filter((v) => !present.has(v)).slice(0, Math.max(0, max - present.size));
+}
+
+/** Навыки, роли и софт-скиллы, которые черновик добавит к профилю. */
+export function newLists(draft: ProfileDraft, form: ProfileFormInput): DraftLists {
+  return {
+    skills: added(
+      draft.skills.map((s) => s.slug),
+      form.skills,
+      50,
+    ),
+    roles: added(draft.roles, form.roles, 5),
+    soft_skills: added(draft.soft_skills, form.soft_skills, 8),
+  };
 }

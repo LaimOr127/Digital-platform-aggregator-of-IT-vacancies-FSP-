@@ -1,7 +1,8 @@
 """Разбор текста резюме по правилам: работает без внешних сервисов и для любого резюме.
 
-Ищет контакты, имя, должность, грейд, стаж, город, формат, зарплату, навыки (по справочнику)
-и раздел «О себе». Всё найденное — только предложение: кандидат проверяет перед сохранением.
+Ищет контакты, имя, должность, грейд, стаж, город, формат, зарплату, навыки (по справочнику),
+роли, софт-скиллы и раздел «О себе». Всё найденное — только предложение: кандидат
+проверяет перед сохранением.
 """
 
 import re
@@ -30,6 +31,24 @@ _FORMATS = (
     (WorkFormat.HYBRID, r"гибрид|hybrid"),
     (WorkFormat.OFFICE, r"\bофис|office"),
 )
+# роли и софт-скиллы — по ключевым словам; ключи совпадают со справочниками опроса
+_ROLES = {
+    "developer": r"разработчик|developer|программист|engineer|инженер",
+    "team_lead": r"team\s?lead|тимлид|руковод\w*\s+(?:команд|групп|отдел)",
+    "tech_lead": r"tech\s?lead|техлид|техническ\w*\s+лидер",
+    "architect": r"архитектор|architect",
+    "mentor": r"наставни|ментор|mentor",
+}
+_SOFT_SKILLS = {
+    "communication": r"коммуникаб|коммуникац|communicat|переговор",
+    "teamwork": r"командн\w*\s+(?:работ|игрок)|в\s+команде|team\s?player|teamwork",
+    "leadership": r"лидерств|лидерск|капитан|leadership",
+    "ownership": r"ответственн|ownership",
+    "learning": r"обучаем|быстро\s+учусь|самообуч|fast\s+learner",
+    "problem_solving": r"решени\w*\s+сложн|аналитическ\w*\s+мышлен|problem[\s-]solving",
+    "time_management": r"самоорганиз|тайм-?менеджмент|time\s+management",
+    "presenting": r"выступа|доклад|спикер|speaker|public\s+speaking",
+}
 _EXPERIENCE = re.compile(
     r"(?:опыт(?:\s+работы)?|experience)[^\d\n]{0,20}(\d{1,2})\+?\s*(?:год|лет|year)", re.I
 )
@@ -64,6 +83,8 @@ class ParsedResume:
     email: str | None = None
     phone: str | None = None
     telegram: str | None = None
+    roles: list[str] = field(default_factory=list)
+    soft_skills: list[str] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)
 
 
@@ -77,6 +98,8 @@ def parse(text: str) -> ParsedResume:
         work_format=next((f for f, p in _FORMATS if re.search(p, text, re.I)), None),
         salary_min=_salary(text),
         about=_about(lines),
+        roles=_mentioned(_ROLES, text),
+        soft_skills=_mentioned(_SOFT_SKILLS, text),
         **contacts(text),
     )
     years = _first(_EXPERIENCE, text)
@@ -107,6 +130,10 @@ def mask_contacts(text: str) -> str:
 def _is_role(line: str) -> bool:
     lowered = line.lower()
     return len(line) <= 120 and any(word in lowered for word in _ROLE_WORDS)
+
+
+def _mentioned(patterns: dict[str, str], text: str) -> list[str]:
+    return [key for key, pattern in patterns.items() if re.search(pattern, text, re.I)]
 
 
 def _first(pattern: re.Pattern[str], text: str, group: int = 1) -> str | None:

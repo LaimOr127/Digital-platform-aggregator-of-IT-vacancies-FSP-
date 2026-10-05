@@ -4,13 +4,14 @@ import type { ProfileDraft } from "../../../api/types";
 import { Button } from "../../../ui/Button";
 import { Dialog } from "../../../ui/Dialog";
 import type { ProfileFormInput } from "../schemas";
-import { fieldChanges, newSkills, type FieldChange } from "./draft";
+import { useDictionaries } from "../../../api/queries";
+import { fieldChanges, newLists, type DraftLists, type FieldChange } from "./draft";
 
 type Props = {
   draft: ProfileDraft;
   form: ProfileFormInput;
   skillNames: Map<string, string>;
-  onApply: (changes: FieldChange[], skills: string[]) => void;
+  onApply: (changes: FieldChange[], lists: DraftLists) => void;
   onClose: () => void;
 };
 
@@ -19,7 +20,12 @@ const SOURCE = { fsp: "Данные из анкеты ФСП", resume: "Данн
 /** Проверка черновика: какие поля перенести в форму. Сохраняет профиль сам кандидат. */
 export function DraftDialog({ draft, form, skillNames, onApply, onClose }: Props) {
   const changes = fieldChanges(draft, form);
-  const skills = newSkills(draft, form);
+  const lists = newLists(draft, form);
+  const { skills } = lists;
+  const dictionaries = useDictionaries().data;
+  const traitNames = new Map([...(dictionaries?.roles ?? []), ...(dictionaries?.soft_skills ?? [])].map((o) => [o.value, o.label]));
+  const traits = [...lists.roles, ...lists.soft_skills];
+  const [withTraits, setWithTraits] = useState(true);
   const [selected, setSelected] = useState(() => new Set(changes.filter((c) => c.preselected).map((c) => c.field)));
   const [withSkills, setWithSkills] = useState(true);
   const toggle = (field: FieldChange["field"]) =>
@@ -29,7 +35,7 @@ export function DraftDialog({ draft, form, skillNames, onApply, onClose }: Props
       else next.add(field);
       return next;
     });
-  const nothing = changes.length === 0 && skills.length === 0;
+  const nothing = changes.length === 0 && skills.length === 0 && traits.length === 0;
 
   return (
     <Dialog open title={SOURCE[draft.source]} onClose={onClose} wide>
@@ -73,6 +79,17 @@ export function DraftDialog({ draft, form, skillNames, onApply, onClose }: Props
             </label>
           </li>
         )}
+        {traits.length > 0 && (
+          <li>
+            <label className="flex cursor-pointer items-start gap-3 py-3 text-sm">
+              <input type="checkbox" className="mt-1 accent-accent" checked={withTraits} onChange={(e) => setWithTraits(e.target.checked)} />
+              <span>
+                <span className="font-medium">Добавить роли и софт-скиллы</span>
+                <span className="mt-1 block text-fg">{traits.map((t) => traitNames.get(t) ?? t).join(", ")}</span>
+              </span>
+            </label>
+          </li>
+        )}
       </ul>
       {draft.unknown_skills.length > 0 && (
         <p className="mt-3 text-xs text-muted">
@@ -85,7 +102,13 @@ export function DraftDialog({ draft, form, skillNames, onApply, onClose }: Props
         </Button>
         <Button
           disabled={nothing}
-          onClick={() => onApply(changes.filter((c) => selected.has(c.field)), withSkills ? skills : [])}
+          onClick={() =>
+            onApply(changes.filter((c) => selected.has(c.field)), {
+              skills: withSkills ? skills : [],
+              roles: withTraits ? lists.roles : [],
+              soft_skills: withTraits ? lists.soft_skills : [],
+            })
+          }
         >
           Перенести в профиль
         </Button>

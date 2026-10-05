@@ -18,6 +18,7 @@ const empty: Profile = {
   search_status: "open",
   industries: [],
   roles: [],
+  soft_skills: [],
   show_fsp: true,
   show_salary: true,
   show_about: true,
