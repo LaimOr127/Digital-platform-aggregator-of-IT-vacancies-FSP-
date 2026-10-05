@@ -501,6 +501,211 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/employer/applications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Приглашения компании и отклики кандидатов (новые отклики становятся просмотренными) */
+        get: operations["employer_applications_api_v1_employer_applications_get"];
+        put?: never;
+        /** Пригласить кандидата: предложение, вилка, способ связи (вакансия — по желанию) */
+        post: operations["invite_api_v1_employer_applications_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/employer/applications/{application_id}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Принять отклик: кандидат получит способ связи */
+        post: operations["accept_response_api_v1_employer_applications__application_id__accept_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/employer/applications/{application_id}/decline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Отклонить отклик */
+        post: operations["decline_response_api_v1_employer_applications__application_id__decline_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/employer/applications/{application_id}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Отозвать приглашение */
+        post: operations["withdraw_invitation_api_v1_employer_applications__application_id__withdraw_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/employer/applications/{application_id}/contacts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Контакты кандидата (после принятия приглашения или по отклику) */
+        get: operations["application_contacts_api_v1_employer_applications__application_id__contacts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/candidate/applications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Приглашения и мои отклики (новые приглашения становятся просмотренными) */
+        get: operations["candidate_applications_api_v1_candidate_applications_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/candidate/applications/{application_id}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Принять приглашение: компания получит имя и контакты */
+        post: operations["accept_invitation_api_v1_candidate_applications__application_id__accept_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/candidate/applications/{application_id}/decline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Отклонить приглашение */
+        post: operations["decline_invitation_api_v1_candidate_applications__application_id__decline_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/candidate/applications/{application_id}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Отозвать свой отклик */
+        post: operations["withdraw_response_api_v1_candidate_applications__application_id__withdraw_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/candidate/vacancies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Опубликованные вакансии по соответствию профилю */
+        get: operations["board_api_v1_candidate_vacancies_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/candidate/vacancies/{vacancy_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Вакансия */
+        get: operations["board_vacancy_api_v1_candidate_vacancies__vacancy_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/candidate/vacancies/{vacancy_id}/respond": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Откликнуться: компания сразу получит имя и контакты */
+        post: operations["respond_api_v1_candidate_vacancies__vacancy_id__respond_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/candidate/interviews": {
         parameters: {
             query?: never;
@@ -617,7 +822,8 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        patch?: never;
+        /** Изменить профиль компании (владелец) */
+        patch: operations["update_company_api_v1_employer_company_patch"];
         trace?: never;
     };
     "/api/v1/employer/vacancies": {
@@ -1192,6 +1398,14 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AcceptResponseIn */
+        AcceptResponseIn: {
+            /**
+             * Contact Method
+             * @description как связаться
+             */
+            contact_method: string;
+        };
         /**
          * AcceptedOut
          * @description Ответ не зависит от того, зарегистрирован ли адрес.
@@ -1365,6 +1579,65 @@ export interface components {
             message: string;
         };
         /**
+         * ApplicationDirection
+         * @description Кто проявил инициативу: компания пригласила или кандидат откликнулся сам.
+         * @enum {string}
+         */
+        ApplicationDirection: "invitation" | "response";
+        /**
+         * ApplicationOut
+         * @description Для кандидата: компания и способ связи с ней (по отклику — после ответа компании).
+         */
+        ApplicationOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            direction: components["schemas"]["ApplicationDirection"];
+            status: components["schemas"]["ApplicationStatus"];
+            /** Vacancy Id */
+            vacancy_id: string | null;
+            /** Title */
+            title: string;
+            /** Description */
+            description: string;
+            grade: components["schemas"]["Grade"];
+            work_format: components["schemas"]["WorkFormat"];
+            /** City */
+            city: string | null;
+            /** Salary Min */
+            salary_min: number;
+            /** Salary Max */
+            salary_max: number;
+            /** Message */
+            message: string;
+            /** Decline Reason */
+            decline_reason: string | null;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /** Viewed At */
+            viewed_at: string | null;
+            /** Responded At */
+            responded_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            company: components["schemas"]["CompanyBriefOut"];
+            /** Contact Method */
+            contact_method: string | null;
+        };
+        /**
+         * ApplicationStatus
+         * @enum {string}
+         */
+        ApplicationStatus: "sent" | "viewed" | "accepted" | "declined" | "withdrawn" | "expired";
+        /**
          * AssessmentResult
          * @enum {string}
          */
@@ -1489,6 +1762,38 @@ export interface components {
              */
             created_at: string;
         };
+        /**
+         * BoardVacancyOut
+         * @description Вакансия в ленте кандидата: соответствие его профилю и статус его отклика.
+         */
+        BoardVacancyOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Title */
+            title: string;
+            /** Description */
+            description: string;
+            specialization: components["schemas"]["Specialization"] | null;
+            grade: components["schemas"]["Grade"];
+            work_format: components["schemas"]["WorkFormat"];
+            /** City */
+            city: string | null;
+            /** Salary Min */
+            salary_min: number;
+            /** Salary Max */
+            salary_max: number;
+            /** Skills */
+            skills: string[];
+            /** Expires At */
+            expires_at: string | null;
+            company: components["schemas"]["CompanyBriefOut"];
+            match: components["schemas"]["MatchOut"];
+            /** @description статус отклика или приглашения по этой вакансии */
+            application_status: components["schemas"]["ApplicationStatus"] | null;
+        };
         /** Body_from_resume_api_v1_candidate_import_resume_post */
         Body_from_resume_api_v1_candidate_import_resume_post: {
             /**
@@ -1566,6 +1871,11 @@ export interface components {
         };
         /** CandidateRegisterIn */
         CandidateRegisterIn: {
+            /**
+             * Consent
+             * @description согласие на обработку персональных данных и публикацию анонимного профиля
+             */
+            consent: boolean;
             /** Password */
             password: string;
             /**
@@ -1610,6 +1920,20 @@ export interface components {
             /** Reasons */
             reasons: string[];
         };
+        /**
+         * CompanyBriefOut
+         * @description Профиль компании глазами кандидата.
+         */
+        CompanyBriefOut: {
+            /** Name */
+            name: string;
+            /** Industry */
+            industry: string | null;
+            /** Website */
+            website: string | null;
+            /** Description */
+            description: string;
+        };
         /** CompanyOut */
         CompanyOut: {
             /**
@@ -1629,6 +1953,19 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            /** Industry */
+            industry?: string | null;
+            /** Contact Email */
+            contact_email?: string | null;
+            /** Contact Phone */
+            contact_phone?: string | null;
+            /** Contact Telegram */
+            contact_telegram?: string | null;
         };
         /**
          * CompanyStatus
@@ -1644,6 +1981,26 @@ export interface components {
              */
             reason: string;
         };
+        /**
+         * CompanyUpdateIn
+         * @description Профиль компании: описание, направление деятельности, контакты для кандидатов.
+         */
+        CompanyUpdateIn: {
+            /** Name */
+            name?: string | null;
+            /** Website */
+            website?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Industry */
+            industry?: string | null;
+            /** Contact Email */
+            contact_email?: string | null;
+            /** Contact Phone */
+            contact_phone?: string | null;
+            /** Contact Telegram */
+            contact_telegram?: string | null;
+        };
         /** Contacts */
         Contacts: {
             /** Phone */
@@ -1652,6 +2009,14 @@ export interface components {
             telegram?: string | null;
             /** Email */
             email?: string | null;
+        };
+        /** DeclineIn */
+        DeclineIn: {
+            /**
+             * Reason
+             * @default
+             */
+            reason: string;
         };
         /**
          * DictionariesOut
@@ -1672,6 +2037,57 @@ export interface components {
              * Format: email
              */
             email: string;
+        };
+        /**
+         * EmployerApplicationOut
+         * @description Для компании: анонимная карточка кандидата; контакты — отдельным запросом.
+         */
+        EmployerApplicationOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            direction: components["schemas"]["ApplicationDirection"];
+            status: components["schemas"]["ApplicationStatus"];
+            /** Vacancy Id */
+            vacancy_id: string | null;
+            /** Title */
+            title: string;
+            /** Description */
+            description: string;
+            grade: components["schemas"]["Grade"];
+            work_format: components["schemas"]["WorkFormat"];
+            /** City */
+            city: string | null;
+            /** Salary Min */
+            salary_min: number;
+            /** Salary Max */
+            salary_max: number;
+            /** Message */
+            message: string;
+            /** Decline Reason */
+            decline_reason: string | null;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /** Viewed At */
+            viewed_at: string | null;
+            /** Responded At */
+            responded_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Contact Method */
+            contact_method: string | null;
+            /** Contacts Available */
+            contacts_available: boolean;
+            /** @description карточка, если кандидат виден в каталоге */
+            candidate?: components["schemas"]["CandidateCardOut"] | null;
         };
         /** EmployerInterviewOut */
         EmployerInterviewOut: {
@@ -1769,6 +2185,11 @@ export interface components {
         };
         /** EmployerRegisterIn */
         EmployerRegisterIn: {
+            /**
+             * Consent
+             * @description согласие на обработку персональных данных и публикацию анонимного профиля
+             */
+            consent: boolean;
             /** Password */
             password: string;
             /**
@@ -1929,19 +2350,15 @@ export interface components {
         InterviewFormat: "online" | "office";
         /**
          * InterviewInviteIn
-         * @description Приглашение: 1-3 варианта времени, формат, кто проводит (руководитель).
+         * @description Собеседование после состоявшегося контакта: 1-3 варианта времени, формат, кто проводит.
          */
         InterviewInviteIn: {
             /**
-             * Anon Id
+             * Application Id
              * Format: uuid
+             * @description принятое приглашение или отклик
              */
-            anon_id: string;
-            /**
-             * Vacancy Id
-             * Format: uuid
-             */
-            vacancy_id: string;
+            application_id: string;
             /** Slots */
             slots: string[];
             /**
@@ -2033,6 +2450,42 @@ export interface components {
          * @enum {string}
          */
         InterviewStatus: "invited" | "scheduled" | "declined" | "cancelled" | "completed" | "expired";
+        /**
+         * InvitationIn
+         * @description Приглашение кандидату: описание предложения, вилка, способ связи. Вакансия — по желанию.
+         */
+        InvitationIn: {
+            /** Salary Min */
+            salary_min: number;
+            /** Salary Max */
+            salary_max: number;
+            /**
+             * Anon Id
+             * Format: uuid
+             */
+            anon_id: string;
+            /** Vacancy Id */
+            vacancy_id?: string | null;
+            /**
+             * Title
+             * @description должность
+             */
+            title: string;
+            /**
+             * Description
+             * @description описание предложения
+             */
+            description: string;
+            grade: components["schemas"]["Grade"];
+            work_format: components["schemas"]["WorkFormat"];
+            /** City */
+            city?: string | null;
+            /**
+             * Contact Method
+             * @description как связаться: Telegram, почта, телефон
+             */
+            contact_method: string;
+        };
         /**
          * LinkTokenIn
          * @description Токен из ссылки в письме.
@@ -2248,10 +2701,24 @@ export interface components {
             /** Next Cursor */
             next_cursor: string | null;
         };
+        /** PageOut[ApplicationOut] */
+        PageOut_ApplicationOut_: {
+            /** Items */
+            items: components["schemas"]["ApplicationOut"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
         /** PageOut[AuditEntryOut] */
         PageOut_AuditEntryOut_: {
             /** Items */
             items: components["schemas"]["AuditEntryOut"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /** PageOut[BoardVacancyOut] */
+        PageOut_BoardVacancyOut_: {
+            /** Items */
+            items: components["schemas"]["BoardVacancyOut"][];
             /** Next Cursor */
             next_cursor: string | null;
         };
@@ -2266,6 +2733,13 @@ export interface components {
         PageOut_CompanyOut_: {
             /** Items */
             items: components["schemas"]["CompanyOut"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /** PageOut[EmployerApplicationOut] */
+        PageOut_EmployerApplicationOut_: {
+            /** Items */
+            items: components["schemas"]["EmployerApplicationOut"][];
             /** Next Cursor */
             next_cursor: string | null;
         };
@@ -2470,6 +2944,21 @@ export interface components {
             search_status: components["schemas"]["SearchStatus"];
             /** Skills */
             skills: components["schemas"]["SkillOut"][];
+            /**
+             * Show Fsp
+             * @default true
+             */
+            show_fsp: boolean;
+            /**
+             * Show Salary
+             * @default true
+             */
+            show_salary: boolean;
+            /**
+             * Show About
+             * @default true
+             */
+            show_about: boolean;
             specialization?: components["schemas"]["Specialization"] | null;
             confirmed_grade?: components["schemas"]["Grade"] | null;
             /** Assessment Score */
@@ -2507,6 +2996,12 @@ export interface components {
             /** Is Hidden */
             is_hidden?: boolean | null;
             search_status?: components["schemas"]["SearchStatus"] | null;
+            /** Show Fsp */
+            show_fsp?: boolean | null;
+            /** Show Salary */
+            show_salary?: boolean | null;
+            /** Show About */
+            show_about?: boolean | null;
             /**
              * Skills
              * @description slug навыков
@@ -2535,6 +3030,15 @@ export interface components {
             code: string | null;
             /** Options */
             options: string[];
+        };
+        /** ResponseIn */
+        ResponseIn: {
+            /**
+             * Message
+             * @description сопроводительное письмо
+             * @default
+             */
+            message: string;
         };
         /**
          * SalaryBandOut
@@ -3730,6 +4234,440 @@ export interface operations {
             };
         };
     };
+    employer_applications_api_v1_employer_applications_get: {
+        parameters: {
+            query?: {
+                direction?: components["schemas"]["ApplicationDirection"] | null;
+                status?: components["schemas"]["ApplicationStatus"] | null;
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageOut_EmployerApplicationOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    invite_api_v1_employer_applications_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InvitationIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployerApplicationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    accept_response_api_v1_employer_applications__application_id__accept_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AcceptResponseIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployerApplicationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    decline_response_api_v1_employer_applications__application_id__decline_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeclineIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployerApplicationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    withdraw_invitation_api_v1_employer_applications__application_id__withdraw_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployerApplicationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    application_contacts_api_v1_employer_applications__application_id__contacts_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferContactsOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    candidate_applications_api_v1_candidate_applications_get: {
+        parameters: {
+            query?: {
+                direction?: components["schemas"]["ApplicationDirection"] | null;
+                status?: components["schemas"]["ApplicationStatus"] | null;
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageOut_ApplicationOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    accept_invitation_api_v1_candidate_applications__application_id__accept_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    decline_invitation_api_v1_candidate_applications__application_id__decline_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeclineIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    withdraw_response_api_v1_candidate_applications__application_id__withdraw_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    board_api_v1_candidate_vacancies_get: {
+        parameters: {
+            query?: {
+                specialization?: components["schemas"]["Specialization"] | null;
+                grade?: components["schemas"]["Grade"] | null;
+                work_format?: components["schemas"]["WorkFormat"] | null;
+                skill?: string | null;
+                /** @description поиск по названию */
+                q?: string | null;
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageOut_BoardVacancyOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    board_vacancy_api_v1_candidate_vacancies__vacancy_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vacancy_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BoardVacancyOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    respond_api_v1_candidate_vacancies__vacancy_id__respond_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vacancy_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResponseIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_interviews_api_v1_candidate_interviews_get: {
         parameters: {
             query?: {
@@ -3948,6 +4886,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CompanyOut"];
+                };
+            };
+        };
+    };
+    update_company_api_v1_employer_company_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CompanyUpdateIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompanyOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

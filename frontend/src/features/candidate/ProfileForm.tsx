@@ -98,7 +98,7 @@ export function ProfileForm({ profile, skills, fspLinked, autoFsp }: Props) {
         </div>
       </Card>
       <Section title="Основное" text="По этим данным вы попадаете в категории, которые видят работодатели.">
-        <Field label="Имя и фамилия" error={errors.full_name?.message} hint="Видно только после принятого оффера">
+        <Field label="Имя и фамилия" error={errors.full_name?.message} hint="Компания увидит его, только когда вы примете её приглашение или откликнетесь">
           <Input autoComplete="name" {...register("full_name")} />
         </Field>
         <Field label="Должность" error={errors.title?.message}>
@@ -149,7 +149,7 @@ export function ProfileForm({ profile, skills, fspLinked, autoFsp }: Props) {
         </Field>
       </Section>
 
-      <Section title="Контакты" text="Работодатель получит их только после того, как вы примете его оффер.">
+      <Section title="Контакты" text="Компания получит их, только когда вы примете её приглашение или откликнетесь сами.">
         <Field label="Telegram" error={errors.telegram?.message}>
           <Input placeholder="@username" {...register("telegram")} />
         </Field>

@@ -2,7 +2,7 @@
 
 from typing import Protocol
 
-from app.core.errors import AppError
+from app.core.errors import AppError, InvalidStateError
 from app.models import Base, Skill
 from app.repositories.candidates import SkillRepository
 from app.schemas.common import check_salary_range
@@ -51,3 +51,16 @@ async def resolve_skills(skills: SkillRepository, slugs: list[str]) -> list[Skil
     if missing:
         raise UnknownSkillsError("неизвестные навыки: " + ", ".join(sorted(missing)))
     return found
+
+
+def parse_offset(cursor: str | None, prefix: str) -> int:
+    """Курсор рейтинга — позиция в отсортированном списке («m20»): рейтинг считается целиком."""
+    if not cursor:
+        return 0
+    if not cursor.startswith(prefix) or not cursor[len(prefix) :].isdigit():
+        raise InvalidStateError("некорректный курсор")
+    return int(cursor[len(prefix) :])
+
+
+def next_offset(offset: int, limit: int, total: int, prefix: str) -> str | None:
+    return f"{prefix}{offset + limit}" if offset + limit < total else None

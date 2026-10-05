@@ -37,3 +37,13 @@ async def test_api_returns_russian_field_errors(client):
     assert messages["email"] == "Некорректный email"
     assert messages["full_name"] == "Минимум 2 симв."
     assert all("should" not in m and "String" not in m for m in messages.values())
+
+
+async def test_registration_requires_consent(client):
+    body = {"email": "anna@example.org", "password": "Str0ng-pass-ok", "full_name": "Анна"}
+    for consent in (False, None):
+        payload = {**body, **({} if consent is None else {"consent": consent})}
+        r = await client.post("/api/v1/auth/register/candidate", json=payload)
+        assert r.status_code == 422
+    messages = [d["msg"] for d in r.json()["error"]["details"]]
+    assert messages

@@ -60,6 +60,14 @@ def settings() -> Settings:
 
 
 @pytest.fixture
+def premoderation(settings: Settings):
+    """Режим предмодерации: новая компания ждёт одобрения (по умолчанию — постмодерация)."""
+    settings.company_premoderation = True
+    yield
+    settings.company_premoderation = False
+
+
+@pytest.fixture
 async def db(pg_app_url: str | None):
     if pg_app_url:
         await dbsetup.truncate_postgres(POSTGRES_URL)

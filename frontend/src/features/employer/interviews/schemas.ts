@@ -21,7 +21,6 @@ const slot = (required: boolean) =>
 
 export const inviteSchema = z
   .object({
-    vacancy_id: z.string().min(1, "Выберите вакансию"),
     slot1: slot(true),
     slot2: slot(false),
     slot3: slot(false),

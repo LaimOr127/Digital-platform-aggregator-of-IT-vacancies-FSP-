@@ -7,16 +7,24 @@
 """
 
 import uuid
+from datetime import UTC, datetime
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import get_settings
 from app.core.crypto import FieldCipher, profile_field_context
 from app.core.errors import ForbiddenError, InvalidLinkError, NotFoundError, WrongPasswordError
 from app.core.security import hash_password_async, verify_password_async
 from app.db.session import set_rls_context
 from app.models import CandidateProfile, CompanyMember, EmployerCompany, User
-from app.models.enums import EmailTokenPurpose, MemberRole, RecipientType, UserRole
+from app.models.enums import (
+    CompanyStatus,
+    EmailTokenPurpose,
+    MemberRole,
+    RecipientType,
+    UserRole,
+)
 from app.repositories.audit import AuditRepository
 from app.repositories.users import RefreshTokenRepository, UserRepository
 from app.schemas.auth import CandidateRegisterIn, EmployerRegisterIn
@@ -45,7 +53,13 @@ class AccountService:
     async def register_employer(self, data: EmployerRegisterIn) -> None:
         user = await self._register(data.email, data.password, UserRole.EMPLOYER)
         if user is not None:
-            company = EmployerCompany(name=data.company_name, inn=data.inn)
+            # постмодерация: компания работает сразу, модератор может заблокировать её позже
+            status = (
+                CompanyStatus.PENDING
+                if get_settings().company_premoderation
+                else CompanyStatus.APPROVED
+            )
+            company = EmployerCompany(name=data.company_name, inn=data.inn, status=status)
             self.session.add(company)
             await self.session.flush()
             self.session.add(
@@ -60,7 +74,12 @@ class AccountService:
         if existing is not None:
             await self._notify_existing(existing)
             return None
-        user = User(email=email.lower(), password_hash=password_hash, role=role)
+        user = User(
+            email=email.lower(),
+            password_hash=password_hash,
+            role=role,
+            consent_at=datetime.now(UTC),  # без согласия запрос не проходит валидацию
+        )
         try:
             user = await self.users.add(user)
         except IntegrityError:  # гонка двух регистраций одного адреса: письмо уйдёт победителю

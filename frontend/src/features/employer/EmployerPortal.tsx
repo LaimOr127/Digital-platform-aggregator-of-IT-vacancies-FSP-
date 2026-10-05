@@ -5,7 +5,9 @@ import { companyTone } from "../../lib/tones";
 import { Alert } from "../../ui/Alert";
 import { AppShell } from "../../ui/AppShell";
 import { Badge } from "../../ui/Badge";
+import { ApplicationsPage } from "./applications/ApplicationsPage";
 import { CatalogPage } from "./catalog/CatalogPage";
+import { CompanyPage } from "./CompanyPage";
 import { useCompany } from "./hooks";
 import { InterviewsPage } from "./interviews/InterviewsPage";
 import { EmployerOffersPage } from "./offers/EmployerOffersPage";
@@ -14,8 +16,10 @@ import { VacanciesPage } from "./VacanciesPage";
 const NAV = [
   { to: "/company", label: "Вакансии", end: true },
   { to: "/company/catalog", label: "Каталог кандидатов" },
+  { to: "/company/applications", label: "Приглашения и отклики" },
   { to: "/company/interviews", label: "Собеседования" },
   { to: "/company/offers", label: "Офферы" },
+  { to: "/company/profile", label: "Компания" },
 ];
 
 export default function EmployerPortal() {
@@ -26,7 +30,9 @@ export default function EmployerPortal() {
       <Routes>
         <Route index element={<VacanciesPage />} />
         <Route path="catalog" element={<CatalogPage company={company.data} />} />
+        <Route path="applications" element={<ApplicationsPage />} />
         <Route path="interviews" element={<InterviewsPage />} />
+        <Route path="profile" element={<CompanyPage />} />
         <Route path="offers" element={<EmployerOffersPage />} />
         <Route path="*" element={<VacanciesPage />} />
       </Routes>
@@ -43,8 +49,8 @@ function CompanyBanner({ company }: { company: Company }) {
       </div>
       {company.status === "pending" && (
         <Alert tone="warn">
-          Компания на модерации. Готовьте черновики вакансий — публикация, каталог кандидатов и офферы откроются сразу
-          после проверки.
+          Компания на проверке у модератора. Готовьте черновики вакансий — публикация, каталог и приглашения откроются
+          сразу после проверки.
         </Alert>
       )}
       {company.status === "blocked" && (

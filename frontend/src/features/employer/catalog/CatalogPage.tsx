@@ -1,4 +1,4 @@
-import { CalendarPlus, Users } from "lucide-react";
+import { Send, Users } from "lucide-react";
 import { useState } from "react";
 import { errorMessage } from "../../../api/errors";
 import type { CandidateCard, CatalogFilters, Company } from "../../../api/types";
@@ -13,7 +13,7 @@ import { CandidateCardView } from "./CandidateCardView";
 import { FiltersPanel } from "./CatalogFilters";
 import { CategoryGrid } from "./CategoryGrid";
 import { useCatalogCandidates, useCatalogCategories, useFspCategories, useNeedVacancies } from "./hooks";
-import { InviteDialog } from "../interviews/InviteDialog";
+import { InvitationDialog } from "../applications/InvitationDialog";
 
 export function CatalogPage({ company }: { company: Company | undefined }) {
   if (!company) return <LoadingBlock />;
@@ -26,12 +26,12 @@ export function CatalogPage({ company }: { company: Company | undefined }) {
       />
     );
   }
-  return <Catalog />;
+  return <Catalog company={company} />;
 }
 
 const DEFAULT_FILTERS: CatalogFilters = { confirmed_only: true };
 
-function Catalog() {
+function Catalog({ company }: { company: Company }) {
   const [filters, setFilters] = useState<CatalogFilters>(DEFAULT_FILTERS);
   const [inviteTo, setInviteTo] = useState<CandidateCard | null>(null);
   // подбор «из коробки»: по первой вакансии (описанию потребности), пока работодатель не выберет другую
@@ -47,7 +47,7 @@ function Catalog() {
     <>
       <PageHeader
         title="Каталог кандидатов"
-        text="Выдача строится от категорий — специализация и грейд, подтверждённый тестом. С вакансией кандидаты отсортированы по соответствию ей, без вакансии — по силе подтверждённого профиля. У каждого — объяснение «Почему»."
+        text="Выдача строится от категорий — специализация и грейд, подтверждённый тестом. С вакансией кандидаты отсортированы по соответствию ей, без вакансии — по силе подтверждённого профиля. Пригласите кандидата с вилкой и способом связи — его контакты откроются, когда он примет приглашение."
       />
       <Field
         label="Подбор под потребность"
@@ -86,17 +86,19 @@ function Catalog() {
             card={card}
             action={
               <Button size="sm" onClick={() => setInviteTo(card)}>
-                <CalendarPlus className="size-3.5" aria-hidden />
-                Пригласить на собеседование
+                <Send className="size-3.5" aria-hidden />
+                Пригласить
               </Button>
             }
           />
         )}
       </CursorListView>
-      <InviteDialog
+      <InvitationDialog
         key={inviteTo?.anon_id ?? "none"}
         candidate={inviteTo}
+        vacancies={vacancies.data ?? []}
         vacancyId={matchVacancy || undefined}
+        company={company}
         onClose={() => setInviteTo(null)}
       />
     </>

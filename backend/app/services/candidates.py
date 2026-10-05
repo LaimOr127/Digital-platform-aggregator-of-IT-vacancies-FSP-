@@ -15,7 +15,18 @@ from app.services.access import Action, Principal, policy
 from app.services.common import apply_fields, apply_salary, resolve_skills
 
 log = get_logger(__name__)
-_PLAIN_FIELDS = ("title", "about", "grade", "work_format", "city", "is_hidden", "search_status")
+_PLAIN_FIELDS = (
+    "title",
+    "about",
+    "grade",
+    "work_format",
+    "city",
+    "is_hidden",
+    "search_status",
+    "show_fsp",
+    "show_salary",
+    "show_about",
+)
 
 
 class CandidateService:
@@ -83,4 +94,7 @@ class CandidateService:
             experience_years=p.experience_years,
             industries=p.industries or [],
             roles=p.roles or [],
+            show_fsp=p.show_fsp,
+            show_salary=p.show_salary,
+            show_about=p.show_about,
         )

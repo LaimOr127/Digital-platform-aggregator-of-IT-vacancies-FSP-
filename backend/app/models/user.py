@@ -17,6 +17,8 @@ class User(IdMixin, TimestampMixin, Base):
     is_superadmin: Mapped[bool] = mapped_column(Boolean, default=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     email_verified: Mapped[bool] = mapped_column(Boolean, default=False)
+    # согласие на обработку персональных данных и публикацию анонимного профиля (152-ФЗ)
+    consent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
     # 2FA (TOTP) — обязательна для администраторов; секрет зашифрован (AES-GCM)
     totp_secret_enc: Mapped[str | None] = mapped_column(Text, default=None)
     totp_enabled: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")

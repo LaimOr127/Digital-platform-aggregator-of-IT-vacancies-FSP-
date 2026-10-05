@@ -8,7 +8,15 @@ import type {
   Growth,
   SalaryRadar,
   AssessmentState,
+  Application,
+  ApplicationDirection,
+  ApplicationStatus,
   Attempt,
+  BoardFilters,
+  BoardVacancy,
+  CompanyUpdate,
+  EmployerApplication,
+  InvitationInput,
   AttemptResult,
   Dictionaries,
   FspCategory,
@@ -117,6 +125,7 @@ const vacancyUrl = (id: string, action = "") => `/employer/vacancies/${encodeURI
 
 export const employerApi = {
   company: () => api<Company>("GET", "/employer/company"),
+  updateCompany: (body: CompanyUpdate) => api<Company>("PATCH", "/employer/company", { body }),
   vacancies: (status: VacancyStatus | undefined, cursor: string | undefined) =>
     api<Page<Vacancy>>("GET", "/employer/vacancies", { query: { status, cursor, limit: 20 } }),
   createVacancy: (body: VacancyCreate) => api<Vacancy>("POST", "/employer/vacancies", { body }),
@@ -197,6 +206,36 @@ export const importApi = {
 };
 
 const interviewUrl = (base: string, id: string, action: string) => `${base}/${encodeURIComponent(id)}${action}`;
+
+type ApplicationQuery = { direction?: ApplicationDirection; status?: ApplicationStatus };
+
+/** Выход на контакт: приглашения компании и отклики кандидатов. */
+export const applicationsApi = {
+  invite: (body: InvitationInput) => api<EmployerApplication>("POST", "/employer/applications", { body }),
+  list: (query: ApplicationQuery, cursor: string | undefined) =>
+    api<Page<EmployerApplication>>("GET", "/employer/applications", { query: { ...query, cursor, limit: 20 } }),
+  accept: (id: string, contactMethod: string) =>
+    api<EmployerApplication>("POST", interviewUrl("/employer/applications", id, "/accept"), {
+      body: { contact_method: contactMethod },
+    }),
+  decline: (id: string, reason: string) =>
+    api<EmployerApplication>("POST", interviewUrl("/employer/applications", id, "/decline"), { body: { reason } }),
+  withdraw: (id: string) => api<EmployerApplication>("POST", interviewUrl("/employer/applications", id, "/withdraw")),
+  contacts: (id: string) => api<OfferContacts>("GET", interviewUrl("/employer/applications", id, "/contacts")),
+};
+
+export const myApplicationsApi = {
+  list: (query: ApplicationQuery, cursor: string | undefined) =>
+    api<Page<Application>>("GET", "/candidate/applications", { query: { ...query, cursor, limit: 20 } }),
+  accept: (id: string) => api<Application>("POST", interviewUrl("/candidate/applications", id, "/accept")),
+  decline: (id: string, reason: string) =>
+    api<Application>("POST", interviewUrl("/candidate/applications", id, "/decline"), { body: { reason } }),
+  withdraw: (id: string) => api<Application>("POST", interviewUrl("/candidate/applications", id, "/withdraw")),
+  vacancies: (filters: BoardFilters, cursor: string | undefined) =>
+    api<Page<BoardVacancy>>("GET", "/candidate/vacancies", { query: { ...filters, cursor, limit: 20 } }),
+  respond: (vacancyId: string, message: string) =>
+    api<Application>("POST", interviewUrl("/candidate/vacancies", vacancyId, "/respond"), { body: { message } }),
+};
 
 export const interviewsApi = {
   invite: (body: InterviewInvite) => api<EmployerInterview>("POST", "/employer/interviews", { body }),

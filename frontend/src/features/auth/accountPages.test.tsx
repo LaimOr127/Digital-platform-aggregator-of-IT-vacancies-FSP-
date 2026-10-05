@@ -50,8 +50,13 @@ describe("registration", () => {
     await userEvent.type(await screen.findByLabelText("Имя и фамилия"), "Анна Смирнова");
     await userEvent.type(screen.getByLabelText("Email"), "anna@example.org");
     await userEvent.type(screen.getByLabelText("Пароль"), "Str0ng-pass-42");
+    // без согласия на обработку данных аккаунт не создаётся
+    await userEvent.click(screen.getByRole("button", { name: "Создать аккаунт" }));
+    expect(await screen.findByText("Нужно согласие на обработку персональных данных")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("checkbox", { name: /Согласен на обработку/ }));
     await userEvent.click(screen.getByRole("button", { name: "Создать аккаунт" }));
     expect(await screen.findByText("Проверьте почту")).toBeInTheDocument();
+    expect(bodyOf("/auth/register/candidate").consent).toBe(true);
     expect(screen.getByText("anna@example.org")).toBeInTheDocument();
     expect(session.get()).toBeNull(); // до подтверждения почты сессии нет
     await userEvent.click(screen.getByRole("button", { name: "Отправить письмо ещё раз" }));

@@ -53,8 +53,7 @@ def _offer_received(payload: Payload, url: str) -> tuple[str, str]:
     return "Новый оффер", (
         f"Компания «{payload['company']}» предлагает вам вакансию «{payload['vacancy']}» "
         f"с зарплатой {_salary(payload)}.\n\n"
-        "Имя и контакты компания увидит, только если вы примете оффер. Ответить можно 7 дней:\n"
-        f"{url}/app/offers"
+        f"Ответить можно 7 дней:\n{url}/app/offers"
     )
 
 
@@ -87,8 +86,7 @@ def _interview_invited(payload: Payload, url: str) -> tuple[str, str]:
         f"Компания «{payload['company']}» приглашает вас на собеседование по вакансии "
         f"«{payload['vacancy']}». Проводит: {payload['interviewer']}.\n\n"
         f"Варианты времени:\n{slots}\n\n"
-        f"Выберите удобное время или откажитесь в кабинете:\n{url}/app/interviews\n\n"
-        "Имя и контакты компания увидит только после того, как вы примете оффер."
+        f"Выберите удобное время или откажитесь в кабинете:\n{url}/app/interviews"
     )
 
 
@@ -124,6 +122,45 @@ def _interview_result(payload: Payload, url: str) -> tuple[str, str]:
     )
 
 
+def _invitation_received(payload: Payload, url: str) -> tuple[str, str]:
+    return "Приглашение от компании", (
+        f"Компания «{payload['company']}» приглашает вас: «{payload['title']}», "
+        f"зарплата {_salary(payload)}.\n\n"
+        "Имя и контакты компания увидит, только если вы примете приглашение. "
+        f"Ответить можно 14 дней:\n{url}/app/applications"
+    )
+
+
+def _invitation_answered(payload: Payload, url: str) -> tuple[str, str]:
+    if payload["accepted"]:
+        return "Приглашение принято", (
+            f"Кандидат принял приглашение «{payload['title']}». "
+            f"Контакты — в разделе «Приглашения и отклики»:\n{url}/company/applications"
+        )
+    return "Приглашение отклонено", (
+        f"Кандидат отклонил приглашение «{payload['title']}».\n{url}/company/applications"
+    )
+
+
+def _response_received(payload: Payload, url: str) -> tuple[str, str]:
+    return "Новый отклик", (
+        f"Кандидат откликнулся на вакансию «{payload['title']}». "
+        f"Карточка и контакты — в кабинете:\n{url}/company/applications"
+    )
+
+
+def _response_answered(payload: Payload, url: str) -> tuple[str, str]:
+    if payload["accepted"]:
+        return "Отклик принят", (
+            f"Компания «{payload['company']}» ответила на ваш отклик «{payload['title']}». "
+            f"Как связаться: {payload['contact']}\n{url}/app/applications"
+        )
+    return "Ответ на отклик", (
+        f"Компания «{payload['company']}» не готова продолжить по отклику «{payload['title']}».\n"
+        f"{url}/app/applications"
+    )
+
+
 TEMPLATES: dict[str, Renderer] = {
     "verify_email": _verify_email,
     "account_exists": _account_exists,
@@ -136,6 +173,10 @@ TEMPLATES: dict[str, Renderer] = {
     "interview_declined": _interview_declined,
     "interview_cancelled": _interview_cancelled,
     "interview_result": _interview_result,
+    "invitation_received": _invitation_received,
+    "invitation_answered": _invitation_answered,
+    "response_received": _response_received,
+    "response_answered": _response_answered,
 }
 
 

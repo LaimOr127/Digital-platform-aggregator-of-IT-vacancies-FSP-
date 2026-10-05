@@ -14,7 +14,7 @@ from dataclasses import asdict
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.cache import TtlCache
-from app.core.errors import ForbiddenError, InvalidStateError, NotFoundError
+from app.core.errors import ForbiddenError, NotFoundError
 from app.core.timeutil import as_aware
 from app.models import CandidateProfile, Category, Vacancy
 from app.repositories.catalog import CatalogFilters, CatalogRepository
@@ -31,6 +31,7 @@ from app.schemas.catalog import (
 )
 from app.services.access import Action, Principal, policy
 from app.services.categorization import TIERS, describe_anonymous
+from app.services.common import next_offset, parse_offset
 from app.services.fsp_sync import to_evidence
 from app.services.matching.factors import Candidate
 from app.services.matching.scorer import MatchResult, VacancyContext, match, strength
@@ -99,7 +100,7 @@ class CatalogService:
         if ranking is None:
             ranking = await self._rank(vacancy, filters)
             RANKING_CACHE.put((key, version, filters), ranking)
-        offset = _offset(cursor)
+        offset = parse_offset(cursor, _OFFSET_PREFIX)
         page = ranking[offset : offset + limit]
         # видимость проверяется заново: кандидат мог скрыться после расчёта рейтинга
         visible = {p.id: p for p in await self.catalog.by_ids([pid for pid, _ in page])}
@@ -113,8 +114,7 @@ class CatalogService:
                 card.match = explained
             else:
                 card.strength = explained
-        has_more = offset + limit < len(ranking)
-        return cards, f"{_OFFSET_PREFIX}{offset + limit}" if has_more else None
+        return cards, next_offset(offset, limit, len(ranking), _OFFSET_PREFIX)
 
     async def _vacancy(self, vacancy_id: uuid.UUID) -> Vacancy:
         if self.principal.company_id is None:
@@ -156,7 +156,16 @@ async def build_cards(
     fsp = await catalog.categories_for(ids)
     achievements = await catalog.achievements_for(ids)
     names = await catalog.skill_names({s for p in profiles for s in p.confirmed_skills or []})
-    return [_card(p, fsp.get(p.id, []), achievements.get(p.id, []), names) for p in profiles]
+    # приватность: скрытые кандидатом разделы не попадают в карточку
+    return [
+        _card(
+            p,
+            fsp.get(p.id, []) if p.show_fsp else [],
+            achievements.get(p.id, []) if p.show_fsp else [],
+            names,
+        )
+        for p in profiles
+    ]
 
 
 def _card(
@@ -181,26 +190,17 @@ def _card(
         experience_years=p.experience_years,
         work_format=p.work_format,
         city=p.city,
-        salary_min=p.salary_min,
-        salary_max=p.salary_max,
+        salary_min=p.salary_min if p.show_salary else None,
+        salary_max=p.salary_max if p.show_salary else None,
         verification_tier=p.verification_tier,
         search_status=p.search_status,
         skills=sorted(s.name for s in p.skills),
         confirmed_skills=sorted(names.get(s, s) for s in p.confirmed_skills or []),
         fsp_categories=[CandidateCategoryOut(slug=c.slug, tier=c.tier, title=c.title) for c in fsp],
         achievements=[describe_anonymous(to_evidence(a)) for a in achievements],
-        about=p.about,
+        about=p.about if p.show_about else None,
         last_activity_at=as_aware(p.last_activity_at) if p.last_activity_at else None,
     )
 
 
 _OFFSET_PREFIX = "m"
-
-
-def _offset(cursor: str | None) -> int:
-    """Курсор рейтинга — позиция в отсортированном списке."""
-    if not cursor:
-        return 0
-    if not cursor.startswith(_OFFSET_PREFIX) or not cursor[1:].isdigit():
-        raise InvalidStateError("некорректный курсор")
-    return int(cursor[1:])

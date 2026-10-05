@@ -19,12 +19,15 @@ describe("register schemas", () => {
       email: "a@b.ru",
       password: VALID_PASSWORD,
       full_name: " Анна ",
+      consent: true,
     });
     expect(ok.success && ok.data.full_name).toBe("Анна");
+    const noConsent = candidateRegisterSchema.safeParse({ email: "a@b.ru", password: VALID_PASSWORD, full_name: "Анна" });
+    expect(noConsent.success).toBe(false);
   });
 
   it("makes empty INN undefined and rejects wrong length", () => {
-    const base = { email: "a@b.ru", password: VALID_PASSWORD, company_name: "ООО Тест" };
+    const base = { email: "a@b.ru", password: VALID_PASSWORD, company_name: "ООО Тест", consent: true as const };
     const empty = employerRegisterSchema.safeParse({ ...base, inn: "" });
     expect(empty.success && empty.data.inn).toBeUndefined();
     expect(employerRegisterSchema.safeParse({ ...base, inn: "123" }).success).toBe(false);

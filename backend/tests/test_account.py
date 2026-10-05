@@ -22,7 +22,8 @@ NEW_PASSWORD = f"New-{PASSWORD}"
 async def register(client: AsyncClient, email: str, role: str = "candidate"):
     extra = {"full_name": "Анна"} if role == "candidate" else {"company_name": "ООО Тест"}
     return await client.post(
-        f"{AUTH}/register/{role}", json={"email": email, "password": PASSWORD, **extra}
+        f"{AUTH}/register/{role}",
+        json={"email": email, "password": PASSWORD, "consent": True, **extra},
     )
 
 

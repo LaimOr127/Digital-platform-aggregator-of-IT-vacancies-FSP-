@@ -15,6 +15,7 @@ import { Card, CardTitle } from "../../ui/Card";
 import { LoadingBlock } from "../../ui/Spinner";
 import { CHECKS, completeness } from "./completeness";
 import { DeleteAccountCard } from "./DeleteAccountCard";
+import { PrivacyCard } from "./PrivacyCard";
 import { useProfile } from "./hooks";
 import { ProfileForm } from "./ProfileForm";
 
@@ -50,6 +51,7 @@ export function ProfilePage() {
           <aside className="flex flex-col gap-6 lg:sticky lg:top-24">
             <StatusCard profile={profile.data} />
             <FspPromoCard verified={profile.data.verification_tier === "verified_fsp"} />
+            <PrivacyCard profile={profile.data} />
             <DeleteAccountCard />
           </aside>
         </div>

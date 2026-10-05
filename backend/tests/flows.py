@@ -24,6 +24,8 @@ OFFERS = "/api/v1/employer/offers"
 INBOX = "/api/v1/candidate/offers"
 INTERVIEWS = "/api/v1/employer/interviews"
 MY_INTERVIEWS = "/api/v1/candidate/interviews"
+APPLICATIONS = "/api/v1/employer/applications"
+MY_APPLICATIONS = "/api/v1/candidate/applications"
 
 
 async def approved_employer(client: AsyncClient, db, app, name: str = "ООО Найм") -> dict:
@@ -57,10 +59,44 @@ def slot(hours: float) -> str:
     return (datetime.now(UTC) + timedelta(hours=hours)).replace(microsecond=0).isoformat()
 
 
-def invite_body(candidate: dict, employer: dict, **overrides) -> dict:
+def invitation_body(candidate: dict, employer: dict, **overrides) -> dict:
+    """Приглашение на контакт: предложение, вилка, способ связи (вакансия — по желанию)."""
     return {
         "anon_id": candidate["anon_id"],
         "vacancy_id": employer["vacancy"]["id"],
+        "title": "Backend-разработчик",
+        "description": "Платформа платежей, команда из 6 человек",
+        "grade": "middle",
+        "work_format": "remote",
+        "salary_min": 250_000,
+        "salary_max": 320_000,
+        "contact_method": "Telegram @hr_naim",
+        **overrides,
+    }
+
+
+async def connect(client: AsyncClient, candidate: dict, employer: dict) -> str:
+    """Контакт состоялся: компания пригласила, кандидат принял. Один на пару компания-кандидат."""
+    cache = candidate.setdefault("applications", {})
+    if employer["token"] not in cache:
+        r = await client.post(
+            APPLICATIONS,
+            json=invitation_body(candidate, employer),
+            headers=bearer(employer["token"]),
+        )
+        assert r.status_code == 201, r.text
+        accepted = await client.post(
+            f"{MY_APPLICATIONS}/{r.json()['id']}/accept", headers=bearer(candidate["token"])
+        )
+        assert accepted.status_code == 200, accepted.text
+        cache[employer["token"]] = r.json()["id"]
+    return cache[employer["token"]]
+
+
+def invite_body(candidate: dict, employer: dict, **overrides) -> dict:
+    """Собеседование по уже состоявшемуся контакту (сначала — connect)."""
+    return {
+        "application_id": candidate["applications"][employer["token"]],
         "slots": [slot(2), slot(26)],
         "format": "online",
         "location": "https://meet.example.org/backend",
@@ -71,6 +107,7 @@ def invite_body(candidate: dict, employer: dict, **overrides) -> dict:
 
 
 async def invite(client: AsyncClient, candidate: dict, employer: dict, **overrides) -> dict:
+    await connect(client, candidate, employer)
     r = await client.post(
         INTERVIEWS,
         json=invite_body(candidate, employer, **overrides),

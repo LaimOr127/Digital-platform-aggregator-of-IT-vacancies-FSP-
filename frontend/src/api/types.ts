@@ -113,3 +113,17 @@ export type Attempt = Schemas["AttemptOut"];
 export type AttemptResult = Schemas["AttemptResultOut"];
 export type Question = Schemas["QuestionOut"];
 export type PreviewQuestion = Schemas["PreviewQuestionOut"];
+export type Application = Schemas["ApplicationOut"];
+export type EmployerApplication = Schemas["EmployerApplicationOut"];
+export type ApplicationStatus = Schemas["ApplicationStatus"];
+export type ApplicationDirection = Schemas["ApplicationDirection"];
+export type InvitationInput = Schemas["InvitationIn"];
+export type BoardVacancy = Schemas["BoardVacancyOut"];
+export type CompanyUpdate = Schemas["CompanyUpdateIn"];
+export type BoardFilters = {
+  specialization?: Specialization;
+  grade?: Grade;
+  work_format?: WorkFormat;
+  skill?: string;
+  q?: string;
+};

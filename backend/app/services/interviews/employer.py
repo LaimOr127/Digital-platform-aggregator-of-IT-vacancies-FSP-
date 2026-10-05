@@ -1,6 +1,7 @@
 """Собеседования глазами компании: пригласить, отменить, отметить результат.
 
-Кандидат до принятия оффера анонимен: компания видит его карточку из каталога.
+Собеседование назначается после состоявшегося контакта (приглашение принято или отклик
+принят): компания уже знает контакты кандидата, кандидат — условия и способ связи.
 Каждое действие — в аудит, кандидат получает письмо.
 """
 
@@ -11,16 +12,19 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.crypto import FieldCipher
-from app.core.errors import ConflictError, ForbiddenError, InvalidStateError, NotFoundError
+from app.core.errors import ConflictError, ForbiddenError, InvalidStateError
 from app.core.timeutil import as_aware
 from app.models import Interview
-from app.models.enums import InterviewResult, InterviewStatus, VacancyStatus
+from app.models.enums import ApplicationStatus, InterviewResult, InterviewStatus
+from app.repositories.applications import CompanyApplicationRepository
 from app.repositories.audit import AuditRepository
 from app.repositories.base import Page
 from app.repositories.catalog import CatalogRepository
-from app.repositories.companies import CompanyRepository
-from app.repositories.interviews import CompanyInterviewRepository, expire_pair, status_condition
-from app.repositories.vacancies import VacancyRepository
+from app.repositories.interviews import (
+    CompanyInterviewRepository,
+    expire_for_application,
+    status_condition,
+)
 from app.schemas.interviews import EmployerInterviewOut, InterviewCompleteIn, InterviewInviteIn
 from app.services.access import Action, Principal, policy
 from app.services.catalog import build_cards
@@ -51,28 +55,33 @@ class EmployerInterviewService:
         self.audit = AuditRepository(session)
 
     async def invite(self, data: InterviewInviteIn) -> EmployerInterviewOut:
-        policy.ensure(self.principal, Action.OFFER_SEND)  # только одобренная компания
+        """Собеседование — продолжение состоявшегося контакта (кандидат принял приглашение
+        или компания приняла его отклик): условия и контакты стороны уже знают."""
+        policy.ensure(self.principal, Action.OFFER_SEND)
         now = datetime.now(UTC)
-        vacancy = await VacancyRepository(self.session, self.company_id).get_or_404(data.vacancy_id)
-        expired = vacancy.expires_at and as_aware(vacancy.expires_at) <= now
-        if vacancy.status != VacancyStatus.ACTIVE or expired:
-            raise InvalidStateError("приглашение — только по опубликованной вакансии")
-        profile = await self.catalog.by_anon_id(data.anon_id)
-        if profile is None:
-            raise NotFoundError("кандидат не найден или скрыл профиль")
-        if declined := await self.interviews.declined_since(profile.id, now - DECLINE_COOLDOWN):
+        application = await CompanyApplicationRepository(self.session, self.company_id).get_or_404(
+            data.application_id
+        )
+        if application.status != ApplicationStatus.ACCEPTED:
+            raise InvalidStateError(
+                "собеседование назначается после принятого приглашения или отклика"
+            )
+        profile_id = application.profile_id
+        if declined := await self.interviews.declined_since(profile_id, now - DECLINE_COOLDOWN):
             retry = as_aware(declined.responded_at or now) + DECLINE_COOLDOWN
             raise ConflictError(f"кандидат отказался — пригласить снова можно с {retry:%d.%m.%Y}")
         slots = validate_slots(data.slots, now)
-        await expire_pair(self.session, vacancy.id, profile.id, now)
-        company = await CompanyRepository(self.session).get_or_404(self.company_id)
+        await expire_for_application(self.session, application.id, now)
+        if await self.interviews.active_for(application.id):
+            raise ConflictError("по этому контакту уже есть собеседование — дождитесь ответа")
         interview = Interview(
             company_id=self.company_id,
-            vacancy_id=vacancy.id,
-            profile_id=profile.id,
+            vacancy_id=application.vacancy_id,
+            profile_id=profile_id,
+            application_id=application.id,
             created_by=self.principal.user_id,
-            company_name=company.name,
-            vacancy_title=vacancy.title,
+            company_name=application.company_name,
+            vacancy_title=application.title,
             slots=[s.isoformat() for s in slots],
             duration_minutes=data.duration_minutes,
             format=data.format,

@@ -15,6 +15,7 @@ from app.db.session import SYSTEM_ROLE, Database, set_rls_context
 from app.integrations.fsp import FspClient
 from app.integrations.notifier import Notifier
 from app.models import CandidateProfile, FspLink
+from app.repositories.applications import expire_overdue as expire_applications
 from app.repositories.audit import AuditRepository
 from app.repositories.fsp import claim_due_links
 from app.repositories.interviews import expire_overdue as expire_interviews
@@ -111,7 +112,7 @@ class FspSyncJob(Job):
 
 
 class OfferExpiryJob(Job):
-    """Офферы и приглашения на собеседование без ответа дольше срока — «истёк»."""
+    """Офферы, приглашения на собеседование, приглашения и отклики без ответа — «истёк»."""
 
     name, interval_seconds = "offer-expiry", 600
 
@@ -122,7 +123,11 @@ class OfferExpiryJob(Job):
         async with self.db.sessionmaker() as session:
             await set_rls_context(session, None, SYSTEM_ROLE)
             now = datetime.now(UTC)
-            expired = await expire_overdue(session, now) + await expire_interviews(session, now)
+            expired = (
+                await expire_overdue(session, now)
+                + await expire_interviews(session, now)
+                + await expire_applications(session, now)
+            )
             await session.commit()
             if expired:
                 log.info("offers expired: %d", expired)

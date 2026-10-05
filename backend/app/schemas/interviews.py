@@ -9,10 +9,9 @@ from app.schemas.catalog import CandidateCardOut
 
 
 class InterviewInviteIn(BaseModel):
-    """Приглашение: 1-3 варианта времени, формат, кто проводит (руководитель)."""
+    """Собеседование после состоявшегося контакта: 1-3 варианта времени, формат, кто проводит."""
 
-    anon_id: uuid.UUID
-    vacancy_id: uuid.UUID
+    application_id: uuid.UUID = Field(description="принятое приглашение или отклик")
     slots: list[AwareDatetime] = Field(min_length=1, max_length=3)
     duration_minutes: int = Field(default=60, ge=15, le=240)
     format: InterviewFormat

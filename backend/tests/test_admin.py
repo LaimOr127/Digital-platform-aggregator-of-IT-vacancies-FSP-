@@ -7,7 +7,7 @@ from app.models import AuditLog
 from tests.helpers import bearer, company_id, create_admin, register_employer
 
 
-async def test_list_pending_and_approve_with_audit(client: AsyncClient, db, app):
+async def test_list_pending_and_approve_with_audit(client: AsyncClient, db, app, premoderation):
     employer = await register_employer(client, company="ООО Модерация")
     cid = await company_id(client, employer)
     admin = await create_admin(db, app)

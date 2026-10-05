@@ -41,7 +41,7 @@ async def register_employer(client: AsyncClient, company: str = "ООО Рома
 
 
 async def _register_and_login(client: AsyncClient, role: str, body: dict) -> str:
-    r = await client.post(f"/api/v1/auth/register/{role}", json=body)
+    r = await client.post(f"/api/v1/auth/register/{role}", json={**body, "consent": True})
     assert r.status_code == 202, r.text
     token = await mailed_token(client, body["email"], "verify_email")
     verified = await client.post("/api/v1/auth/verify-email", json={"token": token})

@@ -24,6 +24,13 @@ class CompanyInterviewRepository(BaseRepository[Interview]):
     def _scope(self, stmt: Select[Any]) -> Select[Any]:
         return stmt.where(Interview.company_id == self.company_id)
 
+    async def active_for(self, application_id: uuid.UUID) -> Interview | None:
+        """Предстоящее собеседование по контакту: приглашение ждёт ответа или время выбрано."""
+        return await self.first(
+            Interview.application_id == application_id,
+            Interview.status.in_([InterviewStatus.INVITED, InterviewStatus.SCHEDULED]),
+        )
+
     async def declined_since(self, profile_id: uuid.UUID, since: datetime) -> Interview | None:
         """Последний отказ кандидата после since: пауза перед новым приглашением."""
         stmt = (
@@ -70,15 +77,14 @@ async def expire_overdue(session: AsyncSession, now: datetime) -> int:
     return result.rowcount  # type: ignore[attr-defined]
 
 
-async def expire_pair(
-    session: AsyncSession, vacancy_id: uuid.UUID, profile_id: uuid.UUID, now: datetime
+async def expire_for_application(
+    session: AsyncSession, application_id: uuid.UUID, now: datetime
 ) -> None:
-    """Просроченное приглашение этой пары освобождает место для нового, не дожидаясь worker."""
+    """Просроченное приглашение по этому контакту освобождает место, не дожидаясь worker."""
     await session.execute(
         update(Interview)
         .where(
-            Interview.vacancy_id == vacancy_id,
-            Interview.profile_id == profile_id,
+            Interview.application_id == application_id,
             Interview.status == _INVITED,
             Interview.expires_at <= now,
         )

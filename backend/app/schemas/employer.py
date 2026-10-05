@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field, HttpUrl
 
 from app.models.enums import CompanyStatus, Grade, Specialization, VacancyStatus, WorkFormat
 from app.schemas.candidate import SkillSlug
@@ -15,6 +15,23 @@ class CompanyOut(ORMModel):
     website: str | None
     status: CompanyStatus
     created_at: datetime
+    description: str = ""
+    industry: str | None = None
+    contact_email: str | None = None
+    contact_phone: str | None = None
+    contact_telegram: str | None = None
+
+
+class CompanyUpdateIn(BaseModel):
+    """Профиль компании: описание, направление деятельности, контакты для кандидатов."""
+
+    name: str | None = Field(default=None, min_length=2, max_length=200)
+    website: HttpUrl | None = None
+    description: str | None = Field(default=None, max_length=4000)
+    industry: str | None = Field(default=None, max_length=120)
+    contact_email: EmailStr | None = None
+    contact_phone: str | None = Field(default=None, max_length=32)
+    contact_telegram: str | None = Field(default=None, max_length=64)
 
 
 class VacancyUpdateIn(SalaryRangeMixin):

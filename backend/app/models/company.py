@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import ForeignKey, String, UniqueConstraint
+from sqlalchemy import ForeignKey, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base, IdMixin, TimestampMixin, str_enum
@@ -13,6 +13,12 @@ class EmployerCompany(IdMixin, TimestampMixin, Base):
     name: Mapped[str] = mapped_column(String(200))
     inn: Mapped[str | None] = mapped_column(String(12), default=None)
     website: Mapped[str | None] = mapped_column(String(255), default=None)
+    # профиль компании: его видит кандидат в приглашении и вакансии
+    description: Mapped[str] = mapped_column(Text, default="")
+    industry: Mapped[str | None] = mapped_column(String(120), default=None)
+    contact_email: Mapped[str | None] = mapped_column(String(254), default=None)
+    contact_phone: Mapped[str | None] = mapped_column(String(32), default=None)
+    contact_telegram: Mapped[str | None] = mapped_column(String(64), default=None)
     status: Mapped[CompanyStatus] = mapped_column(
         str_enum(CompanyStatus, "company_status"), default=CompanyStatus.PENDING, index=True
     )

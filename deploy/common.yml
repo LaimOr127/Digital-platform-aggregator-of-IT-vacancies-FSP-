@@ -30,4 +30,6 @@ services:
       PASSPORT_SIGNING_KEY: ${PASSPORT_SIGNING_KEY:?}
       # лимиты запросов — общие для всех процессов и реплик api (счётчики в PostgreSQL)
       RATE_LIMIT_BACKEND: postgres
+      # предмодерация компаний (по ТЗ на MVP не нужна): true — компания ждёт одобрения
+      COMPANY_PREMODERATION: ${COMPANY_PREMODERATION:-false}
       DB_POOL_SIZE: ${DB_POOL_SIZE:-5}

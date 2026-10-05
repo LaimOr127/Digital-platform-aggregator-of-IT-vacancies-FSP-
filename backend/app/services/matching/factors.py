@@ -161,6 +161,8 @@ class FspFactor(Factor):
             return 0.3, "аккаунт ФСП привязан, результатов пока нет"
         best = max(candidate.categories, key=lambda c: TIERS.index(c.tier))
         share = {"elite": 1.0, "advanced": 0.75, "base": 0.5}[best.tier]
+        if not getattr(candidate.profile, "show_fsp", True):
+            return share, "результаты ФСП подтверждены (детали скрыты кандидатом)"
         return share, TIER_TITLES.get(best.tier, best.tier)
 
 
@@ -169,8 +171,9 @@ class DescriptionFactor(VacancyFactor):
 
     def compare(self, context: VacancyContext, candidate: Candidate) -> tuple[float, str]:
         profile = candidate.profile
+        about = profile.about if getattr(profile, "show_about", True) else None
         candidate_text = " ".join(
-            filter(None, [profile.title, profile.about, *(s.name for s in profile.skills)])
+            filter(None, [profile.title, about, *(s.name for s in profile.skills)])
         )
         share, common = overlap_with(context.keywords, candidate_text)
         if not common:
@@ -200,6 +203,8 @@ class SalaryFactor(VacancyFactor):
 
     def compare(self, context: VacancyContext, candidate: Candidate) -> tuple[float, str]:
         expected, vacancy = candidate.profile.salary_min, context.vacancy
+        if not getattr(candidate.profile, "show_salary", True):
+            return 0.6, "кандидат скрыл ожидания"  # скрытое не влияет на выдачу и не раскрывается
         if not expected:
             return 0.6, "ожидания не указаны"
         if expected <= vacancy.salary_max:

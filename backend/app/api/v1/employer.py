@@ -6,7 +6,13 @@ from fastapi import APIRouter, Depends, Query, status
 from app.api.deps import PrincipalDep, SessionDep
 from app.models.enums import VacancyStatus
 from app.schemas.common import PageOut
-from app.schemas.employer import CompanyOut, VacancyCreateIn, VacancyOut, VacancyUpdateIn
+from app.schemas.employer import (
+    CompanyOut,
+    CompanyUpdateIn,
+    VacancyCreateIn,
+    VacancyOut,
+    VacancyUpdateIn,
+)
 from app.services.employer import EmployerService
 
 router = APIRouter(prefix="/employer", tags=["employer"])
@@ -23,6 +29,11 @@ Limit = Annotated[int, Query(ge=1, le=100)]
 @router.get("/company", summary="Своя компания")
 async def get_company(service: ServiceDep) -> CompanyOut:
     return CompanyOut.model_validate(await service.company())
+
+
+@router.patch("/company", summary="Изменить профиль компании (владелец)")
+async def update_company(data: CompanyUpdateIn, service: ServiceDep) -> CompanyOut:
+    return CompanyOut.model_validate(await service.update_company(data))
 
 
 @router.get("/vacancies", summary="Вакансии своей компании")

@@ -43,6 +43,10 @@ class Interview(IdMixin, TimestampMixin, Base):
     created_by: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL"), default=None
     )
+    # собеседование назначается после состоявшегося контакта (принятое приглашение или отклик)
+    application_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("applications.id", ondelete="SET NULL"), default=None, index=True
+    )
     status: Mapped[InterviewStatus] = mapped_column(
         str_enum(InterviewStatus, "interview_status"), default=InterviewStatus.INVITED, index=True
     )

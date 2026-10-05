@@ -1,7 +1,6 @@
-import { Contact, Inbox, Undo2 } from "lucide-react";
+import { Inbox, Undo2 } from "lucide-react";
 import { useState } from "react";
-import { errorMessage } from "../../../api/errors";
-import type { EmployerOffer, OfferContacts, OfferStatus } from "../../../api/types";
+import type { EmployerOffer, OfferStatus } from "../../../api/types";
 import { daysLeft, formatDate, formatSalaryRange, labels } from "../../../lib/format";
 import { offerTone } from "../../../lib/tones";
 import { PageHeader } from "../../../ui/AppShell";
@@ -10,9 +9,9 @@ import { Button } from "../../../ui/Button";
 import { CursorListView } from "../../../ui/CursorListView";
 import { ConfirmDialog } from "../../../ui/ConfirmDialog";
 import { Segmented } from "../../../ui/Segmented";
-import { useToast } from "../../../ui/Toast";
 import { useAction } from "../../../ui/useAction";
 import { useEmployerOffers, useOfferContacts, useWithdrawOffer } from "../catalog/hooks";
+import { ContactsReveal } from "../ContactsReveal";
 
 type Filter = OfferStatus | "all";
 
@@ -36,7 +35,7 @@ export function EmployerOffersPage() {
     <>
       <PageHeader
         title="Офферы"
-        text="Кандидат отвечает в течение 7 дней. Контакты открываются, только когда он примет оффер."
+        text="Оффер — итог успешного собеседования. Кандидат отвечает в течение 7 дней."
       />
       <div className="mb-6">
         <Segmented label="Статус офферов" value={filter} options={FILTERS} onChange={setFilter} />
@@ -66,6 +65,7 @@ export function EmployerOffersPage() {
 }
 
 function OfferRow({ offer, onWithdraw }: { offer: EmployerOffer; onWithdraw: () => void }) {
+  const contacts = useOfferContacts();
   const left = offer.status === "sent" ? daysLeft(offer.expires_at) : null;
   const who = offer.candidate
     ? `Кандидат #${offer.candidate.anon_id.slice(0, 6).toUpperCase()} · ${offer.candidate.title ?? "должность не указана"}`
@@ -85,7 +85,9 @@ function OfferRow({ offer, onWithdraw }: { offer: EmployerOffer; onWithdraw: () 
         {left !== null && <span className="text-muted"> · на ответ осталось дней: {left}</span>}
       </p>
       {offer.decline_reason && <p className="mt-2 text-sm text-muted">Причина отказа: {offer.decline_reason}</p>}
-      {offer.status === "accepted" && <ContactsReveal offerId={offer.id} />}
+      {offer.status === "accepted" && (
+        <ContactsReveal reveal={contacts} id={offer.id} note="кандидат передал их, приняв оффер" />
+      )}
       {offer.status === "sent" && (
         <div className="mt-4 border-t border-line pt-4">
           <Button variant="ghost" size="sm" onClick={onWithdraw}>
@@ -95,44 +97,5 @@ function OfferRow({ offer, onWithdraw }: { offer: EmployerOffer; onWithdraw: () 
         </div>
       )}
     </article>
-  );
-}
-
-/** Контакты запрашиваются явно: каждое раскрытие фиксируется в журнале. */
-function ContactsReveal({ offerId }: { offerId: string }) {
-  const notify = useToast();
-  const reveal = useOfferContacts();
-  const [contacts, setContacts] = useState<OfferContacts | null>(null);
-  const open = () =>
-    reveal.mutate(offerId, { onSuccess: setContacts, onError: (err) => notify(errorMessage(err), "error") });
-
-  if (!contacts) {
-    return (
-      <div className="mt-4 border-t border-line pt-4">
-        <Button size="sm" onClick={open} loading={reveal.isPending}>
-          <Contact className="size-3.5" aria-hidden />
-          Показать контакты
-        </Button>
-      </div>
-    );
-  }
-  const rows = [
-    ["Имя", contacts.full_name],
-    ["Telegram", contacts.telegram],
-    ["Телефон", contacts.phone],
-    ["Email", contacts.email],
-  ].filter(([, value]) => value);
-  return (
-    <div className="mt-4 rounded-xl border border-accent/30 bg-accent/5 p-4">
-      <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
-        {rows.map(([label, value]) => (
-          <div key={label} className="contents">
-            <dt className="text-muted">{label}</dt>
-            <dd className="font-medium">{value}</dd>
-          </div>
-        ))}
-      </dl>
-      <p className="mt-3 text-xs text-muted">Просмотр контактов записан в журнал — кандидат передал их, приняв оффер.</p>
-    </div>
   );
 }

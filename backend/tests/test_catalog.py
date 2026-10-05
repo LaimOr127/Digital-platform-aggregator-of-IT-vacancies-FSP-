@@ -7,7 +7,7 @@ from tests.flows import CATALOG, approved_employer, verified_candidate
 from tests.helpers import bearer, register_employer
 
 
-async def test_catalog_requires_approved_company(client: AsyncClient):
+async def test_catalog_requires_approved_company(client: AsyncClient, premoderation):
     pending = await register_employer(client)
     assert (await client.get(f"{CATALOG}/categories", headers=bearer(pending))).status_code == 403
 

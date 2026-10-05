@@ -9,12 +9,15 @@ from app.db.session import set_rls_context
 from app.models import Interview, OutboxMessage
 from app.worker.jobs import OfferExpiryJob
 from tests.flows import (
+    APPLICATIONS,
     INTERVIEWS,
     MY_INTERVIEWS,
     OFFERS,
     accept_first_slot,
     approved_employer,
     complete,
+    connect,
+    invitation_body,
     invite,
     invite_body,
     mark_held,
@@ -22,7 +25,7 @@ from tests.flows import (
     slot,
     verified_candidate,
 )
-from tests.helpers import bearer, create_vacancy, register_candidate, register_employer
+from tests.helpers import bearer, register_candidate
 
 
 async def test_full_hiring_flow(client: AsyncClient, db, app):
@@ -60,6 +63,7 @@ async def test_full_hiring_flow(client: AsyncClient, db, app):
 async def test_slots_and_location_validated(client: AsyncClient, db, app):
     employer = await approved_employer(client, db, app)
     candidate = await verified_candidate(client)
+    await connect(client, candidate, employer)
     headers = bearer(employer["token"])
     for overrides in (
         {"slots": [slot(-1)]},
@@ -168,21 +172,25 @@ async def test_isolation_between_companies_and_candidates(client: AsyncClient, d
     assert r.status_code == 404
 
 
-async def test_invite_rules_for_company_and_vacancy(client: AsyncClient, db, app):
+async def test_interview_needs_established_contact(client: AsyncClient, db, app):
+    """Собеседование — после принятого приглашения: не принятое не годится, чужое — тоже."""
     employer = await approved_employer(client, db, app)
+    rival = await approved_employer(client, db, app, name="ООО Конкурент")
     candidate = await verified_candidate(client)
-    draft = await create_vacancy(client, employer["token"], title="Черновик")
-    r = await client.post(
-        INTERVIEWS,
-        json=invite_body(candidate, employer, vacancy_id=draft["id"]),
+    sent = await client.post(
+        APPLICATIONS,
+        json=invitation_body(candidate, employer),
         headers=bearer(employer["token"]),
     )
-    assert r.status_code == 409
-    pending = await register_employer(client)
+    candidate["applications"] = {employer["token"]: sent.json()["id"]}
     r = await client.post(
-        INTERVIEWS, json=invite_body(candidate, employer), headers=bearer(pending)
+        INTERVIEWS, json=invite_body(candidate, employer), headers=bearer(employer["token"])
     )
-    assert r.status_code == 403
+    assert r.status_code == 409 and "после принятого" in r.json()["error"]["message"]
+    foreign = await client.post(
+        INTERVIEWS, json=invite_body(candidate, employer), headers=bearer(rival["token"])
+    )
+    assert foreign.status_code == 404
 
 
 async def test_invites_limited_per_company(client: AsyncClient, db, app):
@@ -190,6 +198,7 @@ async def test_invites_limited_per_company(client: AsyncClient, db, app):
     employer = await approved_employer(client, db, app)
     first = await verified_candidate(client, "FSP-1")
     second = await verified_candidate(client, "FSP-2")
+    await connect(client, second, employer)
     await invite(client, first, employer)
     r = await client.post(
         INTERVIEWS, json=invite_body(second, employer), headers=bearer(employer["token"])

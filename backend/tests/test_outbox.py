@@ -40,7 +40,7 @@ async def test_delivery_renders_link_and_wipes_payload(client: AsyncClient, db, 
     email = unique_email("mail")
     await client.post(
         "/api/v1/auth/register/candidate",
-        json={"email": email, "password": PASSWORD, "full_name": "Анна"},
+        json={"email": email, "password": PASSWORD, "full_name": "Анна", "consent": True},
     )
     notifier = MemoryNotifier()
     assert await job(db, app, notifier).run() == 1
@@ -125,7 +125,7 @@ async def test_offer_and_answer_notify_both_sides(client: AsyncClient, db, app):
     assert employer_mail.subject == "Оффер принят" and "@anna" not in employer_mail.body
 
 
-async def test_company_gets_moderation_decision(client: AsyncClient, db, app):
+async def test_company_gets_moderation_decision(client: AsyncClient, db, app, premoderation):
     employer = await register_employer(client, company="ООО Почта")
     admin = await create_admin(db, app)
     await approve_company(client, admin, await company_id(client, employer))
@@ -163,6 +163,10 @@ def test_every_template_renders_with_signature():
         "interview_declined": {"company": "A", "vacancy": "B"},
         "interview_cancelled": {"company": "A", "vacancy": "B"},
         "interview_result": {"company": "A", "vacancy": "B", "passed": True},
+        "invitation_received": {"company": "A", "title": "B", "salary_min": 1, "salary_max": 2},
+        "invitation_answered": {"company": "A", "title": "B", "accepted": True},
+        "response_received": {"company": "A", "title": "B"},
+        "response_answered": {"company": "A", "title": "B", "accepted": True, "contact": "@hr"},
     }
     assert set(payloads) == set(TEMPLATES)
     for kind, payload in payloads.items():

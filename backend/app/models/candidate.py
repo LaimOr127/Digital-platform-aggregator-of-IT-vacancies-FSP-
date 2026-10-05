@@ -1,7 +1,18 @@
 import datetime as dt
 import uuid
 
-from sqlalchemy import JSON, Boolean, Column, DateTime, ForeignKey, Integer, String, Table, Text
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    Column,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Table,
+    Text,
+    true,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, IdMixin, TimestampMixin, str_enum
@@ -48,6 +59,10 @@ class CandidateProfile(IdMixin, TimestampMixin, Base):
         str_enum(VerificationTier, "verification_tier"), default=VerificationTier.SELF_DECLARED
     )
     is_hidden: Mapped[bool] = mapped_column(Boolean, default=False)
+    # приватность: что из профиля видит работодатель в анонимной карточке
+    show_fsp: Mapped[bool] = mapped_column(Boolean, default=True, server_default=true())
+    show_salary: Mapped[bool] = mapped_column(Boolean, default=True, server_default=true())
+    show_about: Mapped[bool] = mapped_column(Boolean, default=True, server_default=true())
     # статус поиска: «не ищу» — профиль не в каталоге, офферы не приходят
     search_status: Mapped[SearchStatus] = mapped_column(
         str_enum(SearchStatus, "search_status"),

@@ -9,6 +9,8 @@ export const passwordSchema = z
   .refine((v) => new Set(v).size >= 5, "Слишком однообразный пароль");
 
 const email = z.email("Некорректный email");
+// согласие на обработку ПДн и публикацию анонимного профиля (152-ФЗ) — обязательно
+const consent = z.literal(true, "Нужно согласие на обработку персональных данных");
 
 export const loginSchema = z.object({
   email,
@@ -19,6 +21,7 @@ export const candidateRegisterSchema = z.object({
   email,
   password: passwordSchema,
   full_name: z.string().trim().min(2, "Минимум 2 символа").max(120),
+  consent,
 });
 
 export const employerRegisterSchema = z.object({
@@ -31,10 +34,11 @@ export const employerRegisterSchema = z.object({
     .regex(/^(\d{10}|\d{12})?$/, "ИНН — 10 или 12 цифр")
     .transform((v) => v || undefined)
     .optional(),
+  consent,
 });
 
 export type LoginForm = z.infer<typeof loginSchema>;
-export type CandidateRegisterForm = z.infer<typeof candidateRegisterSchema>;
+export type CandidateRegisterForm = z.input<typeof candidateRegisterSchema>;
 export type EmployerRegisterForm = z.input<typeof employerRegisterSchema>;
 
 export const forgotPasswordSchema = z.object({ email });

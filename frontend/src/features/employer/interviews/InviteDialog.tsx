@@ -2,43 +2,38 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { CalendarPlus } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { Link } from "react-router";
-import type { CandidateCard } from "../../../api/types";
+import type { EmployerApplication } from "../../../api/types";
 import { formatSalaryRange, labels, options } from "../../../lib/format";
 import { applyServerErrors } from "../../../lib/forms";
 import { Alert } from "../../../ui/Alert";
 import { Button } from "../../../ui/Button";
 import { Dialog } from "../../../ui/Dialog";
 import { Field, Input, Select, Textarea } from "../../../ui/form";
-import { Spinner } from "../../../ui/Spinner";
 import { useToast } from "../../../ui/Toast";
-import { useActiveVacancies } from "../catalog/hooks";
 import { useInvite } from "./hooks";
 import { inviteSchema, type InviteFormInput, type InviteFormOutput } from "./schemas";
 
-const FIELDS = ["vacancy_id", "slots", "location", "interviewer", "message", "duration_minutes", "format"];
+const FIELDS = ["slots", "location", "interviewer", "message", "duration_minutes", "format"];
 const DURATIONS = [30, 45, 60, 90].map((m) => ({ value: String(m), label: `${m} минут` }));
 
-type Props = { candidate: CandidateCard | null; vacancyId?: string; onClose: () => void };
+type Props = { application: EmployerApplication | null; onClose: () => void };
 
-/** Монтируется заново для каждого кандидата (key): форма не переносится между кандидатами. */
-export function InviteDialog({ candidate, vacancyId, onClose }: Props) {
+/** Собеседование по состоявшемуся контакту. Монтируется заново для каждого контакта (key). */
+export function InviteDialog({ application, onClose }: Props) {
   return (
-    <Dialog open={candidate !== null} title="Приглашение на собеседование" onClose={onClose} wide>
-      {candidate && <InviteForm candidate={candidate} vacancyId={vacancyId} onDone={onClose} />}
+    <Dialog open={application !== null} title="Назначить собеседование" onClose={onClose} wide>
+      {application && <InviteForm application={application} onDone={onClose} />}
     </Dialog>
   );
 }
 
-function InviteForm({ candidate, vacancyId, onDone }: { candidate: CandidateCard; vacancyId?: string; onDone: () => void }) {
+function InviteForm({ application, onDone }: { application: EmployerApplication; onDone: () => void }) {
   const notify = useToast();
-  const vacancies = useActiveVacancies();
   const invite = useInvite();
   const [formError, setFormError] = useState<string | null>(null);
   const form = useForm<InviteFormInput, unknown, InviteFormOutput>({
     resolver: zodResolver(inviteSchema),
     defaultValues: {
-      vacancy_id: vacancyId ?? "",
       slot1: "",
       slot2: "",
       slot3: "",
@@ -50,12 +45,11 @@ function InviteForm({ candidate, vacancyId, onDone }: { candidate: CandidateCard
     },
   });
   const { errors, isSubmitting } = form.formState;
-  const items = vacancies.data?.items ?? [];
 
   const onSubmit = form.handleSubmit(async (values) => {
     setFormError(null);
     try {
-      await invite.mutateAsync({ ...values, anon_id: candidate.anon_id });
+      await invite.mutateAsync({ ...values, application_id: application.id });
       notify("Приглашение отправлено — кандидат выберет удобное время");
       onDone();
     } catch (err) {
@@ -63,34 +57,19 @@ function InviteForm({ candidate, vacancyId, onDone }: { candidate: CandidateCard
     }
   });
 
-  if (vacancies.isPending) return <Spinner />;
-  if (items.length === 0) {
-    return (
-      <Alert tone="warn">
-        Пригласить можно по опубликованной вакансии. <Link to="/company" className="underline">Опубликуйте вакансию</Link>.
-      </Alert>
-    );
-  }
   const online = form.watch("format") === "online";
 
   return (
     <form onSubmit={onSubmit} noValidate className="grid gap-5 sm:grid-cols-2">
       <p className="text-sm text-muted sm:col-span-2">
-        Кандидат #{candidate.anon_id.slice(0, 6).toUpperCase()} · {candidate.title ?? "должность не указана"}. Он выберет
-        одно из предложенных времён; имя и контакты откроются после принятого оффера.
+        «{application.title}» · {formatSalaryRange(application.salary_min, application.salary_max)}. Кандидат выберет
+        одно из предложенных времён.
       </p>
       {formError && (
         <div className="sm:col-span-2">
           <Alert>{formError}</Alert>
         </div>
       )}
-      <Field label="Вакансия" error={errors.vacancy_id?.message} className="sm:col-span-2">
-        <Select
-          placeholder="Выберите опубликованную вакансию"
-          options={items.map((v) => ({ value: v.id, label: `${v.title} · ${formatSalaryRange(v.salary_min, v.salary_max)}` }))}
-          {...form.register("vacancy_id")}
-        />
-      </Field>
       <Field label="Вариант времени 1" error={errors.slot1?.message}>
         <Input type="datetime-local" {...form.register("slot1")} />
       </Field>
@@ -121,7 +100,7 @@ function InviteForm({ candidate, vacancyId, onDone }: { candidate: CandidateCard
         </Button>
         <Button type="submit" loading={isSubmitting}>
           <CalendarPlus className="size-4" aria-hidden />
-          Пригласить
+          Назначить
         </Button>
       </div>
     </form>

@@ -10,12 +10,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import ForbiddenError, InvalidStateError, NotFoundError
 from app.models import EmployerCompany, Vacancy
-from app.models.enums import VacancyStatus
+from app.models.enums import MemberRole, VacancyStatus
 from app.repositories.base import Page
 from app.repositories.candidates import SkillRepository
 from app.repositories.companies import CompanyRepository
 from app.repositories.vacancies import VacancyRepository
-from app.schemas.employer import VacancyCreateIn, VacancyUpdateIn
+from app.schemas.employer import CompanyUpdateIn, VacancyCreateIn, VacancyUpdateIn
 from app.services.access import Action, Principal, policy
 from app.services.common import apply_fields, apply_salary, resolve_skills
 
@@ -36,6 +36,20 @@ class EmployerService:
 
     async def company(self) -> EmployerCompany:
         return await CompanyRepository(self.session).get_or_404(self.company_id)
+
+    async def update_company(self, data: CompanyUpdateIn) -> EmployerCompany:
+        """Профиль компании меняет владелец; блокировка модератором его не снимает."""
+        if self.principal.member_role != MemberRole.OWNER:
+            raise ForbiddenError("профиль компании меняет владелец")
+        company = await self.company()
+        changes = data.model_dump(exclude_unset=True, mode="json")
+        for field, value in changes.items():
+            if field == "name" and not value:
+                continue
+            setattr(company, field, value.strip() if isinstance(value, str) else value)
+        company.description = company.description or ""
+        await self.session.commit()
+        return company
 
     async def list_vacancies(
         self, status: VacancyStatus | None, cursor: str | None, limit: int

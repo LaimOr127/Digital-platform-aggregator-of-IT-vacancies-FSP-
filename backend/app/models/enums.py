@@ -128,3 +128,19 @@ class AssessmentStatus(StrEnum):
 class AssessmentResult(StrEnum):
     PASSED = "passed"  # заявленный грейд подтверждён
     FAILED = "failed"  # не подтверждён: можно пройти тест на грейд ниже
+
+
+class ApplicationDirection(StrEnum):
+    """Кто проявил инициативу: компания пригласила или кандидат откликнулся сам."""
+
+    INVITATION = "invitation"
+    RESPONSE = "response"
+
+
+class ApplicationStatus(StrEnum):
+    SENT = "sent"  # отправлено, адресат ещё не открывал
+    VIEWED = "viewed"  # адресат увидел
+    ACCEPTED = "accepted"  # контакт состоялся: кандидат принял приглашение / компания — отклик
+    DECLINED = "declined"
+    WITHDRAWN = "withdrawn"  # отозвал тот, кто отправил
+    EXPIRED = "expired"  # без ответа дольше срока

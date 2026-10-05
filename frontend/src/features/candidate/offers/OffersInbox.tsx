@@ -34,7 +34,7 @@ export function OffersInbox() {
     <>
       <PageHeader
         title="Офферы"
-        text="Компании приходят к вам сами — с вакансией и зарплатной вилкой. Имя и контакты получит только та, чей оффер вы примете."
+        text="Оффер — итог успешного собеседования: окончательные условия от компании, с которой вы уже на связи."
       />
       <div className="mb-6">
         <Segmented label="Фильтр офферов" value={filter} options={FILTERS} onChange={setFilter} />

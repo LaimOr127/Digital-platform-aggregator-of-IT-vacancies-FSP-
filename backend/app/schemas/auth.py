@@ -19,12 +19,25 @@ class PasswordMixin(BaseModel):
         return value
 
 
-class CandidateRegisterIn(PasswordMixin):
+class ConsentMixin(BaseModel):
+    consent: bool = Field(
+        description="согласие на обработку персональных данных и публикацию анонимного профиля"
+    )
+
+    @field_validator("consent")
+    @classmethod
+    def _required(cls, value: bool) -> bool:
+        if not value:
+            raise ValueError("нужно согласие на обработку персональных данных")
+        return value
+
+
+class CandidateRegisterIn(PasswordMixin, ConsentMixin):
     email: EmailStr
     full_name: str = Field(min_length=2, max_length=120)
 
 
-class EmployerRegisterIn(PasswordMixin):
+class EmployerRegisterIn(PasswordMixin, ConsentMixin):
     email: EmailStr
     company_name: str = Field(min_length=2, max_length=200)
     inn: str | None = Field(default=None, pattern=r"^\d{10}(\d{2})?$")

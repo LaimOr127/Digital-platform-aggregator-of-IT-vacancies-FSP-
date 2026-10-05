@@ -15,7 +15,7 @@ from tests.helpers import (
 VACANCIES = "/api/v1/employer/vacancies"
 
 
-async def test_company_pending_after_registration(client: AsyncClient):
+async def test_company_pending_after_registration(client: AsyncClient, premoderation):
     token = await register_employer(client, company="ООО Тест")
     r = await client.get("/api/v1/employer/company", headers=bearer(token))
     assert r.status_code == 200
@@ -56,7 +56,7 @@ async def test_partial_update_cannot_break_salary_range(client: AsyncClient):
     assert r.status_code == 400
 
 
-async def test_publish_requires_approved_company(client: AsyncClient, db, app):
+async def test_publish_requires_approved_company(client: AsyncClient, db, app, premoderation):
     token = await register_employer(client)
     vacancy = await create_vacancy(client, token)
     publish = f"{VACANCIES}/{vacancy['id']}/publish"
@@ -130,3 +130,33 @@ async def test_blocked_company_loses_vacancies(client: AsyncClient, db, app):
     ).status_code == 403
     r = await client.post(VACANCIES, json=VACANCY, headers=bearer(token))
     assert r.status_code == 403
+
+
+async def test_company_works_right_away_without_premoderation(client: AsyncClient):
+    """По ТЗ модерация на MVP не требуется: компания сразу ищет кандидатов (постмодерация)."""
+    token = await register_employer(client)
+    company = (await client.get("/api/v1/employer/company", headers=bearer(token))).json()
+    assert company["status"] == "approved"
+    r = await client.get("/api/v1/employer/catalog/categories", headers=bearer(token))
+    assert r.status_code == 200
+
+
+async def test_owner_edits_company_profile(client: AsyncClient):
+    token = await register_employer(client)
+    r = await client.patch(
+        "/api/v1/employer/company",
+        json={
+            "description": "Делаем платёжную платформу",
+            "industry": "Финтех",
+            "contact_email": "hr@example.org",
+            "website": "https://example.org",
+        },
+        headers=bearer(token),
+    )
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["industry"] == "Финтех" and body["contact_email"] == "hr@example.org"
+    bad = await client.patch(
+        "/api/v1/employer/company", json={"contact_email": "nope"}, headers=bearer(token)
+    )
+    assert bad.status_code == 422

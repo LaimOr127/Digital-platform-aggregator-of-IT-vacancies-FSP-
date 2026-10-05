@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState, type ReactNode } from "react";
+import { useState, type InputHTMLAttributes, type ReactNode } from "react";
 import { useForm, type FieldValues, type UseFormSetError } from "react-hook-form";
 import { authApi } from "../../api/endpoints";
 import { applyServerErrors } from "../../lib/forms";
@@ -63,7 +63,7 @@ export function RegisterForm({ role, onRoleChange }: { role: Role; onRoleChange:
 function CandidateForm({ onDone }: { onDone: Registered }) {
   const form = useForm<CandidateRegisterForm>({ resolver: zodResolver(candidateRegisterSchema) });
   const { formError, submit } = useRegister<CandidateRegisterForm>(
-    ["email", "password", "full_name"],
+    ["email", "password", "full_name", "consent"],
     authApi.registerCandidate,
     onDone,
   );
@@ -79,6 +79,7 @@ function CandidateForm({ onDone }: { onDone: Registered }) {
       <Field label="Пароль" error={errors.password?.message} hint={PASSWORD_HINT}>
         <Input type="password" autoComplete="new-password" {...form.register("password")} />
       </Field>
+      <Consent error={errors.consent?.message} {...form.register("consent")} />
     </FormLayout>
   );
 }
@@ -86,14 +87,14 @@ function CandidateForm({ onDone }: { onDone: Registered }) {
 function EmployerForm({ onDone }: { onDone: Registered }) {
   const form = useForm<EmployerRegisterForm>({ resolver: zodResolver(employerRegisterSchema) });
   const { formError, submit } = useRegister<EmployerRegisterForm>(
-    ["email", "password", "company_name", "inn"],
+    ["email", "password", "company_name", "inn", "consent"],
     authApi.registerEmployer,
     onDone,
   );
   const { errors, isSubmitting } = form.formState;
   return (
     <FormLayout onSubmit={form.handleSubmit(submit(form.setError))} error={formError} loading={isSubmitting}>
-      <Field label="Название компании" error={errors.company_name?.message} hint="После регистрации компания уйдёт на модерацию">
+      <Field label="Название компании" error={errors.company_name?.message} hint="Модератор может проверить компанию позже">
         <Input autoComplete="organization" {...form.register("company_name")} />
       </Field>
       <Field label="ИНН (необязательно)" error={errors.inn?.message} hint="Ускоряет проверку компании">
@@ -105,7 +106,24 @@ function EmployerForm({ onDone }: { onDone: Registered }) {
       <Field label="Пароль" error={errors.password?.message} hint={PASSWORD_HINT}>
         <Input type="password" autoComplete="new-password" {...form.register("password")} />
       </Field>
+      <Consent error={errors.consent?.message} {...form.register("consent")} />
     </FormLayout>
+  );
+}
+
+/** Согласие на обработку ПДн (152-ФЗ): без отметки аккаунт не создаётся. */
+function Consent({ error, ...input }: InputHTMLAttributes<HTMLInputElement> & { error?: string }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <label className="flex cursor-pointer items-start gap-3 text-sm">
+        <input type="checkbox" className="mt-0.5 size-4 accent-[var(--accent)]" aria-invalid={Boolean(error)} {...input} />
+        <span className="leading-relaxed text-muted">
+          Согласен на обработку персональных данных и публикацию анонимного профиля (152-ФЗ). Имя и контакты
+          компании увидят только с моего согласия.
+        </span>
+      </label>
+      {error && <p className="text-xs text-danger">{error}</p>}
+    </div>
   );
 }
 
@@ -127,9 +145,6 @@ function FormLayout({
       <Button type="submit" size="lg" loading={loading}>
         Создать аккаунт
       </Button>
-      <p className="text-xs leading-relaxed text-muted">
-        Регистрируясь, вы соглашаетесь на обработку персональных данных по 152-ФЗ.
-      </p>
     </form>
   );
 }

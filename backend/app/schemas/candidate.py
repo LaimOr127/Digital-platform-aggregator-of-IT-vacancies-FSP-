@@ -25,6 +25,9 @@ class ProfileUpdateIn(SalaryRangeMixin):
     city: str | None = Field(default=None, max_length=100)
     is_hidden: bool | None = None
     search_status: SearchStatus | None = None
+    show_fsp: bool | None = None
+    show_salary: bool | None = None
+    show_about: bool | None = None
     skills: list[SkillSlug] | None = Field(default=None, max_length=50, description="slug навыков")
 
 
@@ -45,6 +48,10 @@ class ProfileOut(BaseModel):
     is_hidden: bool
     search_status: SearchStatus
     skills: list[SkillOut]
+    # приватность: что видит работодатель в анонимной карточке
+    show_fsp: bool = True
+    show_salary: bool = True
+    show_about: bool = True
     # из опроса и теста (меняются через /candidate/assessment)
     specialization: Specialization | None = None
     confirmed_grade: Grade | None = None

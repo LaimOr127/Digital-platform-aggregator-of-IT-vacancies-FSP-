@@ -1,5 +1,6 @@
 // Подписи перечислений и форматирование значений для интерфейса.
 import type {
+  ApplicationStatus,
   CompanyStatus,
   Grade,
   InterviewFormat,
@@ -77,6 +78,14 @@ export const labels = {
     approved: "Одобрена",
     blocked: "Заблокирована",
   } satisfies Record<CompanyStatus, string>,
+  applicationStatus: {
+    sent: "Отправлено",
+    viewed: "Просмотрено",
+    accepted: "Принято",
+    declined: "Отклонено",
+    withdrawn: "Отозвано",
+    expired: "Истекло",
+  } satisfies Record<ApplicationStatus, string>,
   offerStatus: {
     sent: "Ждёт ответа",
     accepted: "Принят",

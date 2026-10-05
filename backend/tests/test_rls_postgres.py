@@ -66,7 +66,9 @@ async def test_no_context_sees_nothing(client: AsyncClient, db: Database):
     assert await _scalar(db, None, "", "SELECT count(*) FROM candidate_profiles") == 0
 
 
-async def test_employer_reads_but_cannot_modify_profiles(client: AsyncClient, db: Database, app):
+async def test_employer_reads_but_cannot_modify_profiles(
+    client: AsyncClient, db: Database, app, premoderation
+):
     visible_sql = "SELECT count(*) FROM candidate_profiles"
     await register_candidate(client)
     hidden = await register_candidate(client)
@@ -194,6 +196,12 @@ async def test_offers_visible_only_to_parties(client: AsyncClient, db: Database,
     )
     candidate = await register_candidate(client)
     await register_candidate(client)
+    # принять приглашение можно, только указав контакт
+    await client.patch(
+        "/api/v1/candidate/profile",
+        json={"contacts": {"telegram": "@anna"}},
+        headers=bearer(candidate),
+    )
     anon_id = (await client.get("/api/v1/candidate/profile", headers=bearer(candidate))).json()[
         "anon_id"
     ]
@@ -230,3 +238,37 @@ async def test_postgres_rate_limiter_is_shared_and_sliding(db: Database):
     assert await first.hit("mfa:shared", 2, 3600)
     now[0] += 3600 * 3
     assert await purge_expired(db.engine) >= 1
+
+
+async def test_applications_and_attempts_visible_only_to_parties(client: AsyncClient, db, app):
+    """Приглашение видят только кандидат и компания; попытки теста — только сам кандидат."""
+    from tests.assessment_flow import survey
+    from tests.flows import APPLICATIONS, approved_employer, invitation_body, verified_candidate
+
+    employer = await approved_employer(client, db, app, name="Компания A")
+    await approved_employer(client, db, app, name="Компания B")
+    candidate = await verified_candidate(client)
+    await register_candidate(client)
+    r = await client.post(
+        APPLICATIONS, json=invitation_body(candidate, employer), headers=bearer(employer["token"])
+    )
+    assert r.status_code == 201
+    await survey(client, candidate["token"])
+    started = await client.post(
+        "/api/v1/candidate/assessment/attempts",
+        json={"grade": "middle"},
+        headers=bearer(candidate["token"]),
+    )
+    assert started.status_code == 201
+
+    employer_id, rival_id = await _user_ids(db, "employer")
+    candidate_id, other_id = await _user_ids(db, "candidate")
+    sql = "SELECT count(*) FROM applications"
+    assert await _scalar(db, employer_id, "employer", sql) == 1
+    assert await _scalar(db, candidate_id, "candidate", sql) == 1
+    assert await _scalar(db, rival_id, "employer", sql) == 0
+    assert await _scalar(db, other_id, "candidate", sql) == 0
+    attempts = "SELECT count(*) FROM assessments"
+    assert await _scalar(db, candidate_id, "candidate", attempts) == 1
+    assert await _scalar(db, other_id, "candidate", attempts) == 0
+    assert await _scalar(db, employer_id, "employer", attempts) == 0  # ответы не видит никто

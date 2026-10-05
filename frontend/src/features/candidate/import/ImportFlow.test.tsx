@@ -22,6 +22,9 @@ const profile: Profile = {
   search_status: "open",
   industries: [],
   roles: [],
+  show_fsp: true,
+  show_salary: true,
+  show_about: true,
   skills: [{ slug: "python", name: "Python" }],
 };
 const skills = [

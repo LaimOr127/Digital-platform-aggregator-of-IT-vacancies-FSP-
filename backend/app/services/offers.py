@@ -13,21 +13,15 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.crypto import FieldCipher, offer_field_context, profile_field_context
-from app.core.errors import ConflictError, ForbiddenError, InvalidStateError, NotFoundError
+from app.core.errors import ConflictError, ForbiddenError, InvalidStateError
 from app.core.timeutil import as_aware
 from app.models import Offer
-from app.models.enums import (
-    InterviewResult,
-    InterviewStatus,
-    OfferStatus,
-    RecipientType,
-    VacancyStatus,
-)
+from app.models.enums import InterviewResult, InterviewStatus, OfferStatus, RecipientType
+from app.repositories.applications import CompanyApplicationRepository
 from app.repositories.audit import AuditRepository
 from app.repositories.base import Page
 from app.repositories.candidates import CandidateProfileRepository
 from app.repositories.catalog import CatalogRepository
-from app.repositories.companies import CompanyRepository
 from app.repositories.interviews import CompanyInterviewRepository
 from app.repositories.offers import (
     CandidateOfferRepository,
@@ -35,7 +29,6 @@ from app.repositories.offers import (
     expire_pair,
     status_condition,
 )
-from app.repositories.vacancies import VacancyRepository
 from app.schemas.catalog import EmployerOfferOut, OfferContactsOut, OfferCreateIn, OfferOut
 from app.services.access import Action, Principal, policy
 from app.services.catalog import build_cards
@@ -80,35 +73,30 @@ class EmployerOfferService:
         passed = interview.status == InterviewStatus.COMPLETED
         if not passed or interview.result != InterviewResult.PASSED:
             raise InvalidStateError("оффер отправляется после успешного собеседования")
-        if interview.vacancy_id is None:
-            raise InvalidStateError("вакансия собеседования удалена")
-        vacancy = await VacancyRepository(self.session, self.company_id).get_or_404(
-            interview.vacancy_id
+        if interview.application_id is None:
+            raise InvalidStateError("собеседование не связано с приглашением или откликом")
+        # условия оффера — из состоявшегося контакта (вакансия не обязательна)
+        terms = await CompanyApplicationRepository(self.session, self.company_id).get_or_404(
+            interview.application_id
         )
-        if vacancy.status != VacancyStatus.ACTIVE or (
-            vacancy.expires_at and as_aware(vacancy.expires_at) <= datetime.now(UTC)
-        ):
-            raise InvalidStateError("оффер отправляется только по опубликованной вакансии")
-        profile = await self.catalog.get(interview.profile_id)
-        if profile is None:
-            raise NotFoundError("кандидат скрыл профиль или больше не ищет работу")
+        profile_id = interview.profile_id
         now = datetime.now(UTC)
-        if declined := await self.offers.declined_since(profile.id, now - DECLINE_COOLDOWN):
+        if declined := await self.offers.declined_since(profile_id, now - DECLINE_COOLDOWN):
             retry = as_aware(declined.responded_at or now) + DECLINE_COOLDOWN
             raise ConflictError(f"кандидат отклонил ваш оффер — повторно можно с {retry:%d.%m.%Y}")
-        await expire_pair(self.session, vacancy.id, profile.id, now)
-        company = await CompanyRepository(self.session).get_or_404(self.company_id)
+        if terms.vacancy_id:
+            await expire_pair(self.session, terms.vacancy_id, profile_id, now)
         offer = Offer(
             company_id=self.company_id,
-            vacancy_id=vacancy.id,
-            profile_id=profile.id,
+            vacancy_id=terms.vacancy_id,
+            profile_id=profile_id,
             interview_id=interview.id,
             created_by=self.principal.user_id,
-            company_name=company.name,
-            vacancy_title=vacancy.title,
-            grade=vacancy.grade,
-            work_format=vacancy.work_format,
-            city=vacancy.city,
+            company_name=terms.company_name,
+            vacancy_title=terms.title,
+            grade=terms.grade,
+            work_format=terms.work_format,
+            city=terms.city,
             salary_min=data.salary_min,
             salary_max=data.salary_max,
             message=data.message.strip(),
@@ -126,7 +114,7 @@ class EmployerOfferService:
         Outbox(self.session, self.cipher).enqueue(
             "offer_received",
             RecipientType.PROFILE,
-            profile.id,
+            profile_id,
             {
                 "company": offer.company_name,
                 "vacancy": offer.vacancy_title,

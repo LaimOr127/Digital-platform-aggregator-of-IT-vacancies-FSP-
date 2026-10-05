@@ -19,7 +19,7 @@ async def _signup(client: AsyncClient) -> tuple[str, str]:
     email = unique_email("user")
     await client.post(
         "/api/v1/auth/register/candidate",
-        json={"email": email, "password": PASSWORD, "full_name": "Анна"},
+        json={"email": email, "password": PASSWORD, "full_name": "Анна", "consent": True},
     )
     token = await mailed_token(client, email, "verify_email")
     await client.post("/api/v1/auth/verify-email", json={"token": token})

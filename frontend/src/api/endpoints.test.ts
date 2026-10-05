@@ -34,8 +34,8 @@ describe("endpoints map to the backend API", () => {
   it.each([
     ["login", () => authApi.login({ email: "a@b.ru", password: "x" }), "POST", "/api/v1/auth/login"],
     ["me", () => authApi.me(), "GET", "/api/v1/auth/me"],
-    ["register candidate", () => authApi.registerCandidate({ email: "a@b.ru", password: "x", full_name: "Анна" }), "POST", "/api/v1/auth/register/candidate"],
-    ["register employer", () => authApi.registerEmployer({ email: "a@b.ru", password: "x", company_name: "ООО" }), "POST", "/api/v1/auth/register/employer"],
+    ["register candidate", () => authApi.registerCandidate({ email: "a@b.ru", password: "x", full_name: "Анна", consent: true }), "POST", "/api/v1/auth/register/candidate"],
+    ["register employer", () => authApi.registerEmployer({ email: "a@b.ru", password: "x", company_name: "ООО", consent: true }), "POST", "/api/v1/auth/register/employer"],
     ["verify email", () => authApi.verifyEmail("tok"), "POST", "/api/v1/auth/verify-email"],
     ["resend verification", () => authApi.resendVerification("a@b.ru"), "POST", "/api/v1/auth/verify-email/resend"],
     ["forgot password", () => authApi.forgotPassword("a@b.ru"), "POST", "/api/v1/auth/password/forgot"],
