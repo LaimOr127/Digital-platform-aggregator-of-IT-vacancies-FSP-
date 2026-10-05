@@ -9,6 +9,7 @@ from app.models.enums import AssessmentResult, Grade, Specialization
 from app.services.assessment.engine import (
     ITEMS_TOTAL,
     REGISTRY,
+    TECHNOLOGIES,
     assemble,
     estimate,
     evaluate,
@@ -17,6 +18,7 @@ from app.services.assessment.engine import (
     pool,
 )
 from app.services.assessment.policy import AttemptRecord, decide
+from app.services.specializations import SPECIALIZATIONS
 
 NOW = datetime(2026, 10, 5, tzinfo=UTC)
 
@@ -39,6 +41,23 @@ def test_bank_covers_every_specialization_and_level():
     for specialization in Specialization:
         for level in range(1, 6):
             assert len(pool(specialization.value, level)) >= ITEMS_TOTAL // 3
+
+
+def test_bank_covers_every_stack_technology():
+    """Тест строится по стеку кандидата: каждая технология из стека специализации покрыта
+    заданиями хотя бы на двух уровнях (иначе кандидат получает вопросы по чужому стеку —
+    это занижало грейд в процедуре оценки, docs/validation.md)."""
+    gaps = []
+    for specialization, info in SPECIALIZATIONS.items():
+        for skill in info.skills:
+            levels = {t.level for t in pool_any_level(specialization.value) if skill in t.skills}
+            if len(levels) < 2:
+                gaps.append(f"{specialization.value}:{skill}:{sorted(levels)}")
+    assert not gaps
+
+
+def pool_any_level(specialization: str):
+    return [t for level in range(1, 6) for t in pool(specialization, level)]
 
 
 def test_test_brackets_claimed_grade():
@@ -66,6 +85,19 @@ def test_vacancy_skills_shift_the_selection():
     plain = [t for seed in range(40) for t in assemble("backend", 4, random.Random(seed))]
     share = lambda items: sum("kafka" in i.skills for i in items) / len(items)  # noqa: E731
     assert share(focused) >= share(plain)
+
+
+def test_test_is_built_from_candidate_stack_and_general_topics():
+    """Задания по технологиям вне стека — только если по стеку и общим темам не хватает."""
+    stack = frozenset({"python", "postgresql"})
+    off_stack = 0
+    total = 0
+    for seed in range(60):
+        for item in assemble("backend", 3, random.Random(seed), stack):
+            technologies = set(item.skills) & TECHNOLOGIES
+            off_stack += bool(technologies) and not technologies & stack
+            total += 1
+    assert off_stack / total < 0.15
 
 
 def test_answers_are_checked_on_the_server():

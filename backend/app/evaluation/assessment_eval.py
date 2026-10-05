@@ -110,8 +110,9 @@ def _items(population: list[Person], rng: random.Random) -> dict:
     correlations = [r for r in correlations if r is not None]
     return {
         "score_by_grade": {g: statistics.fmean(v) for g, v in by_grade.items()},
-        "item_r_median": statistics.median(correlations),
-        "item_r_share": sum(r >= 0.2 for r in correlations) / len(correlations),
+        # на малой выборке у шаблонов может не набраться ответов: метрика тогда 0
+        "item_r_median": statistics.median(correlations) if correlations else 0.0,
+        "item_r_share": sum(r >= 0.2 for r in correlations) / max(len(correlations), 1),
         "variants_median": _variants_median(),
     }
 

@@ -21,11 +21,15 @@ from app.services.assessment import (  # noqa: F401 - модули регист�
     bank_data,
     bank_devops,
     bank_frontend,
+    bank_general,
     bank_mobile,
     bank_qa,
     bank_security,
+    bank_stack_dev,
+    bank_stack_ops,
 )
 from app.services.assessment.items import COMMON, REGISTRY, Kind, Template
+from app.services.specializations import SPECIALIZATIONS
 
 ITEMS_TOTAL = 15
 DISCRIMINATION = 1.7
@@ -35,6 +39,11 @@ SCORE_SPAN = 2.0  # баллы 0..100 внутри категории покры
 _GRID = [i / 50 for i in range(0, 301)]  # theta от 0 до 6
 _PRIOR_MEAN, _PRIOR_SD = 3.0, 1.5
 _SPECIFIC_WEIGHT, _SKILL_WEIGHT = 2.0, 2.0
+# технологии стека (python, react, kafka…) в отличие от общих тем (алгоритмы, системный дизайн)
+TECHNOLOGIES = frozenset(s for info in SPECIALIZATIONS.values() for s in info.skills)
+# задание по технологии вне стека кандидата берётся, только если по стеку и общим темам не хватает:
+# иначе знание чужого стека подменяет проверку уровня (так показала процедура оценки)
+_OFF_STACK_WEIGHT = 0.1
 
 
 @dataclass(frozen=True)
@@ -120,16 +129,23 @@ def _weighted_sample(
     candidates = list(templates)
     chosen: list[Template] = []
     while candidates and len(chosen) < count:
-        weights = [
-            1.0
-            + (_SPECIFIC_WEIGHT if specialization in t.specializations else 0.0)
-            + _SKILL_WEIGHT * len(t.skills & focus)
-            for t in candidates
-        ]
+        weights = [_weight(t, specialization, focus) for t in candidates]
         picked = rng.choices(candidates, weights=weights, k=1)[0]
         candidates.remove(picked)
         chosen.append(picked)
     return chosen
+
+
+def _weight(template: Template, specialization: str, focus: frozenset[str]) -> float:
+    weight = (
+        1.0
+        + (_SPECIFIC_WEIGHT if specialization in template.specializations else 0.0)
+        + _SKILL_WEIGHT * len(template.skills & focus)
+    )
+    technologies = template.skills & TECHNOLOGIES
+    if focus & TECHNOLOGIES and technologies and not technologies & focus:
+        weight *= _OFF_STACK_WEIGHT
+    return weight
 
 
 def _instance(template: Template, rng: random.Random) -> GeneratedItem:

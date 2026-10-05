@@ -9,11 +9,17 @@
 
 import random
 
-from app.evaluation.population import ALL_SKILLS, Person
-from app.services.assessment.engine import GeneratedItem, Outcome, assemble, evaluate, probability
+from app.evaluation.population import Person
+from app.services.assessment.engine import (
+    TECHNOLOGIES,
+    GeneratedItem,
+    Outcome,
+    assemble,
+    evaluate,
+    probability,
+)
 from app.services.specializations import GRADE_ORDER
 
-TECHNOLOGIES = frozenset(ALL_SKILLS)
 Leak = dict[tuple, str]  # вариант задания -> известный ответ
 
 
