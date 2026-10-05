@@ -1,4 +1,4 @@
-import { BadgeCheck, CircleCheck, CircleDashed, Link2 } from "lucide-react";
+import { BadgeCheck, CircleCheck, CircleDashed, FileText, Link2 } from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router";
@@ -36,7 +36,12 @@ export function ProfilePage() {
       <PageHeader
         title="Мой профиль"
         text="Работодатели видят профиль анонимно и приходят к вам сами — с вакансией и зарплатной вилкой."
-      />
+      >
+        <Link to="/cv" className={buttonClasses("secondary", "md")}>
+          <FileText className="size-4" aria-hidden />
+          PDF-профиль
+        </Link>
+      </PageHeader>
       {error && <Alert>{errorMessage(error)}</Alert>}
       {!error && (!profile.data || !skills.data) && <LoadingBlock />}
       {profile.data && !profile.data.confirmed_grade && <OnboardingCard surveyed={Boolean(profile.data.specialization)} />}
