@@ -106,6 +106,9 @@ function Row({ item, onAccept, onDecline, onWithdraw }: RowProps) {
           <span className="font-medium">{item.contact_method}</span>
         </p>
       )}
+      {item.direction === "response" && item.message && (
+        <p className="mt-2 text-sm text-muted">Ваше письмо: {item.message}</p>
+      )}
       {item.decline_reason && <p className="mt-2 text-sm text-muted">Причина отказа: {item.decline_reason}</p>}
       {open && (
         <div className="mt-4 flex flex-wrap gap-2 border-t border-line pt-4">

@@ -63,6 +63,17 @@ describe("candidate contact flow", () => {
     expect(fetchMock.mock.calls.some(([url]) => String(url).endsWith("/candidate/applications/a1/accept"))).toBe(true);
   });
 
+  it("shows the candidate's own cover letter in responses", async () => {
+    serveRoutes({
+      "/candidate/applications": () =>
+        json({ items: [{ ...invitation, direction: "response", status: "sent", message: "Готова к собеседованию" }], next_cursor: null }),
+    });
+    renderWithApp(<ApplicationsInbox />);
+    await userEvent.click(await screen.findByRole("radio", { name: "Мои отклики" }));
+    expect(await screen.findByText("Ваше письмо: Готова к собеседованию")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Отозвать отклик" })).toBeInTheDocument();
+  });
+
   it("responds to a vacancy with a cover letter", async () => {
     const fetchMock = serveRoutes({
       "/candidate/vacancies": () => json({ items: [vacancy], next_cursor: null }),
