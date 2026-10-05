@@ -33,6 +33,8 @@ make test      # линт и тесты: бэкенд (SQLite + PostgreSQL), м�
 | `make confirm-email EMAIL=…` | подтвердить почту пользователя вручную (письмо не дошло) |
 | `make seed-demo N=… C=…` | демо-кандидаты и компании (не работает в prod) |
 | `make load EMP=… CAND=… VAC=…` | нагрузочный тест k6 (токены работодателя и кандидата, id вакансии) |
+| `make evaluate ARGS="--seed 7"` | процедура оценки тестирования и подбора на синтетике, отчёт в Markdown ([validation.md](validation.md)) |
+| `make docs-docx` | единый DOCX сопроводительной документации со схемами (`docs/build/itmatch-docs.docx`) |
 | `make test`, `make test-backend`, `make test-frontend`, `make test-fsp-mock` | тесты |
 | `make smoke`, `make check-db`, `make verify` | проверки работающего стека |
 | `make secrets-check` | gitleaks по файлам и истории |
@@ -69,7 +71,7 @@ docker compose -p itmatch exec -T db sh -c 'pg_dump -U "$POSTGRES_USER" -Fc itma
 
 | Группа | Переменные |
 |---|---|
-| Режим | `APP_ENV` (dev/prod), `LOG_LEVEL` |
+| Режим | `APP_ENV` (dev/prod), `LOG_LEVEL`, `COMPANY_PREMODERATION` (по умолчанию `false`: компания после регистрации одобрена сразу, модерация — постфактум) |
 | БД | `DB_NAME`, `DB_OWNER_USER`/`DB_OWNER_PASSWORD` (только migrate), `APP_DB_USER`/`APP_DB_PASSWORD`, `DB_POOL_SIZE` |
 | Секреты приложения | `JWT_SECRET`, `FIELD_ENCRYPTION_KEY` (AES), `PASSPORT_SIGNING_KEY` (Ed25519), `FSP_API_KEY` |
 | ФСП | `FSP_BASE_URL`, `FSP_DEMO_CODES` (dev), `FSP_DEMO_CODES_PROD` (демо-стенд) |

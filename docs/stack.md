@@ -30,7 +30,7 @@
 | Подпись паспорта | cryptography (Ed25519) | проверяется кем угодно по публичному ключу |
 | 2FA | собственная реализация TOTP (RFC 6238, `core/totp.py`) | ~50 строк вместо зависимости, покрыто тестами по векторам RFC |
 | HTTP-клиент | httpx | ФСП и языковые модели; `MockTransport` в тестах |
-| Резюме | pypdf, python-docx | текстовый слой PDF и DOCX; без OCR и без тяжёлых моделей |
+| Резюме | pypdf; DOCX — стандартный `zipfile` | текстовый слой PDF и DOCX; без OCR и без тяжёлых моделей |
 | Почта | smtplib в потоке | достаточно для очереди с повторами; канал за интерфейсом `Notifier` |
 | Линт | ruff (lint + format) | один быстрый инструмент |
 | Тесты | pytest, pytest-asyncio, httpx, pytest-cov | SQLite в памяти для скорости + одноразовый PostgreSQL для RLS |
@@ -39,9 +39,11 @@
 PostgreSQL (`UNLOGGED`-таблица, `FOR UPDATE SKIP LOCKED`). Меньше сервисов — меньше памяти на сервере
 1–2 ГБ и меньше точек отказа. Если нагрузка вырастет, Redis подключается заменой реализации `Limiter`.
 
-Почему не ML-модели для подбора: план требует работы без GPU и тяжёлых зависимостей. Соответствие
-вакансии считается взвешенными факторами (навыки, грейд, ФСП, текст, формат, зарплата) с объяснением
-каждого — работодателю понятно, почему кандидат выше.
+Почему без тяжёлых ML-моделей: решение должно работать на недорогом сервере без GPU. Где модель
+уместна, она есть, но лёгкая и объяснимая: уровень кандидата оценивается психометрической моделью IRT
+(3PL, EAP — [assessment.md](assessment.md)), соответствие вакансии — взвешенными факторами с объяснением
+каждого ([matching.md](matching.md)), резюме разбирается правилами или любой подключённой языковой
+моделью с согласия кандидата. Качество проверяется процедурой оценки ([validation.md](validation.md)).
 
 ## Фронтенд
 
@@ -60,6 +62,48 @@ PostgreSQL (`UNLOGGED`-таблица, `FOR UPDATE SKIP LOCKED`). Меньше �
 
 Графики (радар зарплат) нарисованы обычными HTML/CSS-блоками (`features/insights/RangeChart.tsx`),
 без библиотеки графиков: нужен один тип графика, а библиотека добавила бы сотни КБ.
+
+## Версии библиотек и компонентов
+
+Бэкенд закреплён точными версиями (`backend/requirements*.txt`), фронтенд — `package-lock.json`.
+
+| Компонент | Версия | Лицензия |
+|---|---|---|
+| Python | 3.12 (`python:3.12-slim`) | PSF |
+| FastAPI | 0.142.2 | MIT |
+| Uvicorn | 0.54.0 | BSD-3 |
+| Pydantic Settings / email-validator | 2.15.0 / 2.3.0 | MIT / Unlicense |
+| SQLAlchemy (asyncio) | 2.1.1 | MIT |
+| asyncpg | 0.31.0 | Apache-2.0 |
+| Alembic | 1.20.0 | MIT |
+| argon2-cffi | 25.1.0 | MIT |
+| PyJWT | 2.15.1 | MIT |
+| cryptography | 50.0.2 | Apache-2.0 / BSD |
+| httpx | 0.28.1 | BSD-3 |
+| pypdf | 6.19.0 | BSD-3 |
+| python-multipart | 0.0.32 | Apache-2.0 |
+| pytest / pytest-asyncio / pytest-cov / aiosqlite | 9.1.1 / 1.4.0 / 7.1.0 / 0.22.1 | MIT / Apache-2.0 / MIT / MIT |
+| ruff | 0.16.9 | MIT |
+| PostgreSQL | 16 (`postgres:16-alpine`) | PostgreSQL License |
+| Caddy | 2 (`caddy:2-alpine`) | Apache-2.0 |
+| Mailpit (только dev) | 1.27 | MIT |
+| React / React DOM | 19.3.0 | MIT |
+| TypeScript | 5.9.3 | Apache-2.0 |
+| Vite | 7.3.6 | MIT |
+| TanStack Query | 5.104.0 | MIT |
+| React Router | 8.4.0 | MIT |
+| react-hook-form / @hookform/resolvers | 7.89.0 / 5.9.1 | MIT |
+| zod | 4.6.5 | MIT |
+| Tailwind CSS | 4.3.3 | MIT |
+| Motion | 13.4.6 | MIT |
+| lucide-react | 1.49.0 | ISC |
+| qrcode | 1.5.4 | MIT |
+| Inter (шрифт, @fontsource-variable) | 5.3 | OFL-1.1 |
+| openapi-typescript / swagger-ui-dist | 7.13.0 / 5.33.0 | MIT / Apache-2.0 |
+| Vitest / Testing Library React / jsdom | 5.0.3 / 16.3.3 / 30.1.1 | MIT |
+| k6 (нагрузочный тест) | 2.3.0 | AGPL-3.0, отдельный инструмент, не входит в продукт |
+
+Код проекта открыт под лицензией MIT (`LICENSE`).
 
 ## Инфраструктура
 
