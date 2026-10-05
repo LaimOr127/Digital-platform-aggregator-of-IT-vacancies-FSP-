@@ -20,7 +20,7 @@ from app.services.access import Action, Principal, policy
 from app.services.common import apply_fields, apply_salary, resolve_skills
 
 VACANCY_TTL = timedelta(days=14)
-_PLAIN_FIELDS = ("title", "description", "grade", "work_format", "city")
+_PLAIN_FIELDS = ("title", "description", "grade", "specialization", "work_format", "city")
 
 
 class EmployerService:

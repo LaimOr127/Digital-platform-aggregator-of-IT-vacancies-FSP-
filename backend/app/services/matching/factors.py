@@ -1,18 +1,25 @@
 """Факторы соответствия (паттерн Strategy): новый фактор — новый класс, остальное не меняется.
 
-Каждый фактор возвращает долю 0..1 и понятное работодателю объяснение. Веса — из плана:
-навыки 40, грейд 20, ФСП 15, описание 15, формат и город 5, зарплата 5.
+Каждый фактор возвращает долю 0..1 и понятное работодателю объяснение. Основа выдачи —
+категория, присвоенная по итогам опроса и теста, и результат теста; самоописание профиля
+(заявленные навыки, текст «о себе») весит мало.
+
+Подбор под вакансию: категория 30, тест 20, навыки 20, ФСП 10, описание 5, актуальность 5,
+формат и город 5, зарплата 5. Сила профиля без вакансии: тест 60, ФСП 25, актуальность 15.
 """
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from datetime import UTC, datetime
 
+from app.core.timeutil import as_aware
 from app.models import CandidateProfile, Category, Vacancy
-from app.models.enums import Grade, VerificationTier, WorkFormat
+from app.models.enums import VerificationTier, WorkFormat
 from app.services.categorization import TIER_TITLES, TIERS
 from app.services.matching.text import keywords, overlap_with
+from app.services.specializations import GRADE_ORDER, GRADE_TITLES
 
-GRADE_ORDER = [Grade.INTERN, Grade.JUNIOR, Grade.MIDDLE, Grade.SENIOR, Grade.LEAD]
+FRESH_DAYS, STALE_DAYS = 30, 180
 
 
 @dataclass(frozen=True)
@@ -54,47 +61,100 @@ class Factor(ABC):
     label: str
     weight: int
 
-    def score(self, context: VacancyContext, candidate: Candidate) -> FactorScore:
+    def __init__(self, weight: int | None = None) -> None:
+        if weight is not None:
+            self.weight = weight
+
+    def score(self, context: VacancyContext | None, candidate: Candidate) -> FactorScore:
         share, detail = self.evaluate(context, candidate)
         return FactorScore(self.key, self.label, self.weight, round(share, 3), detail)
 
     @abstractmethod
-    def evaluate(self, context: VacancyContext, candidate: Candidate) -> tuple[float, str]: ...
+    def evaluate(
+        self, context: VacancyContext | None, candidate: Candidate
+    ) -> tuple[float, str]: ...
 
 
-class SkillsFactor(Factor):
-    key, label, weight = "skills", "Навыки", 40
+class VacancyFactor(Factor):
+    """Фактор, которому нужна вакансия (подбор под потребность работодателя)."""
 
-    def evaluate(self, context: VacancyContext, candidate: Candidate) -> tuple[float, str]:
+    def evaluate(self, context: VacancyContext | None, candidate: Candidate) -> tuple[float, str]:
+        if context is None:
+            raise ValueError(f"{self.key}: нужна вакансия")
+        return self.compare(context, candidate)
+
+    @abstractmethod
+    def compare(self, context: VacancyContext, candidate: Candidate) -> tuple[float, str]: ...
+
+
+class CategoryFactor(VacancyFactor):
+    key, label, weight = "category", "Категория", 30
+
+    def compare(self, context: VacancyContext, candidate: Candidate) -> tuple[float, str]:
+        profile, vacancy = candidate.profile, context.vacancy
+        if vacancy.specialization and profile.specialization != vacancy.specialization:
+            return 0.0, "другая специализация"
+        if profile.confirmed_grade is None:
+            claimed = GRADE_TITLES[profile.grade] if profile.grade else "не указан"
+            return 0.2, f"грейд не подтверждён тестом (заявлен: {claimed})"
+        gap = abs(GRADE_ORDER.index(profile.confirmed_grade) - GRADE_ORDER.index(vacancy.grade))
+        title = GRADE_TITLES[profile.confirmed_grade]
+        if gap == 0:
+            return 1.0, f"подтверждённый грейд {title} совпадает"
+        if gap == 1:
+            return 0.5, f"подтверждённый грейд {title} — соседний"
+        return 0.0, f"подтверждённый грейд {title} — далёкий"
+
+
+class AssessmentFactor(Factor):
+    key, label, weight = "assessment", "Результат теста", 20
+
+    def evaluate(self, context: VacancyContext | None, candidate: Candidate) -> tuple[float, str]:
+        profile = candidate.profile
+        if profile.confirmed_grade is None or profile.assessment_score is None:
+            return 0.0, "тест не пройден"
+        score = profile.assessment_score
+        return score / 100, f"{score} из 100 в своей категории"
+
+
+class FreshnessFactor(Factor):
+    key, label, weight = "freshness", "Актуальность", 5
+
+    def evaluate(self, context: VacancyContext | None, candidate: Candidate) -> tuple[float, str]:
+        last = candidate.profile.last_activity_at
+        if last is None:
+            return 0.0, "нет недавних тестов и задач"
+        days = (datetime.now(UTC) - as_aware(last)).days
+        decay = (days - FRESH_DAYS) / (STALE_DAYS - FRESH_DAYS)
+        share = 1.0 if days <= FRESH_DAYS else max(0.0, 1 - decay)
+        detail = "активность сегодня" if days == 0 else f"последняя активность {days} дн. назад"
+        return share, detail
+
+
+class SkillsFactor(VacancyFactor):
+    key, label, weight = "skills", "Навыки", 20
+
+    def compare(self, context: VacancyContext, candidate: Candidate) -> tuple[float, str]:
+        """Навык, подтверждённый ответами теста, считается полностью, заявленный — наполовину."""
         wanted = context.skills
         if not wanted:
             return 0.5, "в вакансии навыки не указаны"
-        have = {s.slug for s in candidate.profile.skills}
-        common = [name for slug, name in wanted.items() if slug in have]
-        missing = [name for slug, name in wanted.items() if slug not in have]
-        detail = f"{len(common)} из {len(wanted)}"
-        if common:
-            detail += f": {', '.join(common[:5])}"
-        if missing:
-            detail += f"; нет: {', '.join(missing[:3])}"
-        return len(common) / len(wanted), detail
-
-
-class GradeFactor(Factor):
-    key, label, weight = "grade", "Грейд", 20
-
-    def evaluate(self, context: VacancyContext, candidate: Candidate) -> tuple[float, str]:
-        grade = candidate.profile.grade
-        if grade is None:
-            return 0.3, "кандидат не указал грейд"
-        gap = abs(GRADE_ORDER.index(grade) - GRADE_ORDER.index(context.vacancy.grade))
-        return {0: (1.0, "совпадает"), 1: (0.5, "соседний")}.get(gap, (0.0, "далёкий"))
+        confirmed = set(candidate.profile.confirmed_skills or [])
+        declared = {s.slug for s in candidate.profile.skills}
+        tested = [name for slug, name in wanted.items() if slug in confirmed]
+        claimed = [name for slug, name in wanted.items() if slug in declared - confirmed]
+        missing = len(wanted) - len(tested) - len(claimed)
+        parts = [f"подтверждены тестом: {', '.join(tested[:4])}" if tested else ""]
+        parts.append(f"заявлены: {', '.join(claimed[:4])}" if claimed else "")
+        parts.append(f"нет {missing} из {len(wanted)}" if missing else "")
+        detail = "; ".join(p for p in parts if p) or "нет нужных навыков"
+        return (len(tested) + 0.5 * len(claimed)) / len(wanted), detail
 
 
 class FspFactor(Factor):
-    key, label, weight = "fsp", "Подтверждение ФСП", 15
+    key, label, weight = "fsp", "Достижения ФСП", 10
 
-    def evaluate(self, context: VacancyContext, candidate: Candidate) -> tuple[float, str]:
+    def evaluate(self, context: VacancyContext | None, candidate: Candidate) -> tuple[float, str]:
         if candidate.profile.verification_tier != VerificationTier.VERIFIED_FSP:
             return 0.0, "навыки не подтверждены ФСП"
         if not candidate.categories:
@@ -104,10 +164,10 @@ class FspFactor(Factor):
         return share, TIER_TITLES.get(best.tier, best.tier)
 
 
-class DescriptionFactor(Factor):
-    key, label, weight = "description", "Описание и опыт", 15
+class DescriptionFactor(VacancyFactor):
+    key, label, weight = "description", "Описание и опыт", 5
 
-    def evaluate(self, context: VacancyContext, candidate: Candidate) -> tuple[float, str]:
+    def compare(self, context: VacancyContext, candidate: Candidate) -> tuple[float, str]:
         profile = candidate.profile
         candidate_text = " ".join(
             filter(None, [profile.title, profile.about, *(s.name for s in profile.skills)])
@@ -118,10 +178,10 @@ class DescriptionFactor(Factor):
         return share, f"общие темы: {', '.join(common)}"
 
 
-class FormatFactor(Factor):
+class FormatFactor(VacancyFactor):
     key, label, weight = "format", "Формат и город", 5
 
-    def evaluate(self, context: VacancyContext, candidate: Candidate) -> tuple[float, str]:
+    def compare(self, context: VacancyContext, candidate: Candidate) -> tuple[float, str]:
         profile, vacancy = candidate.profile, context.vacancy
         if vacancy.work_format == WorkFormat.REMOTE:
             return 1.0, "удалённая работа — город не важен"
@@ -135,10 +195,10 @@ class FormatFactor(Factor):
         return 0.4, "город не совпадает или не указан"
 
 
-class SalaryFactor(Factor):
+class SalaryFactor(VacancyFactor):
     key, label, weight = "salary", "Зарплата", 5
 
-    def evaluate(self, context: VacancyContext, candidate: Candidate) -> tuple[float, str]:
+    def compare(self, context: VacancyContext, candidate: Candidate) -> tuple[float, str]:
         expected, vacancy = candidate.profile.salary_min, context.vacancy
         if not expected:
             return 0.6, "ожидания не указаны"
@@ -149,10 +209,19 @@ class SalaryFactor(Factor):
 
 
 FACTORS: tuple[Factor, ...] = (
+    CategoryFactor(),
+    AssessmentFactor(),
     SkillsFactor(),
-    GradeFactor(),
     FspFactor(),
     DescriptionFactor(),
+    FreshnessFactor(),
     FormatFactor(),
     SalaryFactor(),
+)
+
+# без вакансии: «сила подтверждённого профиля» внутри категории
+STRENGTH_FACTORS: tuple[Factor, ...] = (
+    AssessmentFactor(60),
+    FspFactor(25),
+    FreshnessFactor(15),
 )

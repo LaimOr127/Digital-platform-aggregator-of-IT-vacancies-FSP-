@@ -145,6 +145,7 @@ VACANCY = {
     "title": "Backend-разработчик",
     "description": "FastAPI, PostgreSQL",
     "grade": "middle",
+    "specialization": "backend",
     "work_format": "remote",
     "salary_min": 200_000,
     "salary_max": 300_000,

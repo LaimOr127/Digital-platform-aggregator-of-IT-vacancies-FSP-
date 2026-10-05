@@ -3,7 +3,7 @@ from typing import Annotated
 
 from pydantic import BaseModel, EmailStr, Field
 
-from app.models.enums import Grade, SearchStatus, VerificationTier, WorkFormat
+from app.models.enums import Grade, SearchStatus, Specialization, VerificationTier, WorkFormat
 from app.schemas.common import SalaryRangeMixin, SkillOut
 
 SkillSlug = Annotated[str, Field(pattern=r"^[a-z0-9][a-z0-9+#.\-]{0,63}$")]
@@ -45,3 +45,10 @@ class ProfileOut(BaseModel):
     is_hidden: bool
     search_status: SearchStatus
     skills: list[SkillOut]
+    # из опроса и теста (меняются через /candidate/assessment)
+    specialization: Specialization | None = None
+    confirmed_grade: Grade | None = None
+    assessment_score: int | None = None
+    experience_years: int | None = None
+    industries: list[str] = []
+    roles: list[str] = []

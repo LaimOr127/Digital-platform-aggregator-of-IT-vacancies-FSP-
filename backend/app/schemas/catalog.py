@@ -3,11 +3,30 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
-from app.models.enums import Grade, OfferStatus, SearchStatus, VerificationTier, WorkFormat
+from app.models.enums import (
+    Grade,
+    OfferStatus,
+    SearchStatus,
+    Specialization,
+    VerificationTier,
+    WorkFormat,
+)
 from app.schemas.common import SalaryRangeMixin
 
 
 class CatalogCategoryOut(BaseModel):
+    """Категория кандидатов: специализация x подтверждённый тестом грейд."""
+
+    slug: str
+    title: str
+    specialization: Specialization
+    grade: Grade
+    candidates: int
+
+
+class FspCategoryOut(BaseModel):
+    """Категория достижений ФСП: дисциплина x уровень результатов."""
+
     slug: str
     discipline: str
     tier: str
@@ -21,6 +40,11 @@ class CandidateCategoryOut(BaseModel):
     title: str
 
 
+class CategoryBriefOut(BaseModel):
+    slug: str
+    title: str
+
+
 class MatchFactorOut(BaseModel):
     key: str
     label: str
@@ -30,7 +54,7 @@ class MatchFactorOut(BaseModel):
 
 
 class MatchOut(BaseModel):
-    """Соответствие вакансии: процент и вклад каждого фактора."""
+    """Оценка с объяснением: соответствие вакансии или сила профиля внутри категории."""
 
     score: int = Field(ge=0, le=100)
     factors: list[MatchFactorOut]
@@ -41,7 +65,12 @@ class CandidateCardOut(BaseModel):
 
     anon_id: uuid.UUID
     title: str | None
-    grade: Grade | None
+    specialization: Specialization | None
+    category: CategoryBriefOut | None = Field(description="категория по итогам теста")
+    grade: Grade | None = Field(description="заявленный кандидатом")
+    confirmed_grade: Grade | None = Field(description="подтверждённый тестом")
+    assessment_score: int | None
+    experience_years: int | None
     work_format: WorkFormat | None
     city: str | None
     salary_min: int | None
@@ -49,10 +78,13 @@ class CandidateCardOut(BaseModel):
     verification_tier: VerificationTier
     search_status: SearchStatus
     skills: list[str]
-    categories: list[CandidateCategoryOut]
+    confirmed_skills: list[str] = Field(description="навыки, подтверждённые ответами теста")
+    fsp_categories: list[CandidateCategoryOut]
     achievements: list[str]
     about: str | None
-    match: MatchOut | None = None
+    last_activity_at: datetime | None
+    match: MatchOut | None = Field(default=None, description="соответствие вакансии")
+    strength: MatchOut | None = Field(default=None, description="сила профиля в категории")
 
 
 class OfferCreateIn(SalaryRangeMixin):

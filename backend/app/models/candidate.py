@@ -1,10 +1,11 @@
+import datetime as dt
 import uuid
 
-from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, Table, Text
+from sqlalchemy import JSON, Boolean, Column, DateTime, ForeignKey, Integer, String, Table, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, IdMixin, TimestampMixin, str_enum
-from app.models.enums import Grade, SearchStatus, VerificationTier, WorkFormat
+from app.models.enums import Grade, SearchStatus, Specialization, VerificationTier, WorkFormat
 
 profile_skills = Table(
     "profile_skills",
@@ -52,6 +53,29 @@ class CandidateProfile(IdMixin, TimestampMixin, Base):
         str_enum(SearchStatus, "search_status"),
         default=SearchStatus.OPEN,
         server_default=SearchStatus.OPEN.value,
+    )
+
+    # опрос при регистрации: специализация, отрасли, роли, стаж — основа категории
+    specialization: Mapped[Specialization | None] = mapped_column(
+        str_enum(Specialization, "specialization"), default=None, index=True
+    )
+    experience_years: Mapped[int | None] = mapped_column(Integer, default=None)
+    industries: Mapped[list[str]] = mapped_column(JSON, default=list)
+    roles: Mapped[list[str]] = mapped_column(JSON, default=list)
+    soft_skills: Mapped[list[str]] = mapped_column(JSON, default=list)
+    survey_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+    # категория = специализация x грейд, подтверждённый тестом (grade — заявленный кандидатом)
+    confirmed_grade: Mapped[Grade | None] = mapped_column(
+        str_enum(Grade, "confirmed_grade"), default=None, index=True
+    )
+    grade_confirmed_at: Mapped[dt.datetime | None] = mapped_column(
+        DateTime(timezone=True), default=None
+    )
+    assessment_score: Mapped[int | None] = mapped_column(Integer, default=None)
+    confirmed_skills: Mapped[list[str]] = mapped_column(JSON, default=list)
+    # последнее действие, подтверждающее актуальность профиля (тест, решение задачи)
+    last_activity_at: Mapped[dt.datetime | None] = mapped_column(
+        DateTime(timezone=True), default=None
     )
 
     skills: Mapped[list[Skill]] = relationship(secondary=profile_skills, lazy="selectin")

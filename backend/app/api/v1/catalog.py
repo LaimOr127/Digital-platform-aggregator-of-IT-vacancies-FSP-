@@ -6,23 +6,34 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Header, Query, Request, status
 
 from app.api.deps import CipherDep, PrincipalDep, SessionDep
+from app.core.errors import AppError
 from app.core.ratelimit import check_rate_limit
-from app.models.enums import Grade, OfferStatus, SearchStatus, WorkFormat
+from app.models.enums import Grade, OfferStatus, SearchStatus, Specialization, WorkFormat
 from app.repositories.catalog import CatalogFilters
 from app.schemas.catalog import (
     CandidateCardOut,
     CatalogCategoryOut,
     EmployerOfferOut,
+    FspCategoryOut,
     OfferContactsOut,
     OfferCreateIn,
 )
 from app.schemas.common import PageOut
 from app.services.catalog import CatalogService
 from app.services.offers import EmployerOfferService
+from app.services.specializations import parse_category
 
 router = APIRouter(prefix="/employer", tags=["employer"])
 Limit = Annotated[int, Query(ge=1, le=50)]
 Slug = Annotated[str | None, Query(max_length=64, pattern=r"^[a-z0-9][a-z0-9+#.\-]*$")]
+Skills = Annotated[
+    list[Annotated[str, Query(max_length=64, pattern=r"^[a-z0-9][a-z0-9+#.\-]*$")]],
+    Query(max_length=10, description="все выбранные навыки"),
+]
+
+
+class UnknownCategoryError(AppError):
+    status_code, code = 422, "unknown_category"
 
 
 def _catalog(session: SessionDep, principal: PrincipalDep) -> CatalogService:
@@ -39,26 +50,55 @@ CatalogDep = Annotated[CatalogService, Depends(_catalog)]
 OffersDep = Annotated[EmployerOfferService, Depends(_offers)]
 
 
-@router.get("/catalog/categories", summary="Категории со счётчиками кандидатов")
+@router.get(
+    "/catalog/categories", summary="Категории (специализация x грейд) со счётчиками кандидатов"
+)
 async def catalog_categories(service: CatalogDep) -> list[CatalogCategoryOut]:
     return await service.categories()
 
 
-@router.get("/catalog/candidates", summary="Анонимные карточки кандидатов")
+@router.get("/catalog/fsp-categories", summary="Категории достижений ФСП со счётчиками")
+async def catalog_fsp_categories(service: CatalogDep) -> list[FspCategoryOut]:
+    return await service.fsp_categories()
+
+
+@router.get(
+    "/catalog/candidates",
+    summary="Анонимные карточки: по силе профиля или по соответствию вакансии",
+)
 async def catalog_candidates(
     service: CatalogDep,
-    category: Slug = None,
+    category: Annotated[
+        str | None, Query(max_length=40, description="специализация:грейд, например backend:middle")
+    ] = None,
+    specialization: Specialization | None = None,
     grade: Grade | None = None,
     work_format: WorkFormat | None = None,
-    skill: Slug = None,
+    skill: Skills = [],  # noqa: B006 - FastAPI копирует значение по умолчанию
     search_status: SearchStatus | None = None,
+    confirmed_only: bool = False,
+    fsp_only: bool = False,
+    fsp_category: Slug = None,
     vacancy_id: Annotated[
         uuid.UUID | None, Query(description="сортировать по соответствию этой вакансии")
     ] = None,
     cursor: str | None = None,
     limit: Limit = 20,
 ) -> PageOut[CandidateCardOut]:
-    filters = CatalogFilters(category, grade, work_format, skill, search_status)
+    parsed = parse_category(category) if category else None
+    if category and parsed is None:
+        raise UnknownCategoryError("неизвестная категория")
+    filters = CatalogFilters(
+        category=parsed,
+        specialization=specialization,
+        grade=grade,
+        work_format=work_format,
+        skills=tuple(dict.fromkeys(skill)),
+        search_status=search_status,
+        confirmed_only=confirmed_only,
+        fsp_only=fsp_only,
+        fsp_category=fsp_category,
+    )
     items, next_cursor = await service.candidates(filters, cursor, limit, vacancy_id)
     return PageOut(items=items, next_cursor=next_cursor)
 

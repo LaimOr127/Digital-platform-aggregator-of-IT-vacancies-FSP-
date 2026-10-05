@@ -1,6 +1,7 @@
 """Профиль кандидата: чтение и изменение только своего; имя и контакты шифруются."""
 
 import json
+from datetime import UTC, datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -40,6 +41,7 @@ class CandidateService:
             profile.contacts_enc = self._encrypt(profile, "contacts", contacts.model_dump_json())
         if data.skills is not None:
             profile.skills = await resolve_skills(self.skills, data.skills)
+        profile.last_activity_at = datetime.now(UTC)  # обновлённый профиль — актуальный
         await self.session.commit()
         return self._to_out(profile)
 
@@ -75,4 +77,10 @@ class CandidateService:
             is_hidden=p.is_hidden,
             search_status=p.search_status,
             skills=[SkillOut.model_validate(s) for s in p.skills],
+            specialization=p.specialization,
+            confirmed_grade=p.confirmed_grade,
+            assessment_score=p.assessment_score,
+            experience_years=p.experience_years,
+            industries=p.industries or [],
+            roles=p.roles or [],
         )

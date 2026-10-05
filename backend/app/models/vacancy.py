@@ -6,7 +6,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, IdMixin, TimestampMixin, str_enum
 from app.models.candidate import Skill
-from app.models.enums import Grade, VacancyStatus, WorkFormat
+from app.models.enums import Grade, Specialization, VacancyStatus, WorkFormat
 
 vacancy_skills = Table(
     "vacancy_skills",
@@ -33,6 +33,10 @@ class Vacancy(IdMixin, TimestampMixin, Base):
     title: Mapped[str] = mapped_column(String(160))
     description: Mapped[str] = mapped_column(Text, default="")
     grade: Mapped[Grade] = mapped_column(str_enum(Grade, "grade"), index=True)
+    # специализация + грейд вакансии = категория кандидатов, из которой строится подборка
+    specialization: Mapped[Specialization | None] = mapped_column(
+        str_enum(Specialization, "specialization"), default=None, index=True
+    )
     work_format: Mapped[WorkFormat] = mapped_column(str_enum(WorkFormat, "work_format"))
     city: Mapped[str | None] = mapped_column(String(100), default=None)
     salary_min: Mapped[int] = mapped_column(Integer)

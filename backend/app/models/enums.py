@@ -105,3 +105,26 @@ class InterviewFormat(StrEnum):
 class AiProviderKind(StrEnum):
     OPENAI = "openai"  # OpenAI-совместимый Chat Completions API
     ANTHROPIC = "anthropic"
+
+
+class Specialization(StrEnum):
+    """Специализация — первая половина категории кандидата (вторая — подтверждённый грейд)."""
+
+    BACKEND = "backend"
+    FRONTEND = "frontend"
+    MOBILE = "mobile"
+    DATA = "data"  # анализ данных и машинное обучение
+    DEVOPS = "devops"
+    QA = "qa"
+    SECURITY = "security"
+
+
+class AssessmentStatus(StrEnum):
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+    EXPIRED = "expired"  # время вышло, ответы не отправлены
+
+
+class AssessmentResult(StrEnum):
+    PASSED = "passed"  # заявленный грейд подтверждён
+    FAILED = "failed"  # не подтверждён: можно пройти тест на грейд ниже

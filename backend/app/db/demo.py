@@ -9,6 +9,7 @@
 import random
 import secrets
 import uuid
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import insert, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -33,6 +34,7 @@ from app.models.enums import (
     Grade,
     MemberRole,
     SearchStatus,
+    Specialization,
     UserRole,
     VacancyStatus,
     VerificationTier,
@@ -40,14 +42,23 @@ from app.models.enums import (
 )
 
 _TITLES = [
-    ("Backend-разработчик", ["python", "go", "postgresql", "docker", "kafka", "redis"]),
-    ("Frontend-разработчик", ["javascript", "typescript", "react", "vue"]),
-    ("Специалист по информационной безопасности", ["information-security", "pentest", "linux"]),
-    ("ML-инженер", ["python", "machine-learning", "pytorch", "data-analysis"]),
-    ("Разработчик робототехники", ["c++", "python", "robotics", "linux"]),
-    ("Мобильный разработчик", ["kotlin", "swift", "android", "ios"]),
-    ("DevOps-инженер", ["docker", "kubernetes", "terraform", "ci-cd", "linux"]),
+    (
+        "Backend-разработчик",
+        Specialization.BACKEND,
+        ["python", "go", "postgresql", "kafka", "redis"],
+    ),
+    ("Frontend-разработчик", Specialization.FRONTEND, ["javascript", "typescript", "react", "vue"]),
+    (
+        "Специалист по информационной безопасности",
+        Specialization.SECURITY,
+        ["information-security", "pentest", "linux"],
+    ),
+    ("ML-инженер", Specialization.DATA, ["python", "machine-learning", "pytorch", "data-analysis"]),
+    ("Инженер по тестированию", Specialization.QA, ["qa-automation", "python", "sql"]),
+    ("Мобильный разработчик", Specialization.MOBILE, ["kotlin", "swift", "android", "ios"]),
+    ("DevOps-инженер", Specialization.DEVOPS, ["docker", "kubernetes", "terraform", "ci-cd"]),
 ]
+_GRADES = list(Grade)
 _CITIES = ["Москва", "Санкт-Петербург", "Казань", "Новосибирск", "Екатеринбург", None]
 # вилки по грейдам (₽ в месяц): нижняя граница выбирается из диапазона, ширина — 20-40%
 _GRADE_SALARY = {
@@ -93,8 +104,10 @@ async def seed_candidates(session: AsyncSession, cipher: FieldCipher, count: int
         profile = _profile(rng, user.id, cipher)
         session.add(user)
         profiles.append(profile)
-        title_skills = next(s for t, s in _TITLES if t == profile.title)
+        title_skills = next(s for t, _, s in _TITLES if t == profile.title)
         picked = rng.sample(title_skills, k=min(len(title_skills), rng.randint(2, 4)))
+        if profile.confirmed_grade:
+            profile.confirmed_skills = picked[: rng.randint(1, len(picked))]
         skill_links += [
             {"profile_id": profile.id, "skill_id": skills[slug]}
             for slug in picked
@@ -116,14 +129,26 @@ async def seed_candidates(session: AsyncSession, cipher: FieldCipher, count: int
 
 
 def _profile(rng: random.Random, user_id: uuid.UUID, cipher: FieldCipher) -> CandidateProfile:
-    title, _ = rng.choice(_TITLES)
+    """Как после опроса и теста: у ~75% грейд подтверждён (иногда на ступень ниже заявленного)."""
+    title, specialization, _ = rng.choice(_TITLES)
     salary = rng.randrange(80_000, 450_000, 10_000)
+    grade = rng.choice(_GRADES)
+    now = datetime.now(UTC)
+    tested = rng.random() < 0.75
+    confirmed = _GRADES[max(0, _GRADES.index(grade) - rng.choice([0, 0, 1]))] if tested else None
     profile = CandidateProfile(
         id=uuid.uuid4(),
         user_id=user_id,
         title=title,
         about=rng.choice(_ABOUT),
-        grade=rng.choice(list(Grade)),
+        specialization=specialization,
+        experience_years=_GRADES.index(grade) * 2 + rng.randint(0, 2),
+        survey_at=now - timedelta(days=rng.randint(1, 120)),
+        confirmed_grade=confirmed,
+        grade_confirmed_at=now - timedelta(days=rng.randint(1, 120)) if tested else None,
+        assessment_score=rng.randint(0, 100) if tested else None,
+        last_activity_at=now - timedelta(days=rng.randint(0, 200)) if tested else None,
+        grade=grade,
         work_format=rng.choice(list(WorkFormat)),
         city=rng.choice(_CITIES),
         salary_min=salary,
@@ -175,8 +200,8 @@ async def seed_market(session: AsyncSession, companies: int, vacancies_each: int
 
 
 def _vacancy(rng: random.Random, company_id: uuid.UUID) -> tuple[Vacancy, list[str]]:
-    title, title_skills = rng.choice(_TITLES)
-    grade = rng.choice(list(Grade))
+    title, specialization, title_skills = rng.choice(_TITLES)
+    grade = rng.choice(_GRADES)
     low_from, low_to = _GRADE_SALARY[grade]
     salary_min = rng.randrange(low_from, low_to, 10_000)
     vacancy = Vacancy(
@@ -185,6 +210,7 @@ def _vacancy(rng: random.Random, company_id: uuid.UUID) -> tuple[Vacancy, list[s
         title=title,
         description=rng.choice(_ABOUT),
         grade=grade,
+        specialization=specialization,
         work_format=rng.choice(list(WorkFormat)),
         city=rng.choice(_CITIES),
         salary_min=salary_min,

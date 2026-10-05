@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from app.models import Vacancy
 from app.services.matching.factors import (
     FACTORS,
+    STRENGTH_FACTORS,
     Candidate,
     Factor,
     FactorScore,
@@ -26,10 +27,18 @@ def match(
 ) -> MatchResult:
     """context — подготовленная вакансия: передаётся при оценке многих кандидатов подряд."""
     context = context or VacancyContext.of(vacancy)
-    scores = [factor.score(context, candidate) for factor in factors]
+    return _total([factor.score(context, candidate) for factor in factors])
+
+
+def strength(candidate: Candidate) -> MatchResult:
+    """Сила профиля без вакансии: ранжирование внутри категории (тест, ФСП, актуальность)."""
+    return _total([factor.score(None, candidate) for factor in STRENGTH_FACTORS])
+
+
+def _total(scores: list[FactorScore]) -> MatchResult:
     total_weight = sum(s.weight for s in scores)
     value = sum(s.weight * s.share for s in scores) / total_weight
     return MatchResult(round(value * 100), scores)
 
 
-__all__ = ["MatchResult", "VacancyContext", "match"]
+__all__ = ["MatchResult", "VacancyContext", "match", "strength"]

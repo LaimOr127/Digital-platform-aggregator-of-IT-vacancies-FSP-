@@ -27,7 +27,7 @@ from app.schemas.insights import (
 )
 from app.services.access import Action, Principal, policy
 from app.services.categorization import TIERS
-from app.services.matching.factors import GRADE_ORDER
+from app.services.specializations import GRADE_ORDER
 
 K_ANON = 5
 MIN_COMPANIES = 3
