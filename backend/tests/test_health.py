@@ -94,3 +94,13 @@ def test_integrity_error_becomes_409_without_sql_details():
 
     r = TestClient(app).get("/boom")
     assert r.status_code == 409 and "secret@" not in r.text
+
+
+def test_openapi_documents_error_responses(make_client):
+    """Каждый маршрут описывает коды ошибок единой схемой ErrorOut (ТЗ 3.5: «коды ошибок»)."""
+    spec = make_client().get("/api/openapi.json").json()
+    assert set(spec["components"]["schemas"]["ErrorOut"]["properties"]) == {"error"}
+    operation = spec["paths"]["/api/v1/employer/applications"]["post"]
+    for status in ("400", "401", "403", "404", "409", "422", "429"):
+        schema = operation["responses"][status]["content"]["application/json"]["schema"]
+        assert schema == {"$ref": "#/components/schemas/ErrorOut"}

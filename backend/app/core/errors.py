@@ -3,6 +3,7 @@
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 from sqlalchemy.exc import IntegrityError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
@@ -80,6 +81,33 @@ class RateLimitedError(AppError):
 
 class ServiceUnavailableError(AppError):
     status_code, code = 503, "service_unavailable"
+
+
+class ErrorBody(BaseModel):
+    code: str
+    message: str
+    details: list[dict] | None = None
+
+
+class ErrorOut(BaseModel):
+    """Ответ с ошибкой: code — машинный код, message — текст для пользователя."""
+
+    error: ErrorBody
+
+
+_ERROR_CODES = {
+    400: "Некорректный запрос (bad_request, invalid_link)",
+    401: "Нет сессии или она истекла (unauthorized, mfa_expired)",
+    403: "Нет прав на действие (forbidden, wrong_password, email_not_verified)",
+    404: "Объект не найден или недоступен этой роли (not_found)",
+    409: "Конфликт состояния (conflict, invalid_state)",
+    422: "Ошибка валидации полей (validation_error, details — по полям)",
+    429: "Превышен лимит запросов (rate_limited)",
+}
+# общий набор кодов ошибок для OpenAPI: подключается к корневому роутеру v1
+ERROR_RESPONSES: dict[int | str, dict] = {
+    status: {"model": ErrorOut, "description": text} for status, text in _ERROR_CODES.items()
+}
 
 
 def _body(code: str, message: str, details: object = None) -> dict:

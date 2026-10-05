@@ -21,8 +21,9 @@ from app.api.v1 import (
     profile_import,
     public,
 )
+from app.core.errors import ERROR_RESPONSES
 
-api_router = APIRouter(prefix="/api/v1")
+api_router = APIRouter(prefix="/api/v1", responses=ERROR_RESPONSES)
 for module in (
     health,
     auth,
