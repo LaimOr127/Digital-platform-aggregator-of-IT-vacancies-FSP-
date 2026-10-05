@@ -11,7 +11,7 @@ MODE  ?= dev
 COMPOSE_FILES = -f deploy/compose.base.yml $(foreach s,$(ALL),-f deploy/compose.$(s).yml) -f deploy/compose.$(MODE).yml
 DC = docker compose --env-file .env $(COMPOSE_FILES)
 
-.PHONY: env up down stop logs logs-dump ps build dev prod test test-backend test-fsp-mock test-frontend smoke check-db verify config secrets-check clean migrate create-admin reset-admin-2fa confirm-email check-dupes seed-demo load
+.PHONY: env up down stop logs logs-dump ps build dev prod test test-backend test-fsp-mock test-frontend smoke check-db verify config secrets-check clean migrate create-admin reset-admin-2fa confirm-email check-dupes seed-demo load evaluate
 
 env:            ## создать .env со случайными секретами
 	@./scripts/gen-env.sh
@@ -62,6 +62,10 @@ test-frontend:  ## тесты и сборка фронта в контейнер
 
 HTTP_PORT ?= $(or $(shell grep -s '^HTTP_PORT=' .env | cut -d= -f2),8088)
 MAIL_UI_PORT ?= $(or $(shell grep -s '^MAIL_UI_PORT=' .env | cut -d= -f2),8025)
+
+evaluate:       ## процедура оценки тестирования и подбора на синтетике (отчёт Markdown): make evaluate ARGS="--seed 7"
+	@docker build -q --target test -t itmatch/api:test backend >/dev/null
+	@docker run --rm itmatch/api:test python -m app.evaluation $(ARGS)
 
 smoke:          ## смоук-тест работающего стека
 	MAIL_URL=http://localhost:$(MAIL_UI_PORT) ./scripts/smoke.sh http://localhost:$(HTTP_PORT)

@@ -18,6 +18,9 @@ ignore = ["RUF001", "RUF002", "RUF003"]  # кириллица в строках/
 # длинные строки — тексты заданий, переносить их внутри фразы хуже для чтения
 "app/services/assessment/bank_*.py" = ["S311", "E501"]
 "app/services/assessment/{engine,service,preview}.py" = ["S311"]
+# процедура оценки: воспроизводимая синтетика по seed; строки отчёта — строки таблицы Markdown
+"app/evaluation/*.py" = ["S311"]
+"app/evaluation/__main__.py" = ["S311", "E501"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
