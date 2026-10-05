@@ -100,7 +100,7 @@ export function History({ history }: { history: AttemptResult[] }) {
                   {h.correct} из {h.total}
                 </span>
               )}
-              <Badge tone={h.result === "passed" ? "accent" : h.status === "expired" ? "neutral" : "warn"}>
+              <Badge tone={h.result === "passed" ? "success" : h.status === "expired" ? "neutral" : "warn"}>
                 {h.status === "expired" ? "Время вышло" : h.result === "passed" ? "Подтверждён" : "Не подтверждён"}
               </Badge>
             </div>

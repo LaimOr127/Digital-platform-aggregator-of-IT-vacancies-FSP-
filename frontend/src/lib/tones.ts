@@ -4,14 +4,14 @@ import type { Tone } from "../ui/Badge";
 
 export const vacancyTone: Record<VacancyStatus, Tone> = {
   draft: "neutral",
-  active: "accent",
+  active: "success",
   closed: "info",
   blocked: "danger",
 };
 
 export const offerTone: Record<OfferStatus, Tone> = {
   sent: "warn",
-  accepted: "accent",
+  accepted: "success",
   declined: "neutral",
   withdrawn: "neutral",
   expired: "neutral",
@@ -20,7 +20,7 @@ export const offerTone: Record<OfferStatus, Tone> = {
 export const applicationTone: Record<ApplicationStatus, Tone> = {
   sent: "warn",
   viewed: "info",
-  accepted: "accent",
+  accepted: "success",
   declined: "neutral",
   withdrawn: "neutral",
   expired: "neutral",
@@ -34,12 +34,12 @@ export const tierTone: Record<string, Tone> = {
 
 export const companyTone: Record<CompanyStatus, Tone> = {
   pending: "warn",
-  approved: "accent",
+  approved: "success",
   blocked: "danger",
 };
 
 export const searchTone: Record<SearchStatus, Tone> = {
-  active: "accent",
+  active: "success",
   open: "info",
   closed: "neutral",
 };
@@ -47,7 +47,7 @@ export const searchTone: Record<SearchStatus, Tone> = {
 export const interviewTone: Record<InterviewStatus, Tone> = {
   invited: "warn",
   scheduled: "info",
-  completed: "accent",
+  completed: "success",
   declined: "neutral",
   cancelled: "neutral",
   expired: "neutral",

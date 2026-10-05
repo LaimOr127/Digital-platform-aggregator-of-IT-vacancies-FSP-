@@ -136,7 +136,7 @@ function StatusCard({ profile }: { profile: Profile }) {
 function CatalogBadge({ profile }: { profile: Profile }) {
   if (profile.is_hidden) return <Badge tone="warn">Скрыт</Badge>;
   if (profile.search_status === "closed") return <Badge tone="neutral">Не в каталоге</Badge>;
-  return <Badge tone="accent">В каталоге</Badge>;
+  return <Badge tone="success">В каталоге</Badge>;
 }
 
 function FspPromoCard({ verified }: { verified: boolean }) {

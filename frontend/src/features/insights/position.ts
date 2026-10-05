@@ -19,6 +19,6 @@ export const positionLabel: Record<Position, string> = {
 
 export const positionTone: Record<Position, Tone> = {
   below: "info",
-  within: "accent",
+  within: "success",
   above: "warn",
 };

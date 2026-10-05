@@ -165,7 +165,7 @@ function LinkedAccount({ status }: { status: FspStatus }) {
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <CardTitle>Аккаунт ФСП {status.athlete_id}</CardTitle>
-            <Badge tone="accent">Привязан</Badge>
+            <Badge tone="success">Привязан</Badge>
           </div>
           <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
             <dt className="text-muted">Разряд</dt>

@@ -81,7 +81,7 @@ function InterviewCard({ interview, onDecline }: { interview: Interview; onDecli
         <div className="flex flex-wrap gap-2">
           <Badge tone={interviewTone[interview.status]}>{labels.interviewStatus[interview.status]}</Badge>
           {interview.result && (
-            <Badge tone={interview.result === "passed" ? "accent" : "neutral"}>{labels.interviewResult[interview.result]}</Badge>
+            <Badge tone={interview.result === "passed" ? "success" : "neutral"}>{labels.interviewResult[interview.result]}</Badge>
           )}
           {interview.offer_id && <Badge tone="accent">Есть оффер</Badge>}
         </div>

@@ -96,7 +96,7 @@ function InterviewRow({ interview, onCancel, onComplete, onOffer }: RowProps) {
         <div className="flex flex-wrap gap-2">
           <Badge tone={interviewTone[interview.status]}>{labels.interviewStatus[interview.status]}</Badge>
           {interview.result && (
-            <Badge tone={interview.result === "passed" ? "accent" : "danger"}>{labels.interviewResult[interview.result]}</Badge>
+            <Badge tone={interview.result === "passed" ? "success" : "danger"}>{labels.interviewResult[interview.result]}</Badge>
           )}
         </div>
       </div>

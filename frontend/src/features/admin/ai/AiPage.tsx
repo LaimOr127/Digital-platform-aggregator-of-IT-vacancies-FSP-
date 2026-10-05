@@ -85,7 +85,7 @@ function ProviderRow({ provider, onEdit, onDelete }: { provider: AiProvider; onE
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="font-semibold">{provider.name}</h3>
             <Badge tone="neutral">{KIND_LABELS[provider.kind]}</Badge>
-            {provider.is_active && <Badge tone="accent">Активна</Badge>}
+            {provider.is_active && <Badge tone="success">Активна</Badge>}
           </div>
           <p className="mt-1 break-all font-mono text-xs text-muted">
             {provider.model} · {provider.base_url}

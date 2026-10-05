@@ -1,21 +1,24 @@
 @import "tailwindcss";
 @import "@fontsource-variable/inter";
 
-/* Дизайн-токены: единственное место, где заданы цвета. Брендбук ФСП подменит значения здесь. */
+/* Дизайн-токены: единственное место, где заданы цвета. Палитра ФСП (из шаблона презентации):
+   глубокий фиолетовый фон, малиновый акцент, лавандовый для справочных статусов.
+   Оттенки высветлены для тёмной темы: контраст текста и бейджей не ниже 4.5:1. */
 :root {
   color-scheme: dark;
-  --bg: #0b0d10;
-  --surface: #12151a;
-  --surface-2: #181c22;
-  --border: #242a33;
-  --text: #e8eaed;
-  --muted: #9aa3ae;
-  --accent: #3ddc97;
-  --accent-strong: #5ee8ad;
-  --on-accent: #04140d;
-  --warn: #f5b544;
-  --danger: #f87171;
-  --info: #7db4ff;
+  --bg: #120b1e;
+  --surface: #1a1129;
+  --surface-2: #221735;
+  --border: #35264f;
+  --text: #f2eef8;
+  --muted: #aba2c4;
+  --accent: #ff3d7f;
+  --accent-strong: #ff6b9b;
+  --on-accent: #1a0010;
+  --success: #3ddc97;
+  --warn: #f5c044;
+  --danger: #ff7a52;
+  --info: #a9a3ee;
 }
 
 @theme inline {
@@ -28,6 +31,7 @@
   --color-accent: var(--accent);
   --color-accent-strong: var(--accent-strong);
   --color-on-accent: var(--on-accent);
+  --color-success: var(--success);
   --color-warn: var(--warn);
   --color-danger: var(--danger);
   --color-info: var(--info);
@@ -61,7 +65,8 @@ body {
     --border: #d5d9df;
     --text: #111418;
     --muted: #4b5563;
-    --accent: #0f7a4a;
+    --accent: #c2004a;
+    --success: #0f7a4a;
   }
   .no-print {
     display: none !important;

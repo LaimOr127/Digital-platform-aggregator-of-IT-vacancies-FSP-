@@ -75,7 +75,7 @@ function PassportView({ passport }: { passport: PassportVerify }) {
             </p>
           )}
           <div className="mt-4 flex flex-wrap gap-2">
-            <Badge tone={verified ? "accent" : "neutral"}>{labels.tier[p.verification_tier]}</Badge>
+            <Badge tone={verified ? "success" : "neutral"}>{labels.tier[p.verification_tier]}</Badge>
             {p.fsp.rank && <Badge tone="info">Разряд: {p.fsp.rank}</Badge>}
             {p.fsp.athlete_id && <Badge>ФСП {p.fsp.athlete_id}</Badge>}
           </div>
