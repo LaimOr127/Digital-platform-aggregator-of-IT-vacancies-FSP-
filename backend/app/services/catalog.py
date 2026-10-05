@@ -148,6 +148,14 @@ class CatalogService:
         return card
 
 
+async def cards_by_profile(
+    catalog: CatalogRepository, profile_ids: list[uuid.UUID]
+) -> dict[uuid.UUID, CandidateCardOut]:
+    """Анонимные карточки по id профилей; скрытых кандидатом профилей в словаре нет."""
+    profiles = await catalog.by_ids(list(set(profile_ids)))
+    return dict(zip([p.id for p in profiles], await build_cards(catalog, profiles), strict=True))
+
+
 async def build_cards(
     catalog: CatalogRepository, profiles: list[CandidateProfile]
 ) -> list[CandidateCardOut]:

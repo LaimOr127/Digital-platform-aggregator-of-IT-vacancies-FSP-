@@ -2,30 +2,19 @@
 
 import uuid
 from datetime import datetime
-from typing import Any
 
-from sqlalchemy import ColumnElement, Select, and_, or_, update
+from sqlalchemy import ColumnElement, and_, or_, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import Application
 from app.models.enums import ApplicationDirection, ApplicationStatus
-from app.repositories.base import BaseRepository
+from app.repositories.base import OwnedRepository
 
 OPEN = (ApplicationStatus.SENT, ApplicationStatus.VIEWED)
 
 
-class _ScopedRepository(BaseRepository[Application]):
-    """Тенант задаёт колонка-владелец: компания или профиль кандидата."""
-
+class _ScopedRepository(OwnedRepository[Application]):
     model = Application
-    column: Any  # атрибут модели: читается через класс, иначе сработает как дескриптор ORM
-
-    def __init__(self, session: AsyncSession, owner_id: uuid.UUID) -> None:
-        super().__init__(session)
-        self.owner_id = owner_id
-
-    def _scope(self, stmt: Select[Any]) -> Select[Any]:
-        return stmt.where(type(self).column == self.owner_id)
 
     async def mark_viewed(
         self, direction: ApplicationDirection, ids: list[uuid.UUID], now: datetime

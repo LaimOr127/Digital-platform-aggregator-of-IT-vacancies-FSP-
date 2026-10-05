@@ -106,3 +106,16 @@ class BaseRepository[ModelT: Base]:
     async def delete(self, obj: ModelT) -> None:
         await self.session.delete(obj)
         await self.session.flush()
+
+
+class OwnedRepository[ModelT: Base](BaseRepository[ModelT]):
+    """Тенант задаёт колонка-владелец (компания или профиль кандидата): чужих строк нет."""
+
+    column: Any  # атрибут модели: читается через класс, иначе сработает как дескриптор ORM
+
+    def __init__(self, session: AsyncSession, owner_id: uuid.UUID) -> None:
+        super().__init__(session)
+        self.owner_id = owner_id
+
+    def _scope(self, stmt: Select[Any]) -> Select[Any]:
+        return stmt.where(type(self).column == self.owner_id)

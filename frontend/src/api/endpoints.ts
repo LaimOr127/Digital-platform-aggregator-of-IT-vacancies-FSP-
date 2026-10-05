@@ -16,6 +16,11 @@ import type {
   BoardVacancy,
   CompanyUpdate,
   EmployerApplication,
+  EmployerTask,
+  CurrentTask,
+  MyTaskAnswer,
+  TaskAnswer,
+  TaskInput,
   InvitationInput,
   AttemptResult,
   Dictionaries,
@@ -235,6 +240,26 @@ export const myApplicationsApi = {
     api<Page<BoardVacancy>>("GET", "/candidate/vacancies", { query: { ...filters, cursor, limit: 20 } }),
   respond: (vacancyId: string, message: string) =>
     api<Application>("POST", interviewUrl("/candidate/vacancies", vacancyId, "/respond"), { body: { message } }),
+};
+
+export const tasksApi = {
+  create: (body: TaskInput) => api<EmployerTask>("POST", "/employer/tasks", { body }),
+  list: (cursor: string | undefined) => api<Page<EmployerTask>>("GET", "/employer/tasks", { query: { cursor, limit: 20 } }),
+  close: (id: string) => api<EmployerTask>("POST", interviewUrl("/employer/tasks", id, "/close")),
+  answers: (id: string, cursor: string | undefined) =>
+    api<Page<TaskAnswer>>("GET", interviewUrl("/employer/tasks", id, "/answers"), { query: { cursor, limit: 20 } }),
+  rate: (taskId: string, answerId: string, rating: number) =>
+    api<TaskAnswer>("POST", interviewUrl("/employer/tasks", taskId, `/answers/${encodeURIComponent(answerId)}/rate`), {
+      body: { rating },
+    }),
+};
+
+export const myTasksApi = {
+  current: () => api<CurrentTask>("GET", "/candidate/tasks/current"),
+  answer: (taskId: string, answer: string) =>
+    api<MyTaskAnswer>("POST", interviewUrl("/candidate/tasks", taskId, "/answers"), { body: { answer } }),
+  answers: (cursor: string | undefined) =>
+    api<Page<MyTaskAnswer>>("GET", "/candidate/tasks/answers", { query: { cursor, limit: 20 } }),
 };
 
 export const interviewsApi = {

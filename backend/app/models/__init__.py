@@ -13,6 +13,7 @@ from app.models.interview import Interview
 from app.models.notify import EmailToken, OutboxMessage
 from app.models.offer import ContactReveal, Offer
 from app.models.passport import Passport
+from app.models.task import EmployerTask, TaskAnswer
 from app.models.user import RefreshToken, User
 from app.models.vacancy import Vacancy, vacancy_skills
 
@@ -28,6 +29,7 @@ __all__ = [
     "ContactReveal",
     "EmailToken",
     "EmployerCompany",
+    "EmployerTask",
     "FspAchievement",
     "FspLink",
     "FspVerification",
@@ -37,6 +39,7 @@ __all__ = [
     "Passport",
     "RefreshToken",
     "Skill",
+    "TaskAnswer",
     "User",
     "Vacancy",
     "candidate_categories",

@@ -20,6 +20,7 @@ from app.api.v1 import (
     insights,
     profile_import,
     public,
+    tasks,
 )
 from app.core.errors import ERROR_RESPONSES
 
@@ -38,6 +39,7 @@ for module in (
     employer,
     employer_interviews,
     catalog,
+    tasks,
     insights,
     admin,
     admin_ai,

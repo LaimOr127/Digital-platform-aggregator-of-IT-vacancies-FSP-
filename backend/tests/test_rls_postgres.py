@@ -272,3 +272,38 @@ async def test_applications_and_attempts_visible_only_to_parties(client: AsyncCl
     assert await _scalar(db, candidate_id, "candidate", attempts) == 1
     assert await _scalar(db, other_id, "candidate", attempts) == 0
     assert await _scalar(db, employer_id, "employer", attempts) == 0  # ответы не видит никто
+
+
+async def test_tasks_and_answers_visible_only_to_parties(client: AsyncClient, db, app):
+    """Активную задачу видят кандидаты, закрытую — только компания; ответ — автор и компания."""
+    from tests.assessment_flow import survey
+    from tests.flows import approved_employer
+
+    owner = await approved_employer(client, db, app, name="Компания A")
+    await approved_employer(client, db, app, name="Компания B")
+    body = {"title": "Задача", "body": "Как ускорить ленту?", "specialization": "backend"}
+    tasks = "/api/v1/employer/tasks"
+    first = (await client.post(tasks, json=body, headers=bearer(owner["token"]))).json()
+    closed = (await client.post(tasks, json=body, headers=bearer(owner["token"]))).json()
+    await client.post(f"{tasks}/{closed['id']}/close", headers=bearer(owner["token"]))
+    author = await register_candidate(client)
+    await register_candidate(client)
+    await survey(client, author)
+    r = await client.post(
+        f"/api/v1/candidate/tasks/{first['id']}/answers",
+        json={"answer": "Индекс по user_id и курсорная пагинация вместо OFFSET."},
+        headers=bearer(author),
+    )
+    assert r.status_code == 201, r.text
+
+    owner_id, rival_id = await _user_ids(db, "employer")
+    author_id, other_id = await _user_ids(db, "candidate")
+    task_sql = "SELECT count(*) FROM employer_tasks"
+    assert await _scalar(db, owner_id, "employer", task_sql) == 2
+    assert await _scalar(db, other_id, "candidate", task_sql) == 1  # закрытая не видна
+    assert await _scalar(db, rival_id, "employer", task_sql) == 0
+    answers = "SELECT count(*) FROM task_answers"
+    assert await _scalar(db, author_id, "candidate", answers) == 1
+    assert await _scalar(db, owner_id, "employer", answers) == 1
+    assert await _scalar(db, other_id, "candidate", answers) == 0
+    assert await _scalar(db, rival_id, "employer", answers) == 0

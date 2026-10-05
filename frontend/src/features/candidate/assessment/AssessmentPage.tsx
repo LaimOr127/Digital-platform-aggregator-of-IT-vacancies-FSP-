@@ -16,6 +16,7 @@ import { CategoryCard, GradeOptions, History } from "./Overview";
 import { ResultCard } from "./ResultCard";
 import { SurveyForm } from "./SurveyForm";
 import { TestRunner } from "./TestRunner";
+import { WeeklyTask } from "../tasks/WeeklyTask";
 
 export function AssessmentPage() {
   const state = useAssessment();
@@ -65,6 +66,7 @@ export function AssessmentPage() {
               </Card>
             )}
             {data.survey && !editing && <GradeOptions state={data} starting={starting} onStart={onStart} />}
+            {data.survey && !editing && <WeeklyTask />}
             <History history={data.history} />
           </div>
           <aside className="flex flex-col gap-4 lg:sticky lg:top-32">

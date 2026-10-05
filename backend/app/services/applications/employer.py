@@ -36,7 +36,7 @@ from app.services.applications.common import (
     notify,
     read_contacts,
 )
-from app.services.catalog import build_cards
+from app.services.catalog import cards_by_profile
 
 
 class EmployerApplicationService:
@@ -189,10 +189,7 @@ class EmployerApplicationService:
         return application
 
     async def _outs(self, applications: list[Application]) -> list[EmployerApplicationOut]:
-        profiles = await self.catalog.by_ids(list({a.profile_id for a in applications}))
-        cards = dict(
-            zip([p.id for p in profiles], await build_cards(self.catalog, profiles), strict=True)
-        )
+        cards = await cards_by_profile(self.catalog, [a.profile_id for a in applications])
         return [
             EmployerApplicationOut(
                 **base_fields(a),

@@ -34,4 +34,10 @@ describe("Segmented", () => {
     expect(screen.getByRole("radio", { name: "Первый" })).toHaveAttribute("aria-checked", "true");
     expect(screen.getAllByRole("radio").filter((r) => r.tabIndex === 0)).toHaveLength(1);
   });
+
+  it("marks nothing when the value is not among the options", () => {
+    render(<Segmented label="Оценка" value="" options={[{ value: "1", label: "1" }, { value: "2", label: "2" }]} onChange={() => undefined} />);
+    expect(screen.getAllByRole("radio").filter((r) => r.getAttribute("aria-checked") === "true")).toHaveLength(0);
+    expect(screen.getByRole("radio", { name: "1" })).toHaveAttribute("tabindex", "0");
+  });
 });

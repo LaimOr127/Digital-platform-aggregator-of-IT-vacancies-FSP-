@@ -11,12 +11,14 @@ import { CompanyPage } from "./CompanyPage";
 import { useCompany } from "./hooks";
 import { InterviewsPage } from "./interviews/InterviewsPage";
 import { EmployerOffersPage } from "./offers/EmployerOffersPage";
+import { TasksPage } from "./tasks/TasksPage";
 import { VacanciesPage } from "./VacanciesPage";
 
 const NAV = [
   { to: "/company", label: "Вакансии", end: true },
   { to: "/company/catalog", label: "Каталог кандидатов" },
   { to: "/company/applications", label: "Приглашения и отклики" },
+  { to: "/company/tasks", label: "Задачи" },
   { to: "/company/interviews", label: "Собеседования" },
   { to: "/company/offers", label: "Офферы" },
   { to: "/company/profile", label: "Компания" },
@@ -31,6 +33,7 @@ export default function EmployerPortal() {
         <Route index element={<VacanciesPage />} />
         <Route path="catalog" element={<CatalogPage company={company.data} />} />
         <Route path="applications" element={<ApplicationsPage />} />
+        <Route path="tasks" element={<TasksPage company={company.data} />} />
         <Route path="interviews" element={<InterviewsPage />} />
         <Route path="profile" element={<CompanyPage />} />
         <Route path="offers" element={<EmployerOffersPage />} />

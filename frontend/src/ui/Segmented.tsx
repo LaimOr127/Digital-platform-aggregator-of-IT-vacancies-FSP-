@@ -18,7 +18,9 @@ export function Segmented<T extends string>({
   onChange: (value: T) => void;
 }) {
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
-  const current = Math.max(0, options.findIndex((o) => o.value === value));
+  const selected = options.findIndex((o) => o.value === value);
+  // без выбранного значения ничего не отмечено, а Tab попадает на первый вариант
+  const current = Math.max(0, selected);
 
   const select = (index: number) => {
     const next = (index + options.length) % options.length;
@@ -49,12 +51,12 @@ export function Segmented<T extends string>({
           }}
           type="button"
           role="radio"
-          aria-checked={i === current}
+          aria-checked={i === selected}
           tabIndex={i === current ? 0 : -1}
           onClick={() => onChange(o.value)}
           className={cn(
             "rounded-lg px-3 py-1.5 text-sm transition-colors",
-            i === current ? "bg-surface-2 text-fg shadow-sm" : "text-muted hover:text-fg",
+            i === selected ? "bg-surface-2 text-fg shadow-sm" : "text-muted hover:text-fg",
           )}
         >
           {o.label}

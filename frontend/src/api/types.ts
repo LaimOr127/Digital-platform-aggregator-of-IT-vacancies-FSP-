@@ -127,3 +127,9 @@ export type BoardFilters = {
   skill?: string;
   q?: string;
 };
+export type EmployerTask = Schemas["TaskOut"];
+export type TaskInput = Schemas["TaskIn"];
+export type CurrentTask = Schemas["CurrentTaskOut"];
+export type TaskAnswer = Schemas["TaskAnswerOut"];
+export type MyTaskAnswer = Schemas["MyTaskAnswerOut"];
+export type OfferedTask = Schemas["OfferedTaskOut"];
