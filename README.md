@@ -21,6 +21,7 @@
 
 ```bash
 make env
+make fix-net
 make dev
 make verify
 make test

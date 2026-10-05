@@ -16,6 +16,10 @@ DC = docker compose --env-file .env $(COMPOSE_FILES)
 env:            ## создать .env со случайными секретами
 	@./scripts/gen-env.sh
 
+fix-net:
+	sudo iptables-legacy -P FORWARD ACCEPT
+	@echo "FORWARD policy set to ACCEPT"
+
 up: env check-dupes  ## поднять сервисы S
 	$(DC) up -d --build $(S)
 	@# Caddyfile смонтирован в контейнер: перезапуск подхватывает его изменения (admin API выключен)
