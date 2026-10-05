@@ -8,6 +8,8 @@ paths = [
   '''frontend/src/features/auth/schemas\.test\.ts''',
 ]
 # тестовый пароль-заглушка в test_outbox.py (заменён на сгенерированный в следующем коммите)
+# тестовый пароль-заглушка в test_validation_messages.py (заменён на tests.helpers.PASSWORD)
 commits = [
   "8ac1051ea8b4581916cc3d8a4a06aa37dd8eef56",
+  "46a00382c909c1fe98cb084cd72bc66a7856b1d8",
 ]

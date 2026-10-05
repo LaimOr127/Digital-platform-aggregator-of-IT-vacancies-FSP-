@@ -3,6 +3,7 @@
 import pytest
 
 from app.core.validation import humanize
+from tests.helpers import PASSWORD
 
 
 @pytest.mark.parametrize(
@@ -40,7 +41,7 @@ async def test_api_returns_russian_field_errors(client):
 
 
 async def test_registration_requires_consent(client):
-    body = {"email": "anna@example.org", "password": "Str0ng-pass-ok", "full_name": "Анна"}
+    body = {"email": "anna@example.org", "password": PASSWORD, "full_name": "Анна"}
     for consent in (False, None):
         payload = {**body, **({} if consent is None else {"consent": consent})}
         r = await client.post("/api/v1/auth/register/candidate", json=payload)
