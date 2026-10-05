@@ -100,6 +100,16 @@ describe("AssessmentPage", () => {
     expect(screen.getByRole("button", { name: "Начать тест на грейд Junior" })).toBeEnabled();
   });
 
+  it("shows industry, specialization and grade of the survey", async () => {
+    serveRoutes({
+      "/candidate/assessment": () => json({ ...base, survey: { ...survey, industries: ["fintech"] } }),
+      "/public/dictionaries": () => json(dictionaries),
+    });
+    renderWithApp(<AssessmentPage />);
+    expect(await screen.findByText("Отрасли: Финтех и банки")).toBeInTheDocument();
+    expect(screen.getByText(/Опрос пройден 5 окт/)).toBeInTheDocument();
+  });
+
   it("runs the test without answers in the browser and shows the result", async () => {
     let current: object = { ...base, survey, active: attempt };
     const fetchMock = serveRoutes({

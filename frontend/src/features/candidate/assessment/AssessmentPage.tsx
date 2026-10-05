@@ -3,8 +3,9 @@ import { Pencil } from "lucide-react";
 import { useState } from "react";
 import type { AttemptResult, Grade } from "../../../api/types";
 import { errorMessage } from "../../../api/errors";
+import { useDictionaries } from "../../../api/queries";
 import { cn } from "../../../lib/cn";
-import { labels } from "../../../lib/format";
+import { formatDate, labels } from "../../../lib/format";
 import { Alert } from "../../../ui/Alert";
 import { PageHeader } from "../../../ui/AppShell";
 import { Button } from "../../../ui/Button";
@@ -25,6 +26,9 @@ export function AssessmentPage() {
   const [result, setResult] = useState<AttemptResult | null>(null);
   const [editing, setEditing] = useState(false);
   const [starting, setStarting] = useState<Grade | null>(null);
+  const industries = useDictionaries().data?.industries ?? [];
+  const industryNames = (keys: string[]) =>
+    keys.map((key) => industries.find((o) => o.value === key)?.label ?? key).join(", ");
 
   const onStart = async (grade: Grade) => {
     setStarting(grade);
@@ -81,6 +85,10 @@ export function AssessmentPage() {
                       Заявлен грейд {data.survey.grade ? labels.grade[data.survey.grade] : "—"} · стаж{" "}
                       {data.survey.experience_years ?? 0} лет
                     </p>
+                    {data.survey.industries.length > 0 && (
+                      <p className="mt-1 text-sm text-muted">Отрасли: {industryNames(data.survey.industries)}</p>
+                    )}
+                    <p className="mt-1 text-xs text-muted">Опрос пройден {formatDate(data.survey.answered_at)}</p>
                   </div>
                   <Button variant="ghost" size="sm" onClick={() => setEditing(true)} aria-label="Изменить ответы опроса">
                     <Pencil className="size-3.5" aria-hidden />
