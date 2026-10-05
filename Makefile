@@ -105,7 +105,7 @@ confirm-email:  ## письмо не дошло (стенд без SMTP): make c
 	$(DC) exec api python -m app.cli confirm-email --email "$(EMAIL)"
 
 secrets-check:  ## поиск утёкших секретов в файлах и истории git
-	docker run --rm -v "$$PWD:/repo" zricethezav/gitleaks:latest git /repo --no-banner
+	./scripts/secrets-check.sh
 
 clean:          ## ОСТОРОЖНО: удаляет контейнеры и тома (данные БД)
 	$(DC) down -v
