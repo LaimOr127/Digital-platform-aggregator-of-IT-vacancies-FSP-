@@ -20,6 +20,8 @@ const profile: Profile = {
   verification_tier: "self_declared",
   is_hidden: false,
   search_status: "open",
+  industries: [],
+  roles: [],
   skills: [{ slug: "python", name: "Python" }],
 };
 const skills = [

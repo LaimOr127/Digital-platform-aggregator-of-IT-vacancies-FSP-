@@ -11,6 +11,7 @@ import { Dialog } from "../../ui/Dialog";
 import { Segmented } from "../../ui/Segmented";
 import { useAction } from "../../ui/useAction";
 import { useCompany, useDeleteVacancy, useVacancies } from "./hooks";
+import { TestPreviewDialog } from "./TestPreviewDialog";
 import { VacancyCard } from "./VacancyCard";
 import { VacancyForm } from "./VacancyForm";
 
@@ -32,6 +33,7 @@ export function VacanciesPage() {
   const [filter, setFilter] = useState<Filter>("all");
   const [editing, setEditing] = useState<Editing>(null);
   const [deleting, setDeleting] = useState<Vacancy | null>(null);
+  const [previewing, setPreviewing] = useState<Vacancy | null>(null);
   const blocked = company.data?.status === "blocked";
   const loadError = company.error ?? skills.error;
 
@@ -57,6 +59,7 @@ export function VacanciesPage() {
         onCreate={blocked ? undefined : () => setEditing({ vacancy: null })}
         onEdit={(vacancy) => setEditing({ vacancy })}
         onDelete={setDeleting}
+        onPreview={setPreviewing}
       />
 
       <Dialog
@@ -70,6 +73,7 @@ export function VacanciesPage() {
         )}
       </Dialog>
       <DeleteDialog key={deleting?.id ?? "none"} vacancy={deleting} onClose={() => setDeleting(null)} />
+      <TestPreviewDialog key={previewing?.id ?? "none"} vacancy={previewing} onClose={() => setPreviewing(null)} />
     </>
   );
 }
@@ -80,9 +84,10 @@ type ListProps = {
   onCreate?: () => void;
   onEdit: (v: Vacancy) => void;
   onDelete: (v: Vacancy) => void;
+  onPreview: (v: Vacancy) => void;
 };
 
-function VacancyList({ status, canPublish, onCreate, onEdit, onDelete }: ListProps) {
+function VacancyList({ status, canPublish, onCreate, ...actions }: ListProps) {
   const query = useVacancies(status);
   return (
     <CursorListView
@@ -94,7 +99,7 @@ function VacancyList({ status, canPublish, onCreate, onEdit, onDelete }: ListPro
         action: onCreate && <Button onClick={onCreate}>Создать вакансию</Button>,
       }}
     >
-      {(v) => <VacancyCard key={v.id} vacancy={v} canPublish={canPublish} onEdit={onEdit} onDelete={onDelete} />}
+      {(v) => <VacancyCard key={v.id} vacancy={v} canPublish={canPublish} {...actions} />}
     </CursorListView>
   );
 }

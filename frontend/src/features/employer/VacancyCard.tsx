@@ -1,4 +1,4 @@
-import { CalendarClock, MapPin, Pencil, Send, Trash2, XCircle } from "lucide-react";
+import { CalendarClock, ClipboardList, MapPin, Pencil, Send, Trash2, XCircle } from "lucide-react";
 import { motion } from "motion/react";
 import type { Vacancy } from "../../api/types";
 import { daysLeft, formatSalaryRange, labels } from "../../lib/format";
@@ -13,9 +13,10 @@ type Props = {
   canPublish: boolean;
   onEdit: (v: Vacancy) => void;
   onDelete: (v: Vacancy) => void;
+  onPreview: (v: Vacancy) => void;
 };
 
-export function VacancyCard({ vacancy: v, canPublish, onEdit, onDelete }: Props) {
+export function VacancyCard({ vacancy: v, canPublish, onEdit, onDelete, onPreview }: Props) {
   const run = useAction();
   const publish = usePublishVacancy();
   const close = useCloseVacancy();
@@ -33,6 +34,7 @@ export function VacancyCard({ vacancy: v, canPublish, onEdit, onDelete }: Props)
         <div className="min-w-0">
           <h3 className="truncate text-lg font-semibold">{v.title}</h3>
           <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
+            {v.specialization && <span>{labels.specialization[v.specialization]}</span>}
             <span>{labels.grade[v.grade]}</span>
             <span>{labels.workFormat[v.work_format]}</span>
             {v.city && (
@@ -67,6 +69,12 @@ export function VacancyCard({ vacancy: v, canPublish, onEdit, onDelete }: Props)
         )}
         {v.status === "blocked" && <span className="mr-auto text-sm text-danger">Заблокирована модератором</span>}
         <div className="ml-auto flex flex-wrap gap-2">
+          {v.specialization && (
+            <Button variant="ghost" size="sm" onClick={() => onPreview(v)}>
+              <ClipboardList className="size-3.5" aria-hidden />
+              Пример теста
+            </Button>
+          )}
           {editable && (
             <Button variant="secondary" size="sm" onClick={() => onEdit(v)}>
               <Pencil className="size-3.5" aria-hidden />

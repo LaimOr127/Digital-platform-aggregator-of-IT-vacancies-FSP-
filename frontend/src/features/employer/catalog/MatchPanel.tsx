@@ -5,15 +5,26 @@ import { cn } from "../../../lib/cn";
 import { matchTone } from "../../../lib/tones";
 import { Badge } from "../../../ui/Badge";
 
-/** Процент соответствия вакансии и вклад каждого фактора (по кнопке «Почему»). */
-export function MatchPanel({ match }: { match: Match }) {
+const TITLES = { match: "соответствия", strength: "сила профиля" } as const;
+
+/** Оценка с объяснением: соответствие вакансии (%) или сила профиля в категории (баллы),
+ * вклад каждого фактора — по кнопке «Почему». */
+export function MatchPanel({ match, kind = "match" }: { match: Match; kind?: keyof typeof TITLES }) {
   const [open, setOpen] = useState(false);
   const listId = useId();
   return (
     <div className="rounded-xl border border-line bg-surface-2/40 p-3">
       <div className="flex items-center justify-between gap-3">
         <Badge tone={matchTone(match.score)}>
-          <span className="tabular">{match.score}%</span>&nbsp;соответствия
+          {kind === "match" ? (
+            <>
+              <span className="tabular">{match.score}%</span>&nbsp;{TITLES.match}
+            </>
+          ) : (
+            <>
+              {TITLES.strength}:&nbsp;<span className="tabular">{match.score}</span>
+            </>
+          )}
         </Badge>
         <button
           type="button"

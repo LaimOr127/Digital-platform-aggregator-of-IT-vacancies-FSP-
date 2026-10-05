@@ -39,6 +39,7 @@ export type AdminUser = Schemas["AdminUserOut"];
 export type AuditEntry = Schemas["AuditEntryOut"];
 export type ModerationAction = Schemas["ModerationIn"]["action"];
 export type CatalogCategory = Schemas["CatalogCategoryOut"];
+export type FspCategory = Schemas["FspCategoryOut"];
 export type CandidateCard = Schemas["CandidateCardOut"];
 export type OfferCreate = Schemas["OfferCreateIn"];
 export type Offer = Schemas["OfferOut"];
@@ -46,11 +47,17 @@ export type EmployerOffer = Schemas["EmployerOfferOut"];
 export type OfferStatus = Schemas["OfferStatus"];
 export type OfferContacts = Schemas["OfferContactsOut"];
 export type CatalogFilters = {
+  /** категория «специализация:грейд», например backend:middle */
   category?: string;
+  specialization?: Specialization;
   grade?: Grade;
   work_format?: WorkFormat;
-  skill?: string;
+  /** все выбранные навыки */
+  skill?: string[];
   search_status?: SearchStatus;
+  confirmed_only?: boolean;
+  fsp_only?: boolean;
+  fsp_category?: string;
   /** сортировать по соответствию этой вакансии */
   vacancy_id?: string;
 };
@@ -96,3 +103,13 @@ export type SalaryRadar = Schemas["SalaryRadarOut"];
 export type GradeSalary = Schemas["GradeSalaryOut"];
 export type Growth = Schemas["GrowthOut"];
 export type SkillShare = Schemas["SkillShareOut"];
+export type Specialization = Schemas["Specialization"];
+export type Dictionaries = Schemas["DictionariesOut"];
+export type SurveyInput = Schemas["SurveyIn"];
+export type AssessmentState = Schemas["AssessmentStateOut"];
+export type AssignedCategory = Schemas["AssignedCategoryOut"];
+export type GradeOption = Schemas["GradeOptionOut"];
+export type Attempt = Schemas["AttemptOut"];
+export type AttemptResult = Schemas["AttemptResultOut"];
+export type Question = Schemas["QuestionOut"];
+export type PreviewQuestion = Schemas["PreviewQuestionOut"];

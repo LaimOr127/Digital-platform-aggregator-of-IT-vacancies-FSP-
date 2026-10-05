@@ -11,7 +11,7 @@ import { useCreateVacancy, useUpdateVacancy } from "./hooks";
 import { MarketHint } from "./MarketHint";
 import { emptyVacancy, vacancySchema, vacancyToForm, type VacancyFormInput, type VacancyFormOutput } from "./schemas";
 
-const FIELDS = ["title", "description", "grade", "work_format", "city", "salary_min", "salary_max", "skills"];
+const FIELDS = ["title", "description", "specialization", "grade", "work_format", "city", "salary_min", "salary_max", "skills"];
 
 type Props = { vacancy: Vacancy | null; skills: Skill[]; onDone: () => void };
 
@@ -43,10 +43,13 @@ export function VacancyForm({ vacancy, skills, onDone }: Props) {
       <Field label="Название" error={errors.title?.message} className="sm:col-span-2">
         <Input placeholder="Backend-разработчик (Python)" {...register("title")} />
       </Field>
+      <Field label="Специализация" error={errors.specialization?.message} hint="По ней и грейду строится подборка кандидатов">
+        <Select options={options(labels.specialization)} {...register("specialization")} />
+      </Field>
       <Field label="Грейд" error={errors.grade?.message}>
         <Select options={options(labels.grade)} {...register("grade")} />
       </Field>
-      <Field label="Формат работы" error={errors.work_format?.message}>
+      <Field label="Формат работы" error={errors.work_format?.message} className="sm:col-span-2">
         <Select options={options(labels.workFormat)} {...register("work_format")} />
       </Field>
       <Field label="Зарплата от, ₽" error={errors.salary_min?.message} hint="Вилка обязательна">

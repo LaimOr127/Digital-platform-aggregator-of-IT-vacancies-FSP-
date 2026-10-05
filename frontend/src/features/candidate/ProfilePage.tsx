@@ -10,6 +10,7 @@ import { searchTone } from "../../lib/tones";
 import { Alert } from "../../ui/Alert";
 import { PageHeader } from "../../ui/AppShell";
 import { Badge } from "../../ui/Badge";
+import { buttonClasses } from "../../ui/Button";
 import { Card, CardTitle } from "../../ui/Card";
 import { LoadingBlock } from "../../ui/Spinner";
 import { CHECKS, completeness } from "./completeness";
@@ -37,6 +38,7 @@ export function ProfilePage() {
       />
       {error && <Alert>{errorMessage(error)}</Alert>}
       {!error && (!profile.data || !skills.data) && <LoadingBlock />}
+      {profile.data && !profile.data.confirmed_grade && <OnboardingCard surveyed={Boolean(profile.data.specialization)} />}
       {profile.data && skills.data && (
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
           <ProfileForm
@@ -53,6 +55,24 @@ export function ProfilePage() {
         </div>
       )}
     </>
+  );
+}
+
+/** Главный шаг: без категории кандидат не попадает в выдачу работодателей. */
+function OnboardingCard({ surveyed }: { surveyed: boolean }) {
+  return (
+    <Card className="mb-6 flex flex-wrap items-center justify-between gap-4 border-accent/40 bg-accent/5">
+      <div className="max-w-2xl">
+        <CardTitle>{surveyed ? "Подтвердите грейд тестом" : "Пройдите опрос и тест"}</CardTitle>
+        <p className="mt-1 text-sm text-muted">
+          Работодатели ищут кандидатов по категориям: специализация и грейд, подтверждённый тестом. Это 25 минут —
+          и вы в выдаче.
+        </p>
+      </div>
+      <Link to="/app/assessment" className={buttonClasses("primary", "md")}>
+        {surveyed ? "К тесту" : "Начать"}
+      </Link>
+    </Card>
   );
 }
 

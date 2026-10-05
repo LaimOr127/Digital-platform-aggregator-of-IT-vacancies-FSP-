@@ -7,6 +7,13 @@ import type {
   AiTest,
   Growth,
   SalaryRadar,
+  AssessmentState,
+  Attempt,
+  AttemptResult,
+  Dictionaries,
+  FspCategory,
+  PreviewQuestion,
+  SurveyInput,
   EmployerInterview,
   Interview,
   InterviewInvite,
@@ -73,6 +80,7 @@ export const authApi = {
 
 export const publicApi = {
   skills: () => api<Skill[]>("GET", "/public/skills"),
+  dictionaries: () => api<Dictionaries>("GET", "/public/dictionaries"),
   passport: (id: string) => api<PassportVerify>("GET", `/public/passport/${encodeURIComponent(id)}`),
 };
 
@@ -116,10 +124,24 @@ export const employerApi = {
   publishVacancy: (id: string) => api<Vacancy>("POST", vacancyUrl(id, "/publish")),
   closeVacancy: (id: string) => api<Vacancy>("POST", vacancyUrl(id, "/close")),
   deleteVacancy: (id: string) => api<void>("DELETE", vacancyUrl(id)),
+  /** пример теста, который система соберёт под вакансию (с ответами) */
+  assessmentPreview: (id: string) => api<PreviewQuestion[]>("GET", vacancyUrl(id, "/assessment-preview")),
+};
+
+export const assessmentApi = {
+  state: () => api<AssessmentState>("GET", "/candidate/assessment"),
+  saveSurvey: (body: SurveyInput) => api<AssessmentState>("PUT", "/candidate/assessment/survey", { body }),
+  start: (grade: Grade) => api<Attempt>("POST", "/candidate/assessment/attempts", { body: { grade } }),
+  /** ответы по порядку: номер варианта или число; null — без ответа */
+  submit: (id: string, responses: (string | null)[]) =>
+    api<AttemptResult>("POST", `/candidate/assessment/attempts/${encodeURIComponent(id)}/submit`, {
+      body: { responses },
+    }),
 };
 
 export const catalogApi = {
   categories: () => api<CatalogCategory[]>("GET", "/employer/catalog/categories"),
+  fspCategories: () => api<FspCategory[]>("GET", "/employer/catalog/fsp-categories"),
   candidates: (filters: CatalogFilters, cursor: string | undefined) =>
     api<Page<CandidateCard>>("GET", "/employer/catalog/candidates", { query: { ...filters, cursor, limit: 20 } }),
 };

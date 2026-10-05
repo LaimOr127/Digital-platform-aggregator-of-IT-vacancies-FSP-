@@ -1,5 +1,6 @@
 import { Route, Routes } from "react-router";
 import { AppShell } from "../../ui/AppShell";
+import { AssessmentPage } from "./assessment/AssessmentPage";
 import { FspPage } from "./fsp/FspPage";
 import { InsightsPage } from "./insights/InsightsPage";
 import { InterviewsInbox } from "./interviews/InterviewsInbox";
@@ -8,6 +9,7 @@ import { ProfilePage } from "./ProfilePage";
 
 const NAV = [
   { to: "/app", label: "Профиль", end: true },
+  { to: "/app/assessment", label: "Категория и тест" },
   { to: "/app/fsp", label: "ФСП и паспорт навыков" },
   { to: "/app/insights", label: "Рост и зарплаты" },
   { to: "/app/interviews", label: "Собеседования" },
@@ -19,6 +21,7 @@ export default function CandidatePortal() {
     <AppShell nav={NAV}>
       <Routes>
         <Route index element={<ProfilePage />} />
+        <Route path="assessment" element={<AssessmentPage />} />
         <Route path="fsp" element={<FspPage />} />
         <Route path="insights" element={<InsightsPage />} />
         <Route path="interviews" element={<InterviewsInbox />} />

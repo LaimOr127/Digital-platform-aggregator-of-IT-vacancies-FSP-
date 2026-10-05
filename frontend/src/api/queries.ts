@@ -27,3 +27,7 @@ export function useCursorList<T>(
   });
   return { ...query, items: query.data?.pages.flatMap((page) => page.items) ?? [] };
 }
+
+/** Справочники для опроса и фильтров: специализации, отрасли, роли (не меняются в сеансе). */
+export const useDictionaries = () =>
+  useQuery({ queryKey: ["dictionaries"], queryFn: publicApi.dictionaries, staleTime: Infinity });

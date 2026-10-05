@@ -45,7 +45,7 @@ describe("endpoints map to the backend API", () => {
     ["update profile", () => candidateApi.updateProfile({ city: "Казань" }), "PATCH", "/api/v1/candidate/profile"],
     ["company", () => employerApi.company(), "GET", "/api/v1/employer/company"],
     ["vacancies", () => employerApi.vacancies("draft", "c1"), "GET", "/api/v1/employer/vacancies?status=draft&cursor=c1&limit=20"],
-    ["create vacancy", () => employerApi.createVacancy({ title: "T", grade: "middle", work_format: "remote", salary_min: 1, salary_max: 2 }), "POST", "/api/v1/employer/vacancies"],
+    ["create vacancy", () => employerApi.createVacancy({ title: "T", grade: "middle", specialization: "backend", work_format: "remote", salary_min: 1, salary_max: 2 }), "POST", "/api/v1/employer/vacancies"],
     ["update vacancy", () => employerApi.updateVacancy("v/1", { title: "T" }), "PATCH", "/api/v1/employer/vacancies/v%2F1"],
     ["publish", () => employerApi.publishVacancy("v1"), "POST", "/api/v1/employer/vacancies/v1/publish"],
     ["close", () => employerApi.closeVacancy("v1"), "POST", "/api/v1/employer/vacancies/v1/close"],

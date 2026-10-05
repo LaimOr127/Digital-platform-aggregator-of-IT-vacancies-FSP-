@@ -9,15 +9,26 @@ const OFFERS = ["employer-offers"] as const;
 export const useCatalogCategories = (enabled: boolean) =>
   useQuery({ queryKey: ["catalog", "categories"], queryFn: catalogApi.categories, enabled });
 
+export const useFspCategories = () =>
+  useQuery({ queryKey: ["catalog", "fsp-categories"], queryFn: catalogApi.fspCategories });
+
 export const useCatalogCandidates = (filters: CatalogFilters, enabled: boolean) =>
   useCursorList(["catalog", "candidates", filters], (cursor) => catalogApi.candidates(filters, cursor), {
     enabled,
     keepPrevious: true,
   });
 
-/** Приглашения, подбор и офферы — только по опубликованным вакансиям. */
+/** Приглашения и офферы — по опубликованным вакансиям. */
 export const useActiveVacancies = () =>
   useQuery({ queryKey: ["vacancies", "active-for-offers"], queryFn: () => employerApi.vacancies("active", undefined) });
+
+/** Описание потребности для подбора: опубликованные вакансии и черновики. */
+export const useNeedVacancies = () =>
+  useQuery({
+    queryKey: ["vacancies", "needs"],
+    queryFn: async () =>
+      (await employerApi.vacancies(undefined, undefined)).items.filter((v) => v.status === "active" || v.status === "draft"),
+  });
 
 export const useEmployerOffers = (status: OfferStatus | undefined) =>
   useCursorList([...OFFERS, status ?? "all"], (cursor) => employerOffersApi.list(status, cursor));

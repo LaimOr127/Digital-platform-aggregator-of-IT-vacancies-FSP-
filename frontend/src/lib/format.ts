@@ -7,6 +7,7 @@ import type {
   InterviewStatus,
   OfferStatus,
   SearchStatus,
+  Specialization,
   UserRole,
   VacancyStatus,
   VerificationTier,
@@ -44,6 +45,15 @@ export function daysLeft(iso: string | null | undefined, now: Date = new Date())
 }
 
 export const labels = {
+  specialization: {
+    backend: "Бэкенд-разработка",
+    frontend: "Фронтенд-разработка",
+    mobile: "Мобильная разработка",
+    data: "Данные и машинное обучение",
+    devops: "DevOps и инфраструктура",
+    qa: "Тестирование",
+    security: "Информационная безопасность",
+  } satisfies Record<Specialization, string>,
   grade: {
     intern: "Стажёр",
     junior: "Junior",

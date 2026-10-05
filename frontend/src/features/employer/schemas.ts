@@ -1,12 +1,13 @@
 import { z } from "zod";
 import type { Vacancy, VacancyCreate } from "../../api/types";
-import { GRADES, WORK_FORMATS, optionalText, requiredMoney, salaryRangeIssue } from "../../lib/fields";
+import { GRADES, SPECIALIZATIONS, WORK_FORMATS, optionalText, requiredMoney, salaryRangeIssue } from "../../lib/fields";
 
 export const vacancySchema = z
   .object({
     title: z.string().trim().min(3, "Минимум 3 символа").max(160),
     description: z.string().trim().max(10_000),
     grade: z.enum(GRADES, "Выберите грейд"),
+    specialization: z.enum(SPECIALIZATIONS, "Выберите специализацию"),
     work_format: z.enum(WORK_FORMATS, "Выберите формат"),
     city: optionalText(100),
     salary_min: requiredMoney,
@@ -22,6 +23,7 @@ export const emptyVacancy: VacancyFormInput = {
   title: "",
   description: "",
   grade: "middle",
+  specialization: "backend",
   work_format: "remote",
   city: "",
   salary_min: "",
@@ -34,6 +36,7 @@ export function vacancyToForm(v: Vacancy): VacancyFormInput {
     title: v.title,
     description: v.description,
     grade: v.grade,
+    specialization: v.specialization ?? "backend",
     work_format: v.work_format,
     city: v.city ?? "",
     salary_min: v.salary_min,

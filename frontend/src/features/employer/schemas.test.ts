@@ -30,6 +30,7 @@ describe("vacancyToForm", () => {
       title: "Backend",
       description: "",
       grade: "senior",
+      specialization: "qa",
       work_format: "office",
       city: null,
       salary_min: 1,

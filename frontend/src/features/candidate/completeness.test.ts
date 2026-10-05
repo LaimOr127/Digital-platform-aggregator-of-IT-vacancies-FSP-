@@ -16,6 +16,8 @@ const empty: Profile = {
   verification_tier: "self_declared",
   is_hidden: false,
   search_status: "open",
+  industries: [],
+  roles: [],
   skills: [],
 };
 

@@ -277,6 +277,91 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/candidate/assessment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Категория, опрос, текущий тест, история и доступные грейды */
+        get: operations["assessment_state_api_v1_candidate_assessment_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/candidate/assessment/survey": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Опрос: специализация, заявленный грейд, отрасли, роли, стаж, стек */
+        put: operations["save_survey_api_v1_candidate_assessment_survey_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/candidate/assessment/attempts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Начать тест на грейд (задания генерируются для этой попытки) */
+        post: operations["start_attempt_api_v1_candidate_assessment_attempts_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/candidate/assessment/attempts/{attempt_id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Отправить ответы и получить результат */
+        post: operations["submit_attempt_api_v1_candidate_assessment_attempts__attempt_id__submit_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/employer/vacancies/{vacancy_id}/assessment-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Пример теста, который система соберёт под вакансию */
+        get: operations["assessment_preview_api_v1_employer_vacancies__vacancy_id__assessment_preview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/candidate/import/capabilities": {
         parameters: {
             query?: never;
@@ -665,8 +750,25 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Категории со счётчиками кандидатов */
+        /** Категории (специализация x грейд) со счётчиками кандидатов */
         get: operations["catalog_categories_api_v1_employer_catalog_categories_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/employer/catalog/fsp-categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Категории достижений ФСП со счётчиками */
+        get: operations["catalog_fsp_categories_api_v1_employer_catalog_fsp_categories_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -682,7 +784,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Анонимные карточки кандидатов */
+        /** Анонимные карточки: по силе профиля или по соответствию вакансии */
         get: operations["catalog_candidates_api_v1_employer_catalog_candidates_get"];
         put?: never;
         post?: never;
@@ -1035,6 +1137,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/public/dictionaries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Справочники: специализации, отрасли, роли */
+        get: operations["dictionaries_api_v1_public_dictionaries_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/public/passport/{passport_id}": {
         parameters: {
             query?: never;
@@ -1245,6 +1364,106 @@ export interface components {
             /** Message */
             message: string;
         };
+        /**
+         * AssessmentResult
+         * @enum {string}
+         */
+        AssessmentResult: "passed" | "failed";
+        /** AssessmentStateOut */
+        AssessmentStateOut: {
+            survey: components["schemas"]["SurveyOut"] | null;
+            category: components["schemas"]["AssignedCategoryOut"] | null;
+            /** Confirmed Skills */
+            confirmed_skills: string[];
+            active: components["schemas"]["AttemptOut"] | null;
+            /** History */
+            history: components["schemas"]["AttemptResultOut"][];
+            /** Options */
+            options: components["schemas"]["GradeOptionOut"][];
+        };
+        /**
+         * AssessmentStatus
+         * @enum {string}
+         */
+        AssessmentStatus: "in_progress" | "completed" | "expired";
+        /** AssignedCategoryOut */
+        AssignedCategoryOut: {
+            /** Slug */
+            slug: string;
+            /** Title */
+            title: string;
+            specialization: components["schemas"]["Specialization"];
+            grade: components["schemas"]["Grade"];
+            /** Score */
+            score: number | null;
+            /** Confirmed At */
+            confirmed_at: string | null;
+            /**
+             * Next Change At
+             * @description когда грейд можно сменить
+             */
+            next_change_at: string | null;
+        };
+        /** AttemptOut */
+        AttemptOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            specialization: components["schemas"]["Specialization"];
+            grade: components["schemas"]["Grade"];
+            status: components["schemas"]["AssessmentStatus"];
+            /**
+             * Started At
+             * Format: date-time
+             */
+            started_at: string;
+            /**
+             * Deadline At
+             * Format: date-time
+             */
+            deadline_at: string;
+            /** Questions */
+            questions: components["schemas"]["QuestionOut"][];
+        };
+        /** AttemptResultOut */
+        AttemptResultOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            specialization: components["schemas"]["Specialization"];
+            grade: components["schemas"]["Grade"];
+            status: components["schemas"]["AssessmentStatus"];
+            result: components["schemas"]["AssessmentResult"] | null;
+            /**
+             * Theta
+             * @description оценка уровня по шкале грейдов 1–5
+             */
+            theta: number | null;
+            /** Correct */
+            correct: number | null;
+            /** Total */
+            total: number;
+            /**
+             * Score
+             * @description положение внутри категории, 0–100
+             */
+            score: number | null;
+            /** Confident */
+            confident: boolean;
+            /** Topics */
+            topics: components["schemas"]["TopicResultOut"][];
+            /**
+             * Started At
+             * Format: date-time
+             */
+            started_at: string;
+            /** Finished At */
+            finished_at: string | null;
+        };
         /** AuditEntryOut */
         AuditEntryOut: {
             /**
@@ -1296,7 +1515,17 @@ export interface components {
             anon_id: string;
             /** Title */
             title: string | null;
+            specialization: components["schemas"]["Specialization"] | null;
+            /** @description категория по итогам теста */
+            category: components["schemas"]["CategoryBriefOut"] | null;
+            /** @description заявленный кандидатом */
             grade: components["schemas"]["Grade"] | null;
+            /** @description подтверждённый тестом */
+            confirmed_grade: components["schemas"]["Grade"] | null;
+            /** Assessment Score */
+            assessment_score: number | null;
+            /** Experience Years */
+            experience_years: number | null;
             work_format: components["schemas"]["WorkFormat"] | null;
             /** City */
             city: string | null;
@@ -1308,13 +1537,23 @@ export interface components {
             search_status: components["schemas"]["SearchStatus"];
             /** Skills */
             skills: string[];
-            /** Categories */
-            categories: components["schemas"]["CandidateCategoryOut"][];
+            /**
+             * Confirmed Skills
+             * @description навыки, подтверждённые ответами теста
+             */
+            confirmed_skills: string[];
+            /** Fsp Categories */
+            fsp_categories: components["schemas"]["CandidateCategoryOut"][];
             /** Achievements */
             achievements: string[];
             /** About */
             about: string | null;
+            /** Last Activity At */
+            last_activity_at: string | null;
+            /** @description соответствие вакансии */
             match?: components["schemas"]["MatchOut"] | null;
+            /** @description сила профиля в категории */
+            strength?: components["schemas"]["MatchOut"] | null;
         };
         /** CandidateCategoryOut */
         CandidateCategoryOut: {
@@ -1337,18 +1576,26 @@ export interface components {
             /** Full Name */
             full_name: string;
         };
-        /** CatalogCategoryOut */
+        /**
+         * CatalogCategoryOut
+         * @description Категория кандидатов: специализация x подтверждённый тестом грейд.
+         */
         CatalogCategoryOut: {
             /** Slug */
             slug: string;
-            /** Discipline */
-            discipline: string;
-            /** Tier */
-            tier: string;
             /** Title */
             title: string;
+            specialization: components["schemas"]["Specialization"];
+            grade: components["schemas"]["Grade"];
             /** Candidates */
             candidates: number;
+        };
+        /** CategoryBriefOut */
+        CategoryBriefOut: {
+            /** Slug */
+            slug: string;
+            /** Title */
+            title: string;
         };
         /** CategoryOut */
         CategoryOut: {
@@ -1405,6 +1652,18 @@ export interface components {
             telegram?: string | null;
             /** Email */
             email?: string | null;
+        };
+        /**
+         * DictionariesOut
+         * @description Справочники для опроса и фильтров: специализации, отрасли, роли.
+         */
+        DictionariesOut: {
+            /** Specializations */
+            specializations: components["schemas"]["SpecializationOut"][];
+            /** Industries */
+            industries: components["schemas"]["OptionOut"][];
+            /** Roles */
+            roles: components["schemas"]["OptionOut"][];
         };
         /** EmailIn */
         EmailIn: {
@@ -1522,6 +1781,22 @@ export interface components {
             /** Inn */
             inn?: string | null;
         };
+        /**
+         * FspCategoryOut
+         * @description Категория достижений ФСП: дисциплина x уровень результатов.
+         */
+        FspCategoryOut: {
+            /** Slug */
+            slug: string;
+            /** Discipline */
+            discipline: string;
+            /** Tier */
+            tier: string;
+            /** Title */
+            title: string;
+            /** Candidates */
+            candidates: number;
+        };
         /** FspConfirmIn */
         FspConfirmIn: {
             /** Code */
@@ -1578,6 +1853,16 @@ export interface components {
          * @enum {string}
          */
         Grade: "intern" | "junior" | "middle" | "senior" | "lead";
+        /** GradeOptionOut */
+        GradeOptionOut: {
+            grade: components["schemas"]["Grade"];
+            /** Allowed */
+            allowed: boolean;
+            /** Reason */
+            reason: string;
+            /** Retry At */
+            retry_at: string | null;
+        };
         /** GradeSalaryOut */
         GradeSalaryOut: {
             grade: components["schemas"]["Grade"];
@@ -1781,7 +2066,7 @@ export interface components {
         };
         /**
          * MatchOut
-         * @description Соответствие вакансии: процент и вклад каждого фактора.
+         * @description Оценка с объяснением: соответствие вакансии или сила профиля внутри категории.
          */
         MatchOut: {
             /** Score */
@@ -1942,6 +2227,13 @@ export interface components {
          * @enum {string}
          */
         OfferStatus: "sent" | "accepted" | "declined" | "withdrawn" | "expired";
+        /** OptionOut */
+        OptionOut: {
+            /** Value */
+            value: string;
+            /** Label */
+            label: string;
+        };
         /** PageOut[AdminUserOut] */
         PageOut_AdminUserOut_: {
             /** Items */
@@ -2085,6 +2377,33 @@ export interface components {
             /** Password */
             password: string;
         };
+        /**
+         * PreviewQuestionOut
+         * @description Пример задания для работодателя (вариант генерируется заново, поэтому с ответом).
+         */
+        PreviewQuestionOut: {
+            /** Index */
+            index: number;
+            /** Topic */
+            topic: string;
+            /** Level */
+            level: number;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "choice" | "number";
+            /** Prompt */
+            prompt: string;
+            /** Code */
+            code: string | null;
+            /** Options */
+            options: string[];
+            /** Skills */
+            skills: string[];
+            /** Answer */
+            answer: string;
+        };
         /** ProfileDraftOut */
         ProfileDraftOut: {
             /**
@@ -2151,6 +2470,22 @@ export interface components {
             search_status: components["schemas"]["SearchStatus"];
             /** Skills */
             skills: components["schemas"]["SkillOut"][];
+            specialization?: components["schemas"]["Specialization"] | null;
+            confirmed_grade?: components["schemas"]["Grade"] | null;
+            /** Assessment Score */
+            assessment_score?: number | null;
+            /** Experience Years */
+            experience_years?: number | null;
+            /**
+             * Industries
+             * @default []
+             */
+            industries: string[];
+            /**
+             * Roles
+             * @default []
+             */
+            roles: string[];
         };
         /** ProfileUpdateIn */
         ProfileUpdateIn: {
@@ -2177,6 +2512,29 @@ export interface components {
              * @description slug навыков
              */
             skills?: string[] | null;
+        };
+        /**
+         * QuestionOut
+         * @description Задание без правильного ответа: ответ хранится только на сервере.
+         */
+        QuestionOut: {
+            /** Index */
+            index: number;
+            /** Topic */
+            topic: string;
+            /** Level */
+            level: number;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "choice" | "number";
+            /** Prompt */
+            prompt: string;
+            /** Code */
+            code: string | null;
+            /** Options */
+            options: string[];
         };
         /**
          * SalaryBandOut
@@ -2243,6 +2601,69 @@ export interface components {
              */
             share: number;
         };
+        /**
+         * Specialization
+         * @description Специализация — первая половина категории кандидата (вторая — подтверждённый грейд).
+         * @enum {string}
+         */
+        Specialization: "backend" | "frontend" | "mobile" | "data" | "devops" | "qa" | "security";
+        /** SpecializationOut */
+        SpecializationOut: {
+            slug: components["schemas"]["Specialization"];
+            /** Title */
+            title: string;
+            /** Group */
+            group: string;
+            /** Skills */
+            skills: string[];
+        };
+        /** StartIn */
+        StartIn: {
+            grade: components["schemas"]["Grade"];
+        };
+        /**
+         * SubmitIn
+         * @description Ответы по порядку заданий: номер варианта для выбора, число — для числового ответа.
+         */
+        SubmitIn: {
+            /** Responses */
+            responses: (string | null)[];
+        };
+        /**
+         * SurveyIn
+         * @description Опрос по отрасли и специализации — первый шаг пути кандидата.
+         */
+        SurveyIn: {
+            specialization: components["schemas"]["Specialization"];
+            /** @description грейд, который кандидат заявляет и подтверждает тестом */
+            grade: components["schemas"]["Grade"];
+            /** Experience Years */
+            experience_years: number;
+            /** Industries */
+            industries?: string[];
+            /** Roles */
+            roles?: string[];
+            /** Skills */
+            skills: string[];
+        };
+        /** SurveyOut */
+        SurveyOut: {
+            specialization: components["schemas"]["Specialization"];
+            grade: components["schemas"]["Grade"] | null;
+            /** Experience Years */
+            experience_years: number | null;
+            /** Industries */
+            industries: string[];
+            /** Roles */
+            roles: string[];
+            /** Skills */
+            skills: components["schemas"]["SkillOut"][];
+            /**
+             * Answered At
+             * Format: date-time
+             */
+            answered_at: string;
+        };
         /** TokenOut */
         TokenOut: {
             /** Access Token */
@@ -2254,6 +2675,15 @@ export interface components {
             token_type: string;
             /** Expires In */
             expires_in: number;
+        };
+        /** TopicResultOut */
+        TopicResultOut: {
+            /** Topic */
+            topic: string;
+            /** Correct */
+            correct: number;
+            /** Total */
+            total: number;
         };
         /**
          * UserRole
@@ -2274,6 +2704,8 @@ export interface components {
             /** Description */
             description?: string | null;
             grade: components["schemas"]["Grade"];
+            /** @description по ней и грейду строится подборка */
+            specialization: components["schemas"]["Specialization"];
             work_format: components["schemas"]["WorkFormat"];
             /** City */
             city?: string | null;
@@ -2297,6 +2729,7 @@ export interface components {
             /** Description */
             description: string;
             grade: components["schemas"]["Grade"];
+            specialization: components["schemas"]["Specialization"] | null;
             work_format: components["schemas"]["WorkFormat"];
             /** City */
             city: string | null;
@@ -2331,6 +2764,7 @@ export interface components {
             /** Description */
             description?: string | null;
             grade?: components["schemas"]["Grade"] | null;
+            specialization?: components["schemas"]["Specialization"] | null;
             work_format?: components["schemas"]["WorkFormat"] | null;
             /** City */
             city?: string | null;
@@ -2864,6 +3298,158 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    assessment_state_api_v1_candidate_assessment_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssessmentStateOut"];
+                };
+            };
+        };
+    };
+    save_survey_api_v1_candidate_assessment_survey_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SurveyIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssessmentStateOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_attempt_api_v1_candidate_assessment_attempts_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StartIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttemptOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    submit_attempt_api_v1_candidate_assessment_attempts__attempt_id__submit_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                attempt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubmitIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttemptResultOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    assessment_preview_api_v1_employer_vacancies__vacancy_id__assessment_preview_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vacancy_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PreviewQuestionOut"][];
+                };
             };
             /** @description Validation Error */
             422: {
@@ -3745,14 +4331,40 @@ export interface operations {
             };
         };
     };
+    catalog_fsp_categories_api_v1_employer_catalog_fsp_categories_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FspCategoryOut"][];
+                };
+            };
+        };
+    };
     catalog_candidates_api_v1_employer_catalog_candidates_get: {
         parameters: {
             query?: {
+                /** @description специализация:грейд, например backend:middle */
                 category?: string | null;
+                specialization?: components["schemas"]["Specialization"] | null;
                 grade?: components["schemas"]["Grade"] | null;
                 work_format?: components["schemas"]["WorkFormat"] | null;
-                skill?: string | null;
+                /** @description все выбранные навыки */
+                skill?: string[];
                 search_status?: components["schemas"]["SearchStatus"] | null;
+                confirmed_only?: boolean;
+                fsp_only?: boolean;
+                fsp_category?: string | null;
                 /** @description сортировать по соответствию этой вакансии */
                 vacancy_id?: string | null;
                 cursor?: string | null;
@@ -4470,6 +5082,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SkillOut"][];
+                };
+            };
+        };
+    };
+    dictionaries_api_v1_public_dictionaries_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DictionariesOut"];
                 };
             };
         };
