@@ -28,3 +28,6 @@ dist/
 .DS_Store
 .idea/
 .vscode/
+
+# собранная документация (make docs-docx)
+docs/build/
