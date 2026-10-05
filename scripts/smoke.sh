@@ -30,7 +30,7 @@ PW="Smoke-pass-$(openssl rand -hex 4)"
 J='Content-Type: application/json'
 # JSON собираем через printf: фигурные скобки внутри $(...) оболочка может раскрыть
 body() { printf '{"email":"%s","password":"%s"%s}' "$EMAIL" "$1" "${2:-}"; }
-check "Регистрация кандидата (без раскрытия email)" 202 "$(code -H "$J" -d "$(body "$PW" ',"full_name":"Смоук Тест"')" "$BASE/api/v1/auth/register/candidate")"
+check "Регистрация кандидата (без раскрытия email)" 202 "$(code -H "$J" -d "$(body "$PW" ',"full_name":"Смоук Тест","consent":true')" "$BASE/api/v1/auth/register/candidate")"
 check "Вход до подтверждения почты"           403 "$(code -H "$J" -d "$(body "$PW")" "$BASE/api/v1/auth/login")"
 # письмо отправляет worker через Mailpit (dev); ссылка подтверждения — из письма
 LINK=""; i=0
