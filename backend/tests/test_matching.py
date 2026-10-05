@@ -91,6 +91,23 @@ def test_assessment_and_freshness():
     assert FreshnessFactor().score(None, candidate(last_activity_at=None)).share == 0.0
 
 
+def test_assessment_fits_vacancy_grade():
+    """Под вакансию тест оценивает близость уровня к её грейду, а не «чем сильнее, тем лучше»:
+    иначе для Middle наверх выходят кандидаты уровнем выше (найдено процедурой оценки)."""
+    score = AssessmentFactor().score
+    # уровень по тесту: подтверждённый грейд - 0.5 + score / 50 (Middle с 25 баллами ~ 3.0)
+    exact = score(ctx(vacancy()), candidate(assessment_score=25))
+    overqualified = score(ctx(vacancy()), candidate(assessment_score=100))
+    strong_junior = score(
+        ctx(vacancy()), candidate(confirmed_grade=Grade.JUNIOR, assessment_score=75)
+    )
+    assert exact.share == 1.0 and "совпадает с грейдом вакансии" in exact.detail
+    assert overqualified.share < exact.share and "выше" in overqualified.detail
+    assert strong_junior.share > overqualified.share
+    # без вакансии — сила профиля: больше баллов — выше
+    assert score(None, candidate(assessment_score=100)).share == 1.0
+
+
 def test_format_city_and_salary():
     assert FormatFactor().score(ctx(vacancy()), candidate()).detail == "тот же город: Казань"
     remote_wanted = candidate(city="Пермь", work_format=WorkFormat.REMOTE)

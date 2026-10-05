@@ -4,8 +4,9 @@
 категория, присвоенная по итогам опроса и теста, и результат теста; самоописание профиля
 (заявленные навыки, текст «о себе») весит мало.
 
-Подбор под вакансию: категория 30, тест 20, навыки 20, ФСП 10, описание 5, актуальность 5,
-формат и город 5, зарплата 5. Сила профиля без вакансии: тест 60, ФСП 25, актуальность 15.
+Подбор под вакансию: категория 30, тест 20 (близость уровня к грейду вакансии), навыки 20,
+ФСП 10, описание 5, актуальность 5, формат и город 5, зарплата 5.
+Сила профиля без вакансии: тест 60, ФСП 25, актуальность 15.
 """
 
 from abc import ABC, abstractmethod
@@ -15,11 +16,13 @@ from datetime import UTC, datetime
 from app.core.timeutil import as_aware
 from app.models import CandidateProfile, Category, Vacancy
 from app.models.enums import VerificationTier, WorkFormat
+from app.services.assessment.engine import level_from_score
 from app.services.categorization import TIER_TITLES, TIERS
 from app.services.matching.text import keywords, overlap_with
-from app.services.specializations import GRADE_ORDER, GRADE_TITLES
+from app.services.specializations import GRADE_ORDER, GRADE_TITLES, grade_at
 
 FRESH_DAYS, STALE_DAYS = 30, 180
+FIT_TOLERANCE, FIT_RANGE = 0.5, 1.5  # уровни: «совпадает» и где соответствие падает до нуля
 
 
 @dataclass(frozen=True)
@@ -107,6 +110,10 @@ class CategoryFactor(VacancyFactor):
 
 
 class AssessmentFactor(Factor):
+    """Без вакансии — сила профиля: больше баллов теста, выше в категории. Под вакансию —
+    близость уровня по тесту к её грейду: кандидат сильно выше грейда подходит хуже точного
+    (это показала процедура оценки: «чем сильнее, тем лучше» поднимало переквалифицированных)."""
+
     key, label, weight = "assessment", "Результат теста", 20
 
     def evaluate(self, context: VacancyContext | None, candidate: Candidate) -> tuple[float, str]:
@@ -114,7 +121,17 @@ class AssessmentFactor(Factor):
         if profile.confirmed_grade is None or profile.assessment_score is None:
             return 0.0, "тест не пройден"
         score = profile.assessment_score
-        return score / 100, f"{score} из 100 в своей категории"
+        if context is None:
+            return score / 100, f"{score} из 100 в своей категории"
+        level = level_from_score(GRADE_ORDER.index(profile.confirmed_grade) + 1, score)
+        target = GRADE_ORDER.index(context.vacancy.grade) + 1
+        gap = level - target
+        title = GRADE_TITLES[grade_at(round(level))]
+        if abs(gap) < FIT_TOLERANCE:
+            relation = "совпадает с грейдом вакансии"
+        else:
+            relation = "выше грейда вакансии" if gap > 0 else "ниже грейда вакансии"
+        return max(0.0, 1 - abs(gap) / FIT_RANGE), f"уровень по тесту ≈ {title}: {relation}"
 
 
 class FreshnessFactor(Factor):

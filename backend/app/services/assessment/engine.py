@@ -31,6 +31,7 @@ ITEMS_TOTAL = 15
 DISCRIMINATION = 1.7
 GUESS: dict[Kind, float] = {"choice": 0.25, "number": 0.02}
 PASS_MARGIN = 0.5
+SCORE_SPAN = 2.0  # баллы 0..100 внутри категории покрывают уровни [g - 0.5, g + 1.5]
 _GRID = [i / 50 for i in range(0, 301)]  # theta от 0 до 6
 _PRIOR_MEAN, _PRIOR_SD = 3.0, 1.5
 _SPECIFIC_WEIGHT, _SKILL_WEIGHT = 2.0, 2.0
@@ -198,6 +199,11 @@ class Outcome:
     skills: tuple[str, ...] = ()  # навыки, подтверждённые ответами
 
 
+def level_from_score(level: int, score: int) -> float:
+    """Уровень кандидата по подтверждённому грейду и баллам — обратная к расчёту score."""
+    return level - PASS_MARGIN + SCORE_SPAN * score / 100
+
+
 def evaluate(items: list[GeneratedItem], responses: list[str | None], target: int) -> Outcome:
     marks = [is_correct(item, r) for item, r in zip(items, responses, strict=True)]
     theta, error = estimate([(i.level, i.kind, m) for i, m in zip(items, marks, strict=True)])
@@ -211,7 +217,7 @@ def evaluate(items: list[GeneratedItem], responses: list[str | None], target: in
             per_skill[skill][1] += 1
     passed = theta >= target - PASS_MARGIN
     confident = target < 5 and theta >= target + PASS_MARGIN
-    score = round(100 * min(1.0, max(0.0, (theta - (target - PASS_MARGIN)) / 2)))
+    score = round(100 * min(1.0, max(0.0, (theta - (target - PASS_MARGIN)) / SCORE_SPAN)))
     skills = tuple(sorted(s for s, (ok, n) in per_skill.items() if ok and ok * 2 >= n))
     return Outcome(
         theta=round(theta, 2),
