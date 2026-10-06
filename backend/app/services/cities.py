@@ -90,14 +90,31 @@ CITIES: tuple[str, ...] = (
     "Псков",
 )
 _KNOWN = frozenset(CITIES)
-_BY_KEY = {city.lower().replace("ё", "е"): city for city in CITIES}
+# частые сокращения и латиница из резюме и старых профилей
+_ALIASES = {
+    "мск": "Москва",
+    "moscow": "Москва",
+    "спб": "Санкт-Петербург",
+    "питер": "Санкт-Петербург",
+    "saint petersburg": "Санкт-Петербург",
+    "st petersburg": "Санкт-Петербург",
+    "нск": "Новосибирск",
+    "екб": "Екатеринбург",
+}
+
+
+def _key(value: str) -> str:
+    return " ".join(value.lower().replace("ё", "е").replace("-", " ").replace(".", " ").split())
+
+
+_BY_KEY = {_key(city): city for city in CITIES} | {_key(a): city for a, city in _ALIASES.items()}
 
 
 def canonical_city(value: str | None) -> str | None:
-    """Город из резюме или анкеты — к написанию справочника; неизвестный город — None."""
+    """Город из резюме, анкеты или старого профиля — к написанию справочника; неизвестный — None."""
     if not value:
         return None
-    return _BY_KEY.get(value.strip().lower().replace("ё", "е"))
+    return _BY_KEY.get(_key(value))
 
 
 def _known_city(value: str) -> str:

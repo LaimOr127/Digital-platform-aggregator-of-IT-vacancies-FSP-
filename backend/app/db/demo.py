@@ -276,7 +276,7 @@ async def _add_company(
         industry=rng.choice(list(INDUSTRIES.values())),
         description="Продуктовая ИТ-команда: выпускаем релизы каждые две недели, "
         "ценим инженерную культуру и обучение внутри команды.",
-        contact_email=f"hr{index + 1}@demo.itmatch.local",
+        contact_email=f"hr{index + 1}@example.org",  # .local не проходит проверку email в форме
     )
     session.add_all([owner, company])
     await session.flush()
