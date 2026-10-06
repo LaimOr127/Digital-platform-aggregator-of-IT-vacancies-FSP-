@@ -50,6 +50,25 @@ export function Input({ className, ...rest }: InputHTMLAttributes<HTMLInputEleme
   return <input className={cn(control, "h-10", className)} {...rest} />;
 }
 
+/** Сумма в рублях: знак ₽ виден прямо в поле. */
+export function MoneyInput({ className, ...rest }: InputHTMLAttributes<HTMLInputElement>) {
+  return (
+    <div className="relative">
+      <input
+        type="number"
+        inputMode="numeric"
+        min={0}
+        step={5000}
+        className={cn(control, "tabular h-10 pr-12", className)}
+        {...rest}
+      />
+      <span aria-hidden className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-muted">
+        ₽
+      </span>
+    </div>
+  );
+}
+
 export function Textarea({ className, ...rest }: TextareaHTMLAttributes<HTMLTextAreaElement>) {
   return <textarea className={cn(control, "min-h-28 py-2 leading-relaxed", className)} {...rest} />;
 }

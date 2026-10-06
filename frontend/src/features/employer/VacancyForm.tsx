@@ -4,7 +4,7 @@ import type { Skill, Vacancy } from "../../api/types";
 import { labels, options } from "../../lib/format";
 import { applyServerErrors } from "../../lib/forms";
 import { Button } from "../../ui/Button";
-import { Field, FieldGroup, Input, Select, Textarea } from "../../ui/form";
+import { Field, FieldGroup, Input, MoneyInput, Select, Textarea } from "../../ui/form";
 import { SkillPicker } from "../../ui/SkillPicker";
 import { useToast } from "../../ui/Toast";
 import { useCreateVacancy, useUpdateVacancy } from "./hooks";
@@ -53,10 +53,10 @@ export function VacancyForm({ vacancy, skills, onDone }: Props) {
         <Select options={options(labels.workFormat)} {...register("work_format")} />
       </Field>
       <Field label="Зарплата от, ₽" error={errors.salary_min?.message} hint="Вилка обязательна">
-        <Input type="number" inputMode="numeric" min={0} step={5000} className="tabular" {...register("salary_min")} />
+        <MoneyInput {...register("salary_min")} />
       </Field>
       <Field label="Зарплата до, ₽" error={errors.salary_max?.message}>
-        <Input type="number" inputMode="numeric" min={0} step={5000} className="tabular" {...register("salary_max")} />
+        <MoneyInput {...register("salary_max")} />
       </Field>
       <MarketHint control={control} />
       <Field label="Город" error={errors.city?.message} className="sm:col-span-2">

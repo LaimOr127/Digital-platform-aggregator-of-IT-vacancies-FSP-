@@ -7,7 +7,7 @@ import { labels, options } from "../../../lib/format";
 import { applyServerErrors } from "../../../lib/forms";
 import { Button } from "../../../ui/Button";
 import { Dialog } from "../../../ui/Dialog";
-import { Field, Input, Select, Textarea } from "../../../ui/form";
+import { Field, Input, MoneyInput, Select, Textarea } from "../../../ui/form";
 import { useToast } from "../../../ui/Toast";
 import { useSendInvitation } from "./hooks";
 import { invitationDefaults, invitationSchema, type InvitationFormInput, type InvitationFormOutput } from "./schemas";
@@ -83,10 +83,10 @@ function InvitationForm({ candidate, vacancies, vacancyId, company, onDone }: Fo
         <Select options={options(labels.workFormat)} {...form.register("work_format")} />
       </Field>
       <Field label="Зарплата от, ₽" error={errors.salary_min?.message} hint="Вилка обязательна">
-        <Input type="number" inputMode="numeric" min={0} step={5000} className="tabular" {...form.register("salary_min")} />
+        <MoneyInput {...form.register("salary_min")} />
       </Field>
       <Field label="Зарплата до, ₽" error={errors.salary_max?.message}>
-        <Input type="number" inputMode="numeric" min={0} step={5000} className="tabular" {...form.register("salary_max")} />
+        <MoneyInput {...form.register("salary_max")} />
       </Field>
       <Field label="Город" error={errors.city?.message}>
         <Input placeholder="Для удалёнки можно не указывать" {...form.register("city")} />
