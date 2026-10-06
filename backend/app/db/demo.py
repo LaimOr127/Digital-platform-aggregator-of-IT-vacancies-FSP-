@@ -1,8 +1,10 @@
-"""Демо-данные для показа и нагрузочного теста: анонимные кандидаты с навыками и категориями,
-одобренные компании с опубликованными вакансиями (для каталога, радара зарплат и пути роста).
+"""Демо-данные для показа и нагрузочного теста: кандидаты разных специализаций и грейдов
+с навыками, образованием и категориями; одобренные компании с описанием, вакансиями (часть —
+к продлению) и короткими задачами для кандидатов.
 
-Только для dev: в prod команда отказывается работать. Вход в демо-аккаунты невозможен
-(случайный пароль никому не известен) — они нужны лишь для наполнения каталога.
+Только для dev: в prod команда отказывается работать. Вход в массовые демо-аккаунты невозможен
+(случайный пароль никому не известен); для показа создаются два аккаунта с входом — кандидат и
+компания, их пароль печатается один раз (seed_logins).
 Генерация детерминирована (seed), повторный запуск добавляет новые профили.
 """
 
@@ -22,6 +24,7 @@ from app.models import (
     Category,
     CompanyMember,
     EmployerCompany,
+    EmployerTask,
     Skill,
     User,
     Vacancy,
@@ -31,6 +34,7 @@ from app.models import (
 )
 from app.models.enums import (
     CompanyStatus,
+    Education,
     Grade,
     MemberRole,
     SearchStatus,
@@ -40,6 +44,7 @@ from app.models.enums import (
     VerificationTier,
     WorkFormat,
 )
+from app.services.specializations import INDUSTRIES
 
 _TITLES = [
     (
@@ -76,6 +81,39 @@ _COMPANY_NAMES = [
     "Облако Плюс",
     "Кибер Щит",
 ]
+_INDUSTRIES = ["fintech", "ecommerce", "telecom", "games", "logistics", "government"]
+_SOFT_SKILLS = ["communication", "teamwork", "ownership", "learning", "problem_solving"]
+# короткие задачи компаний: по одной на специализацию (заголовок, текст)
+_TASKS = {
+    Specialization.BACKEND: (
+        "Медленный эндпоинт ленты",
+        "Лента пользователя отвечает 3 секунды. Как найдёте причину и что поправите?",
+    ),
+    Specialization.FRONTEND: (
+        "Тормозит список из 10 000 строк",
+        "Список заказов подвисает при прокрутке. Предложите, как ускорить отрисовку.",
+    ),
+    Specialization.QA: (
+        "Поле ввода возраста",
+        "Возраст — целое число от 18 до 120. Составьте набор проверок и объясните выбор значений.",
+    ),
+    Specialization.DATA: (
+        "Модель деградировала",
+        "Качество модели оттока упало за месяц на 8 %. Опишите, как будете искать причину.",
+    ),
+    Specialization.DEVOPS: (
+        "Падающий деплой",
+        "Каждый третий выкат в Kubernetes откатывается по health-check. С чего начнёте?",
+    ),
+    Specialization.MOBILE: (
+        "Холодный старт 4 секунды",
+        "Приложение долго запускается на старых Android. Как измерите и что ускорите?",
+    ),
+    Specialization.SECURITY: (
+        "Подозрительные входы",
+        "В логах — сотни неудачных входов с разных IP за час. Ваши действия и выводы?",
+    ),
+}
 _ABOUT = [
     "Разрабатываю высоконагруженные сервисы и API, люблю чистую архитектуру.",
     "Участвую в соревнованиях ФСП с командой, отвечаю за алгоритмическую часть.",
@@ -94,12 +132,8 @@ async def seed_candidates(session: AsyncSession, cipher: FieldCipher, count: int
     category_links: list[dict] = []
     profiles: list[CandidateProfile] = []
     for _ in range(count):
-        user = User(
-            id=uuid.uuid4(),
-            email=f"demo-{uuid.uuid4().hex[:12]}@demo.itmatch.local",
-            password_hash=password_hash,
-            role=UserRole.CANDIDATE,
-            email_verified=True,
+        user = _user(
+            f"demo-{uuid.uuid4().hex[:12]}@demo.itmatch.local", password_hash, UserRole.CANDIDATE
         )
         profile = _profile(rng, user.id, cipher)
         session.add(user)
@@ -152,6 +186,9 @@ def _profile(rng: random.Random, user_id: uuid.UUID, cipher: FieldCipher) -> Can
         work_formats=rng.sample([f.value for f in WorkFormat], k=rng.randint(1, 2)),
         city=rng.choice(_CITIES),
         relocation=rng.random() < 0.3,
+        education=rng.choice([None, *Education]),
+        soft_skills=rng.sample(_SOFT_SKILLS, k=rng.randint(1, 3)),
+        industries=rng.sample(_INDUSTRIES, k=rng.randint(1, 2)),
         salary_min=salary,
         salary_max=salary + 50_000,
         verification_tier=rng.choice(
@@ -171,33 +208,101 @@ async def seed_market(session: AsyncSession, companies: int, vacancies_each: int
     rng = random.Random(companies * 1000 + vacancies_each)  # noqa: S311 - демо-данные
     skills = {s.slug: s.id for s in (await session.execute(select(Skill))).scalars()}
     password_hash = hash_password(secrets.token_urlsafe(24))
-    skill_links: list[dict] = []
-    created = 0
     for i in range(companies):
-        owner = User(
-            id=uuid.uuid4(),
-            email=f"demo-hr-{uuid.uuid4().hex[:10]}@demo.itmatch.local",
-            password_hash=password_hash,
-            role=UserRole.EMPLOYER,
-            email_verified=True,
-        )
-        name = f"ООО «{_COMPANY_NAMES[i % len(_COMPANY_NAMES)]} {i + 1}»"
-        company = EmployerCompany(id=uuid.uuid4(), name=name, status=CompanyStatus.APPROVED)
-        session.add_all([owner, company])
+        owner = _user(f"demo-hr-{uuid.uuid4().hex[:10]}@demo.itmatch.local", password_hash)
+        await _add_company(session, rng, skills, owner, i, vacancies_each)
+    await session.commit()
+    return companies * vacancies_each
+
+
+DEMO_CANDIDATE = "demo-candidate@example.org"  # .local не проходит проверку адреса при входе
+DEMO_EMPLOYER = "demo-hr@example.org"
+
+
+async def seed_logins(session: AsyncSession, cipher: FieldCipher) -> dict[str, str]:
+    """Аккаунты для показа: кандидат с заполненным профилем и категорией и компания с вакансиями
+    и задачами. Пароль случайный и возвращается один раз; существующие аккаунты не меняются."""
+    await set_rls_context(session, None, SYSTEM_ROLE)
+    emails = (DEMO_CANDIDATE, DEMO_EMPLOYER)
+    existing = set(
+        (await session.execute(select(User.email).where(User.email.in_(emails)))).scalars()
+    )
+    password = secrets.token_urlsafe(12)
+    password_hash = hash_password(password)
+    rng = random.Random(7)  # noqa: S311 - демо-данные
+    created: dict[str, str] = {}
+    if DEMO_CANDIDATE not in existing:
+        user = _user(DEMO_CANDIDATE, password_hash, UserRole.CANDIDATE)
+        session.add(user)
         await session.flush()
-        session.add(CompanyMember(company_id=company.id, user_id=owner.id, role=MemberRole.OWNER))
-        for _ in range(vacancies_each):
-            vacancy, picked = _vacancy(rng, company.id)
-            session.add(vacancy)
-            skill_links += [
-                {"vacancy_id": vacancy.id, "skill_id": skills[s]} for s in picked if s in skills
-            ]
-            created += 1
+        profile = _profile(rng, user.id, cipher)
+        profile.full_name_enc = cipher.encrypt(
+            "Анна Демо", profile_field_context("full_name", user.id)
+        )
+        session.add(profile)
+        created[DEMO_CANDIDATE] = password
+    if DEMO_EMPLOYER not in existing:
+        skills = {s.slug: s.id for s in (await session.execute(select(Skill))).scalars()}
+        await _add_company(session, rng, skills, _user(DEMO_EMPLOYER, password_hash), 0, 4)
+        created[DEMO_EMPLOYER] = password
+    await session.commit()
+    return created
+
+
+def _user(email: str, password_hash: str, role: UserRole = UserRole.EMPLOYER) -> User:
+    return User(
+        id=uuid.uuid4(),
+        email=email,
+        password_hash=password_hash,
+        role=role,
+        email_verified=True,
+        consent_at=datetime.now(UTC),
+    )
+
+
+async def _add_company(
+    session: AsyncSession,
+    rng: random.Random,
+    skills: dict[str, uuid.UUID],
+    owner: User,
+    index: int,
+    vacancies: int,
+) -> None:
+    """Компания с описанием, двумя задачами для кандидатов и опубликованными вакансиями."""
+    company = EmployerCompany(
+        id=uuid.uuid4(),
+        name=f"ООО «{_COMPANY_NAMES[index % len(_COMPANY_NAMES)]} {index + 1}»",
+        status=CompanyStatus.APPROVED,
+        industry=rng.choice(list(INDUSTRIES.values())),
+        description="Продуктовая ИТ-команда: выпускаем релизы каждые две недели, "
+        "ценим инженерную культуру и обучение внутри команды.",
+        contact_email=f"hr{index + 1}@demo.itmatch.local",
+    )
+    session.add_all([owner, company])
+    await session.flush()
+    session.add(CompanyMember(company_id=company.id, user_id=owner.id, role=MemberRole.OWNER))
+    for specialization in rng.sample(list(_TASKS), k=2):
+        title, body = _TASKS[specialization]
+        session.add(
+            EmployerTask(
+                company_id=company.id,
+                created_by=owner.id,
+                title=title,
+                body=body,
+                specialization=specialization,
+                is_active=True,
+            )
+        )
+    skill_links: list[dict] = []
+    for _ in range(vacancies):
+        vacancy, picked = _vacancy(rng, company.id)
+        session.add(vacancy)
+        skill_links += [
+            {"vacancy_id": vacancy.id, "skill_id": skills[s]} for s in picked if s in skills
+        ]
     await session.flush()
     if skill_links:
         await session.execute(insert(vacancy_skills), skill_links)
-    await session.commit()
-    return created
 
 
 def _vacancy(rng: random.Random, company_id: uuid.UUID) -> tuple[Vacancy, list[str]]:
@@ -217,5 +322,7 @@ def _vacancy(rng: random.Random, company_id: uuid.UUID) -> tuple[Vacancy, list[s
         salary_min=salary_min,
         salary_max=salary_min + rng.randrange(salary_min // 5, salary_min // 5 * 2, 5_000),
         status=VacancyStatus.ACTIVE,
+        # часть вакансий истекает в ближайшие дни — видно, как работает продление
+        expires_at=datetime.now(UTC) + timedelta(days=rng.randint(1, 14)),
     )
     return vacancy, rng.sample(title_skills, k=min(len(title_skills), rng.randint(2, 4)))
