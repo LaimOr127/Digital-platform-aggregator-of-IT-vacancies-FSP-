@@ -36,7 +36,7 @@ export function TestPreviewDialog({ vacancy, onClose }: { vacancy: Vacancy | nul
                 </p>
                 <p className="mt-1 font-medium">{q.prompt}</p>
                 {q.code && (
-                  <pre className="mt-2 overflow-x-auto rounded-lg bg-bg p-3 text-xs">
+                  <pre className="mt-2 overflow-x-auto rounded-lg bg-surface-2 p-3 text-xs">
                     <code>{q.code}</code>
                   </pre>
                 )}
