@@ -125,4 +125,3 @@ export function tokenSubject(token: string | null): string | null {
   }
 }
 
-export { ApiError };

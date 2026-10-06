@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState, type InputHTMLAttributes, type ReactNode } from "react";
-import { useForm, type FieldValues, type UseFormSetError } from "react-hook-form";
+import { useForm, type FieldValues, type UseFormRegisterReturn, type UseFormSetError } from "react-hook-form";
 import { authApi } from "../../api/endpoints";
 import { applyServerErrors } from "../../lib/forms";
 import { Alert } from "../../ui/Alert";
@@ -73,13 +73,13 @@ function CandidateForm({ onDone }: { onDone: Registered }) {
       <Field label="Имя и фамилия" error={errors.full_name?.message} hint="Работодатель увидит их только после вашего согласия">
         <Input autoComplete="name" {...form.register("full_name")} />
       </Field>
-      <Field label="Email" error={errors.email?.message}>
-        <Input type="email" autoComplete="email" {...form.register("email")} />
-      </Field>
-      <Field label="Пароль" error={errors.password?.message} hint={PASSWORD_HINT}>
-        <Input type="password" autoComplete="new-password" {...form.register("password")} />
-      </Field>
-      <Consent error={errors.consent?.message} {...form.register("consent")} />
+      <CredentialFields
+        emailLabel="Email"
+        email={form.register("email")}
+        password={form.register("password")}
+        consent={form.register("consent")}
+        errors={errors}
+      />
     </FormLayout>
   );
 }
@@ -100,14 +100,37 @@ function EmployerForm({ onDone }: { onDone: Registered }) {
       <Field label="ИНН (необязательно)" error={errors.inn?.message} hint="Ускоряет проверку компании">
         <Input inputMode="numeric" {...form.register("inn")} />
       </Field>
-      <Field label="Рабочий email" error={errors.email?.message}>
-        <Input type="email" autoComplete="email" {...form.register("email")} />
+      <CredentialFields
+        emailLabel="Рабочий email"
+        email={form.register("email")}
+        password={form.register("password")}
+        consent={form.register("consent")}
+        errors={errors}
+      />
+    </FormLayout>
+  );
+}
+
+type CredentialProps = {
+  emailLabel: string;
+  email: UseFormRegisterReturn;
+  password: UseFormRegisterReturn;
+  consent: UseFormRegisterReturn;
+  errors: Partial<Record<"email" | "password" | "consent", { message?: string }>>;
+};
+
+/** Почта, пароль и согласие — общие для обеих форм регистрации. */
+function CredentialFields({ emailLabel, email, password, consent, errors }: CredentialProps) {
+  return (
+    <>
+      <Field label={emailLabel} error={errors.email?.message}>
+        <Input type="email" autoComplete="email" {...email} />
       </Field>
       <Field label="Пароль" error={errors.password?.message} hint={PASSWORD_HINT}>
-        <Input type="password" autoComplete="new-password" {...form.register("password")} />
+        <Input type="password" autoComplete="new-password" {...password} />
       </Field>
-      <Consent error={errors.consent?.message} {...form.register("consent")} />
-    </FormLayout>
+      <Consent error={errors.consent?.message} {...consent} />
+    </>
   );
 }
 

@@ -74,7 +74,6 @@ class Settings(BaseSettings):
     anthropic_api_key: SecretStr = SecretStr("")
     ai_model: str = "claude-sonnet-5-5"
     ai_base_url: str = "https://api.anthropic.com"
-    ai_timeout_seconds: float = 30.0
     # http:// для моделей разрешён только явно (локальная Ollama в dev); в остальных случаях https
     ai_allow_http: bool = False
     # частные сети (10/8, 172.16/12, 192.168/16): on-prem модель или Ollama на хосте; иначе закрыто

@@ -40,6 +40,7 @@ def report(
         f"| Ошибка не больше одного грейда | {pct(a.grade_within_one)} | {pct(familiar.grade_within_one)} |",
         f"| Грейд занижен | {pct(a.grade_under)} | {pct(familiar.grade_under)} |",
         f"| Грейд завышен | {pct(a.grade_over)} | {pct(familiar.grade_over)} |",
+        f"| Не подтвердил даже стажёра | {pct(a.no_category)} | {pct(familiar.no_category)} |",
         f"| Завысил грейд в опросе — не подтверждён | {pct(a.overclaim_caught)} | {pct(familiar.overclaim_caught)} |",
         f"| Повтор: то же решение «сдал / не сдал» | {pct(a.retest_decision)} | {pct(familiar.retest_decision)} |",
         f"| Повтор: корреляция оценок уровня | {a.retest_theta_r:.2f} | {familiar.retest_theta_r:.2f} |",
