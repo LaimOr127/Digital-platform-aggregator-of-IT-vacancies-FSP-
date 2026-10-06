@@ -21,6 +21,7 @@ from app.api.v1 import (
     profile_import,
     public,
     tasks,
+    updates,
 )
 from app.core.errors import ERROR_RESPONSES
 
@@ -41,6 +42,7 @@ for module in (
     catalog,
     tasks,
     insights,
+    updates,
     admin,
     admin_ai,
     public,
