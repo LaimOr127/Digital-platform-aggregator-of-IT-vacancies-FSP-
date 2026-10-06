@@ -79,4 +79,22 @@ describe("CatalogPage", () => {
     expect(query.getAll("skill")).toEqual(["python"]);
     expect(query.get("fsp_only")).toBe("true");
   });
+
+  it("marks categories recommended for the chosen need", async () => {
+    serveRoutes({
+      "/employer/vacancies": () =>
+        json({ items: [{ id: "v1", title: "Python-разработчик", status: "active", specialization: "backend", grade: "middle" }], next_cursor: null }),
+      "/employer/catalog/categories": () => json(categories),
+      "/employer/catalog/fsp-categories": () => json([]),
+      "/employer/catalog/candidates": () => json({ items: [], next_cursor: null }),
+      "/public/skills": () => json([]),
+    });
+    renderWithApp(<CatalogPage company={company as never} />);
+    expect(await screen.findByText(/рекомендованные под «Python-разработчик»/)).toBeInTheDocument();
+    for (const grade of ["Junior", "Middle", "Senior"]) {
+      expect(screen.getByRole("button", { name: new RegExp(`Бэкенд-разработка, ${grade}: .*рекомендуется`) })).toBeInTheDocument();
+    }
+    expect(screen.queryByRole("button", { name: /Бэкенд-разработка, Lead: .*рекомендуется/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Тестирование, Middle: .*рекомендуется/ })).not.toBeInTheDocument();
+  });
 });

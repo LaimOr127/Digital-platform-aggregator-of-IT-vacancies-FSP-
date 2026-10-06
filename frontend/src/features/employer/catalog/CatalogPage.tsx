@@ -11,7 +11,7 @@ import { Field, Select } from "../../../ui/form";
 import { LoadingBlock } from "../../../ui/Spinner";
 import { CandidateCardView } from "./CandidateCardView";
 import { FiltersPanel } from "./CatalogFilters";
-import { CategoryGrid } from "./CategoryGrid";
+import { CategoryGrid, recommendedCategories } from "./CategoryGrid";
 import { useCatalogCandidates, useCatalogCategories, useFspCategories, useNeedVacancies } from "./hooks";
 import { InvitationDialog } from "../applications/InvitationDialog";
 
@@ -38,6 +38,8 @@ function Catalog({ company }: { company: Company }) {
   const vacancies = useNeedVacancies();
   const [chosen, setChosen] = useState<string | null>(null);
   const matchVacancy = chosen ?? vacancies.data?.[0]?.id ?? "";
+  const need = vacancies.data?.find((v) => v.id === matchVacancy);
+  const recommended = need?.specialization ? recommendedCategories(need.specialization, need.grade) : [];
   const categories = useCatalogCategories(true);
   const fspCategories = useFspCategories();
   const candidates = useCatalogCandidates({ ...filters, vacancy_id: matchVacancy || undefined }, !vacancies.isPending);
@@ -62,8 +64,18 @@ function Catalog({ company }: { company: Company }) {
         />
       </Field>
       {categories.error && <Alert>{errorMessage(categories.error)}</Alert>}
+      {need && recommended.length > 0 && (
+        <p className="mb-2 text-sm text-muted">
+          Рамкой отмечены категории, рекомендованные под «{need.title}»: тот же грейд и соседние.
+        </p>
+      )}
       {categories.data && (
-        <CategoryGrid categories={categories.data} selected={filters.category} onSelect={(category) => update({ category })} />
+        <CategoryGrid
+          categories={categories.data}
+          selected={filters.category}
+          recommended={recommended}
+          onSelect={(category) => update({ category })}
+        />
       )}
       <FiltersPanel
         filters={filters}
