@@ -97,4 +97,17 @@ describe("CatalogPage", () => {
     expect(screen.queryByRole("button", { name: /Бэкенд-разработка, Lead: .*рекомендуется/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Тестирование, Middle: .*рекомендуется/ })).not.toBeInTheDocument();
   });
+
+  it("restores the selection from the address after navigation", async () => {
+    const fetchMock = serve();
+    renderWithApp(<CatalogPage company={company as never} />, "/?category=backend:middle&confirmed_only=false&skill=python&need=");
+    expect(
+      await screen.findByRole("button", { name: "Бэкенд-разработка, Middle: кандидатов 4", pressed: true }),
+    ).toBeInTheDocument();
+    const query = lastQuery(fetchMock);
+    expect(query.get("category")).toBe("backend:middle");
+    expect(query.get("confirmed_only")).toBe("false");
+    expect(query.getAll("skill")).toEqual(["python"]);
+    expect(query.get("vacancy_id")).toBeNull();
+  });
 });

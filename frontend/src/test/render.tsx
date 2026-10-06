@@ -25,13 +25,13 @@ export function bodyOf(mock: ReturnType<typeof vi.fn>, path: string) {
   return JSON.parse(String(calls.at(-1)?.[1]?.body ?? "null"));
 }
 
-export function renderWithApp(element: ReactElement) {
+export function renderWithApp(element: ReactElement, path = "/") {
   // без повторов: ошибочный ответ сразу виден в интерфейсе, тест не ждёт паузы между попытками
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
       <ToastProvider>
-        <MemoryRouter>{element}</MemoryRouter>
+        <MemoryRouter initialEntries={[path]}>{element}</MemoryRouter>
       </ToastProvider>
     </QueryClientProvider>,
   );
