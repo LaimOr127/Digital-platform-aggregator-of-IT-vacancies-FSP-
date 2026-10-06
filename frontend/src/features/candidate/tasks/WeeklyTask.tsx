@@ -76,13 +76,24 @@ function TaskForm({ task }: { task: OfferedTask }) {
 
 function AnswerItem({ item }: { item: MyTaskAnswer }) {
   return (
-    <li className="flex flex-wrap items-baseline justify-between gap-2 text-sm">
-      <span className="min-w-0">
-        {item.task_title} <span className="text-muted">· {item.company_name} · {formatDate(item.created_at)}</span>
-      </span>
-      <span className={item.rating ? "font-medium" : "text-muted"}>
-        {item.rating ? `оценка ${item.rating} из 5` : "ещё не оценён"}
-      </span>
+    <li className="text-sm">
+      <details>
+        <summary className="flex cursor-pointer flex-wrap items-baseline justify-between gap-2">
+          <span className="min-w-0">
+            Задача «{item.task_title}» <span className="text-muted">· {item.company_name} · {formatDate(item.created_at)}</span>
+          </span>
+          <span className={item.rating ? "font-medium" : "text-muted"}>
+            {item.rating ? `оценка ${item.rating} из 5` : "ещё не оценён"}
+          </span>
+        </summary>
+        <div className="mt-2 flex flex-col gap-2 rounded-xl bg-surface-2 p-3">
+          {item.task_body && <p className="whitespace-pre-line leading-relaxed">{item.task_body}</p>}
+          <p className="whitespace-pre-line leading-relaxed">
+            <span className="text-muted">Ваш ответ: </span>
+            {item.answer}
+          </p>
+        </div>
+      </details>
     </li>
   );
 }

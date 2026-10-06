@@ -38,12 +38,26 @@ describe("weekly task", () => {
       "/candidate/tasks/current": () => json({ task: null, next_at: "2026-10-12T09:00:00Z", reason: null }),
       "/candidate/tasks/answers": () =>
         json({
-          items: [{ id: "a1", task_title: "Лента", company_name: "ООО Найм", answer: "…", rating: 4, created_at: "2026-10-05T09:00:00Z" }],
+          items: [
+            {
+              id: "a1",
+              task_title: "Лента",
+              task_body: "Лента грузится 3 секунды",
+              company_name: "ООО Найм",
+              answer: "Добавлю индекс",
+              rating: 4,
+              created_at: "2026-10-05T09:00:00Z",
+            },
+          ],
           next_cursor: null,
         }),
     });
     renderWithApp(<WeeklyTask />);
     expect(await screen.findByText(/Следующая задача — с 12 окт/)).toBeInTheDocument();
     expect(screen.getByText("оценка 4 из 5")).toBeInTheDocument();
+    // своё задание и ответ можно перечитать
+    await userEvent.click(screen.getByText(/Задача «Лента»/));
+    expect(screen.getByText("Лента грузится 3 секунды")).toBeVisible();
+    expect(screen.getByText("Добавлю индекс")).toBeVisible();
   });
 });

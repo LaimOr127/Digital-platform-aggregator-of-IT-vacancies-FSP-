@@ -5,7 +5,6 @@ import { Check, RefreshCw } from "lucide-react";
 import { employerApi } from "../../api/endpoints";
 import { errorMessage } from "../../api/errors";
 import type { Vacancy } from "../../api/types";
-import { labels } from "../../lib/format";
 import { Alert } from "../../ui/Alert";
 import { Button } from "../../ui/Button";
 import { Dialog } from "../../ui/Dialog";
@@ -21,9 +20,8 @@ export function TestPreviewDialog({ vacancy, onClose }: { vacancy: Vacancy | nul
   return (
     <Dialog open={vacancy !== null} title="Пример теста для кандидатов" onClose={onClose} wide>
       <p className="text-sm text-muted">
-        Задания подобраны по специализации, грейду и навыкам вакансии: уровни ниже, на уровне и выше{" "}
-        {vacancy ? labels.grade[vacancy.grade] : ""}. Каждый кандидат получает свой вариант — числа, данные и
-        утверждения меняются, поэтому ответы чужой попытки бесполезны.
+        Тест собран под эту вакансию: специализация, навыки и уровень сложности. У каждого кандидата свой вариант
+        заданий, поэтому чужие ответы не помогут.
       </p>
       {preview.error && <Alert>{errorMessage(preview.error)}</Alert>}
       {preview.isPending && <LoadingBlock />}

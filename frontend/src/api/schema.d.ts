@@ -2765,6 +2765,8 @@ export interface components {
             id: string;
             /** Task Title */
             task_title: string;
+            /** Task Body */
+            task_body: string;
             /** Company Name */
             company_name: string;
             /** Answer */

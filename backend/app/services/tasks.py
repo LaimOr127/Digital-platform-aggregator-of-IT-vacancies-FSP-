@@ -164,6 +164,7 @@ class CandidateTaskService:
             company_id=task.company_id,
             profile_id=profile.id,
             task_title=task.title,
+            task_body=task.body,
             company_name=company.name,
             answer=data.answer.strip(),
         )

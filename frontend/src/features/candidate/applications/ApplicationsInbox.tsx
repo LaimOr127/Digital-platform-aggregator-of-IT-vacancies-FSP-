@@ -12,6 +12,7 @@ import { CursorListView } from "../../../ui/CursorListView";
 import { Segmented } from "../../../ui/Segmented";
 import { useAction } from "../../../ui/useAction";
 import { useAcceptInvitation, useDeclineInvitation, useMyApplications, useWithdrawResponse } from "./hooks";
+import { ExpandableText } from "../../../ui/ExpandableText";
 
 const TABS: { value: ApplicationDirection; label: string }[] = [
   { value: "invitation", label: "Приглашения" },
@@ -98,7 +99,7 @@ function Row({ item, onAccept, onDecline, onWithdraw }: RowProps) {
       </p>
       {item.description && <p className="mt-3 whitespace-pre-line text-sm leading-relaxed">{item.description}</p>}
       {item.company.description && (
-        <p className="mt-2 line-clamp-3 text-sm text-muted">О компании: {item.company.description}</p>
+        <ExpandableText className="mt-2 text-sm" label="О компании" text={item.company.description} />
       )}
       {item.contact_method && (
         <p className="mt-3 rounded-xl border border-accent/30 bg-accent/5 px-4 py-3 text-sm">

@@ -125,5 +125,7 @@ describe("profile autofill", () => {
     expect(screen.getByText("Есть несохранённые изменения")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Сохранить" }));
     expect(await screen.findByText("Все изменения сохранены")).toBeInTheDocument();
+    // кнопка — только когда есть что сохранять
+    expect(screen.queryByRole("button", { name: "Сохранить" })).not.toBeInTheDocument();
   });
 });

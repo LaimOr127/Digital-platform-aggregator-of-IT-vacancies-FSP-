@@ -2,15 +2,19 @@ import { Award, BadgeCheck, MapPin } from "lucide-react";
 import type { ReactNode } from "react";
 import type { CandidateCard } from "../../../api/types";
 import { formatSalaryRange, labels, tierLabels } from "../../../lib/format";
+import { cn } from "../../../lib/cn";
 import { searchTone, tierTone } from "../../../lib/tones";
 import { Badge } from "../../../ui/Badge";
 import { MatchPanel } from "./MatchPanel";
+import { ExpandableText } from "../../../ui/ExpandableText";
 
 const MAX_ACHIEVEMENTS = 3;
 
 /** Анонимная карточка кандидата: категория и тест — главное, самоописание — дополнительно.
  * Имени и контактов нет: их видно после того, как кандидат примет приглашение. */
-export function CandidateCardView({ card, action }: { card: CandidateCard; action?: ReactNode }) {
+type Props = { card: CandidateCard; action?: ReactNode; className?: string };
+
+export function CandidateCardView({ card, action, className }: Props) {
   const meta = [
     card.specialization ? labels.specialization[card.specialization] : null,
     card.experience_years !== null ? `стаж ${card.experience_years} лет` : null,
@@ -20,7 +24,7 @@ export function CandidateCardView({ card, action }: { card: CandidateCard; actio
   const declared = card.skills.filter((s) => !card.confirmed_skills.includes(s));
 
   return (
-    <article className="flex flex-col gap-4 rounded-2xl border border-line bg-surface p-5">
+    <article className={cn("flex flex-col gap-4 rounded-2xl border border-line bg-surface p-5", className)}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-xs text-muted">Кандидат #{card.anon_id.slice(0, 6).toUpperCase()}</p>
@@ -85,7 +89,7 @@ export function CandidateCardView({ card, action }: { card: CandidateCard; actio
         </ul>
       )}
 
-      {card.about && <p className="line-clamp-3 text-sm leading-relaxed text-muted">{card.about}</p>}
+      {card.about && <ExpandableText className="text-sm leading-relaxed text-muted" text={card.about} />}
       {action && <div className="border-t border-line pt-4">{action}</div>}
     </article>
   );

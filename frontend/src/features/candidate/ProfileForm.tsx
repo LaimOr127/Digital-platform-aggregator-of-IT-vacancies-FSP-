@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Save } from "lucide-react";
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useDictionaries } from "../../api/queries";
 import type { Profile, ProfileDraft, Skill } from "../../api/types";
@@ -8,7 +8,7 @@ import { labels, options } from "../../lib/format";
 import { applyServerErrors } from "../../lib/forms";
 import { Button } from "../../ui/Button";
 import { Card, CardTitle } from "../../ui/Card";
-import { Field, FieldGroup, Input, Select, Switch, Textarea } from "../../ui/form";
+import { Field, FieldGroup, Input, MoneyInput, Select, Switch, Textarea } from "../../ui/form";
 import { Segmented } from "../../ui/Segmented";
 import { ChipGroup } from "../../ui/ChipGroup";
 import { SkillPicker } from "../../ui/SkillPicker";
@@ -26,6 +26,8 @@ const FIELDS = [
 ];
 const SEARCH_OPTIONS = options(labels.searchStatus);
 const ALIASES = { "contacts.phone": "phone", "contacts.telegram": "telegram", "contacts.email": "contact_email" };
+/** сколько держится «Все изменения сохранены» после сохранения */
+const SAVED_NOTICE_MS = 3000;
 
 function Section({ title, text, children }: { title: string; text?: string; children: ReactNode }) {
   return (
@@ -53,13 +55,20 @@ export function ProfileForm({ profile, skills, fspLinked, autoFsp }: Props) {
   });
   const { register, control, formState } = form;
   const { errors, isDirty } = formState;
+  // панель сохранения видна, пока есть правки, и ещё несколько секунд после сохранения
+  const [justSaved, setJustSaved] = useState(false);
+  useEffect(() => {
+    if (!justSaved) return;
+    const timer = setTimeout(() => setJustSaved(false), SAVED_NOTICE_MS);
+    return () => clearTimeout(timer);
+  }, [justSaved]);
 
   const onSubmit = form.handleSubmit(async (values) => {
     try {
       const saved = await update.mutateAsync(formToUpdate(values));
       // сохранённое — новая точка отсчёта: иначе поля, изменённые до сохранения, остаются «грязными»
       form.reset(profileToForm(saved));
-      notify("Профиль сохранён");
+      setJustSaved(true);
     } catch (err) {
       const message = applyServerErrors(err, form.setError, FIELDS, ALIASES);
       if (message) notify(message, "error");
@@ -148,11 +157,11 @@ export function ProfileForm({ profile, skills, fspLinked, autoFsp }: Props) {
       </Section>
 
       <Section title="Ожидания по зарплате" text="Рубли в месяц до вычета налогов. Компании предлагают оффер с вилкой.">
-        <Field label="От" error={errors.salary_min?.message}>
-          <Input type="number" inputMode="numeric" min={0} step={5000} className="tabular" {...register("salary_min")} />
+        <Field label="От, ₽" error={errors.salary_min?.message}>
+          <MoneyInput {...register("salary_min")} />
         </Field>
-        <Field label="До" error={errors.salary_max?.message}>
-          <Input type="number" inputMode="numeric" min={0} step={5000} className="tabular" {...register("salary_max")} />
+        <Field label="До, ₽" error={errors.salary_max?.message}>
+          <MoneyInput {...register("salary_max")} />
         </Field>
       </Section>
 
@@ -201,17 +210,21 @@ export function ProfileForm({ profile, skills, fspLinked, autoFsp }: Props) {
         />
       </Card>
 
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-bg/90 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-end gap-3 px-4 py-3 sm:px-6">
-          <span className="text-sm text-muted" aria-live="polite">
-            {isDirty ? "Есть несохранённые изменения" : "Все изменения сохранены"}
-          </span>
-          <Button type="submit" loading={update.isPending} disabled={!isDirty}>
-            <Save className="size-4" aria-hidden />
-            Сохранить
-          </Button>
+      {(isDirty || justSaved) && (
+        <div className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-bg/90 backdrop-blur">
+          <div className="mx-auto flex max-w-6xl items-center justify-end gap-3 px-4 py-3 sm:px-6">
+            <span className="text-sm text-muted" aria-live="polite">
+              {isDirty ? "Есть несохранённые изменения" : "Все изменения сохранены"}
+            </span>
+            {isDirty && (
+              <Button type="submit" loading={update.isPending}>
+                <Save className="size-4" aria-hidden />
+                Сохранить
+              </Button>
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </form>
   );
 }

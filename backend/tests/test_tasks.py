@@ -70,6 +70,7 @@ async def test_task_offered_answered_and_rated(client: AsyncClient, db, app):
     assert rated.json()["rating"] == 4
 
     (mine,) = (await client.get(MY_ANSWERS, headers=bearer(token))).json()["items"]
+    assert mine["task_body"] == task["body"]  # своё задание видно и после снятия задачи
     assert (mine["task_title"], mine["company_name"], mine["rating"]) == (
         "Медленный запрос ленты",
         "ООО Найм",
