@@ -11,12 +11,12 @@ MODE  ?= dev
 COMPOSE_FILES = -f deploy/compose.base.yml $(foreach s,$(ALL),-f deploy/compose.$(s).yml) -f deploy/compose.$(MODE).yml
 DC = docker compose --env-file .env $(COMPOSE_FILES)
 
-.PHONY: env up down stop logs logs-dump ps build dev prod test test-backend test-fsp-mock test-frontend smoke check-db verify config secrets-check clean migrate create-admin reset-admin-2fa confirm-email check-dupes seed-demo load evaluate docs-docx
+.PHONY: env up down stop logs logs-dump ps build dev prod test test-backend test-fsp-mock test-frontend smoke check-db verify config secrets-check clean migrate create-admin reset-admin-2fa confirm-email check-dupes seed-demo load evaluate docs-docx fix-net
 
 env:            ## создать .env со случайными секретами
 	@./scripts/gen-env.sh
 
-fix-net:
+fix-net:        ## только GitHub Codespaces: разрешить Docker пересылку трафика между сетями
 	sudo iptables-legacy -P FORWARD ACCEPT
 	@echo "FORWARD policy set to ACCEPT"
 

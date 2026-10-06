@@ -21,7 +21,6 @@
 
 ```bash
 make env
-make fix-net
 make dev
 make verify
 make test
@@ -31,7 +30,8 @@ make test
 не трогая существующие), `make dev` собирает и поднимает всё, `make verify` — смоук-тест
 (регистрация с подтверждением почты через Mailpit, вход, привязка ФСП, паспорт навыков) и проверка прав БД и RLS, `make test` — линт
 и тесты в контейнерах (бэкенд на SQLite и одноразовом PostgreSQL с RLS, мок ФСП, фронтенд).
-Если порт 8088 занят, поменяйте `HTTP_PORT` в `.env`.
+Если порт 8088 занят, поменяйте `HTTP_PORT` в `.env`. В GitHub Codespaces перед `make dev` выполните
+`make fix-net` (разрешает Docker пересылку трафика между сетями; на macOS и обычном Linux не нужно).
 
 Открыть в браузере: http://localhost:8088 (приложение), http://localhost:8088/api-docs/ (документация API),
 http://localhost:8025 (Mailpit: локальный почтовый ящик — все письма приложения приходят сюда).

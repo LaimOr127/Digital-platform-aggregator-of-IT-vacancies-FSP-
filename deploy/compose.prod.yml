@@ -39,3 +39,8 @@ services:
     environment:
       FSP_MOCK_EXPOSE_CODES: ${FSP_DEMO_CODES_PROD:-false}
     deploy: { resources: { limits: { cpus: "0.25", memory: 96M } } }
+
+# В dev и GitHub Codespaces сеть edge открыта (compose.base.yml: Docker в Codespaces иначе не
+# доставляет трафик); на сервере web и api снова без выхода в интернет.
+networks:
+  edge: { internal: true }
