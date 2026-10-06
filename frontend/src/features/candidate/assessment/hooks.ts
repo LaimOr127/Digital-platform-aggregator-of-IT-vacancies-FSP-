@@ -40,3 +40,9 @@ export function useSubmitAttempt() {
     onSuccess: invalidate,
   });
 }
+
+/** Снимок экрана во время теста: попытка завершается без зачёта. */
+export function useReportViolation() {
+  const invalidate = useInvalidateCandidate();
+  return useMutation({ mutationFn: (id: string) => assessmentApi.violation(id), onSuccess: invalidate });
+}

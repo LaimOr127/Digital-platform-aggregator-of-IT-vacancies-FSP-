@@ -40,3 +40,5 @@ class Assessment(IdMixin, TimestampMixin, Base):
     score: Mapped[int | None] = mapped_column(Integer, default=None)
     confident: Mapped[bool] = mapped_column(Boolean, default=False)
     topics: Mapped[dict | None] = mapped_column(JSON, default=None)
+    # нарушение во время теста (снимок экрана): попытка не засчитана
+    violation: Mapped[str | None] = mapped_column(String(32), default=None)

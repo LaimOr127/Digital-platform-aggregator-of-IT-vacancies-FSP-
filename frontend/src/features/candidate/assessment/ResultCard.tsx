@@ -43,6 +43,9 @@ export function ResultCard({ result }: { result: AttemptResult }) {
 }
 
 function verdict(result: AttemptResult): string {
+  if (result.violation === "screenshot") {
+    return "Тест не засчитан: во время теста был сделан снимок экрана. Этот грейд и грейды выше — через 14 дней, грейд ниже — сразу.";
+  }
   if (result.result === "failed") {
     return "Грейд не понижается: можно сразу пройти тест на грейд ниже, а этот и грейды выше — через 14 дней.";
   }

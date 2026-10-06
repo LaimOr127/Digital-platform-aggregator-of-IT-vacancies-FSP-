@@ -98,6 +98,24 @@ async def test_failed_test_does_not_lower_grade(client: AsyncClient, db):
     assert profile["grade"] == "senior" and profile["confirmed_grade"] is None
 
 
+async def test_screenshot_fails_attempt_and_locks_grade(client: AsyncClient):
+    token = await register_candidate(client)
+    await survey(client, token, grade="middle")
+    attempt = (
+        await client.post(f"{ASSESSMENT}/attempts", json={"grade": "middle"}, headers=bearer(token))
+    ).json()
+    url = f"{ASSESSMENT}/attempts/{attempt['id']}"
+    r = await client.post(f"{url}/violation", json={"reason": "screenshot"}, headers=bearer(token))
+    assert r.status_code == 200, r.text
+    assert (r.json()["result"], r.json()["violation"]) == ("failed", "screenshot")
+    # ответы после нарушения не принимаются, грейд и выше закрыты, как после неудачи
+    late = await client.post(f"{url}/submit", json={"responses": []}, headers=bearer(token))
+    assert late.status_code == 409
+    after = await state(client, token)
+    assert not option(after, "middle")["allowed"] and not option(after, "senior")["allowed"]
+    assert option(after, "junior")["allowed"]
+
+
 async def test_time_limit_is_enforced(client: AsyncClient, db):
     token = await register_candidate(client)
     await survey(client, token)

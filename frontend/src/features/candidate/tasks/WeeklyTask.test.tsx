@@ -60,4 +60,21 @@ describe("weekly task", () => {
     expect(screen.getByText("Лента грузится 3 секунды")).toBeVisible();
     expect(screen.getByText("Добавлю индекс")).toBeVisible();
   });
+
+  it("closes the task after a screenshot and blocks copying its text", async () => {
+    const fetchMock = serveRoutes({
+      "/candidate/tasks/current": () => json({ task: offered, next_at: null, reason: null }),
+      "/candidate/tasks/answers": () => json({ items: [], next_cursor: null }),
+      "/candidate/tasks/t1/violation": () => new Response(null, { status: 204 }),
+    });
+    renderWithApp(<WeeklyTask />);
+    const body = await screen.findByText("Лента грузится 3 секунды");
+    const copy = new Event("copy", { bubbles: true, cancelable: true });
+    body.dispatchEvent(copy);
+    expect(copy.defaultPrevented).toBe(true);
+    await userEvent.keyboard("{PrintScreen}");
+    expect(await screen.findByText(/Задача закрыта: во время решения был сделан снимок экрана/)).toBeInTheDocument();
+    const calls = fetchMock.mock.calls.filter(([url]) => String(url).endsWith("/candidate/tasks/t1/violation"));
+    expect(calls).toHaveLength(1); // keydown и keyup одного нажатия — одно нарушение
+  });
 });

@@ -15,6 +15,7 @@ from app.schemas.assessment import (
     PreviewQuestionOut,
     SubmitIn,
     SurveyIn,
+    ViolationIn,
 )
 from app.services.access import Action
 from app.services.assessment.preview import vacancy_preview
@@ -72,6 +73,17 @@ async def submit_attempt(
     attempt_id: uuid.UUID, data: SubmitIn, service: ServiceDep
 ) -> AttemptResultOut:
     return await service.submit(attempt_id, data)
+
+
+@router.post(
+    "/candidate/assessment/attempts/{attempt_id}/violation",
+    dependencies=Candidate,
+    summary="Снимок экрана во время теста: попытка не засчитана",
+)
+async def report_violation(
+    attempt_id: uuid.UUID, data: ViolationIn, service: ServiceDep
+) -> AttemptResultOut:
+    return await service.forfeit(attempt_id, data.reason)
 
 
 @router.get(

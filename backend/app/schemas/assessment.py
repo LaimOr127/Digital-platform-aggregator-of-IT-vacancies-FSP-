@@ -90,6 +90,15 @@ class AttemptResultOut(BaseModel):
     topics: list[TopicResultOut]
     started_at: datetime
     finished_at: datetime | None
+    violation: str | None = Field(
+        default=None, description="screenshot — снимок экрана во время теста, попытка не засчитана"
+    )
+
+
+class ViolationIn(BaseModel):
+    """Нарушение, замеченное браузером во время теста или задачи."""
+
+    reason: Literal["screenshot"] = "screenshot"
 
 
 class SubmitIn(BaseModel):
@@ -150,3 +159,5 @@ class DictionariesOut(BaseModel):
     industries: list[OptionOut]
     roles: list[OptionOut]
     soft_skills: list[OptionOut]
+    education: list[OptionOut]
+    cities: list[str]

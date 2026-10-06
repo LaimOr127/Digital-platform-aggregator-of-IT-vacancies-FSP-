@@ -93,7 +93,11 @@ class EmployerUpdatesService:
                     )
                     .scalar_subquery(),
                     _latest(Application.updated_at, Application.company_id == company),
-                    _latest(TaskAnswer.created_at, TaskAnswer.company_id == company),
+                    _latest(
+                        TaskAnswer.created_at,
+                        TaskAnswer.company_id == company,
+                        TaskAnswer.blocked.is_(False),
+                    ),
                     _latest(Interview.updated_at, Interview.company_id == company),
                     _latest(Offer.updated_at, Offer.company_id == company),
                 )

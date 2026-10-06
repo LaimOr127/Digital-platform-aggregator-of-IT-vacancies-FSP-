@@ -345,6 +345,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/candidate/assessment/attempts/{attempt_id}/violation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Снимок экрана во время теста: попытка не засчитана */
+        post: operations["report_violation_api_v1_candidate_assessment_attempts__attempt_id__violation_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/employer/vacancies/{vacancy_id}/assessment-preview": {
         parameters: {
             query?: never;
@@ -1172,6 +1189,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/candidate/tasks/{task_id}/violation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Снимок экрана во время решения: задача закрывается для кандидата */
+        post: operations["report_violation_api_v1_candidate_tasks__task_id__violation_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/candidate/tasks/answers": {
         parameters: {
             query?: never;
@@ -1898,6 +1932,11 @@ export interface components {
             started_at: string;
             /** Finished At */
             finished_at: string | null;
+            /**
+             * Violation
+             * @description screenshot — снимок экрана во время теста, попытка не засчитана
+             */
+            violation?: string | null;
         };
         /** AuditEntryOut */
         AuditEntryOut: {
@@ -3715,6 +3754,18 @@ export interface components {
          */
         VerificationTier: "self_declared" | "resume_parsed" | "verified_fsp";
         /**
+         * ViolationIn
+         * @description Нарушение, замеченное браузером во время теста или задачи.
+         */
+        ViolationIn: {
+            /**
+             * Reason
+             * @default screenshot
+             * @constant
+             */
+            reason: "screenshot";
+        };
+        /**
          * WorkFormat
          * @enum {string}
          */
@@ -5458,6 +5509,95 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["SubmitIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttemptResultOut"];
+                };
+            };
+            /** @description Некорректный запрос (bad_request, invalid_link) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Нет сессии или она истекла (unauthorized, mfa_expired) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Нет прав на действие (forbidden, wrong_password, email_not_verified) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Объект не найден или недоступен этой роли (not_found) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Конфликт состояния (conflict, invalid_state) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Ошибка валидации полей (validation_error, details — по полям) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Превышен лимит запросов (rate_limited) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    report_violation_api_v1_candidate_assessment_attempts__attempt_id__violation_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                attempt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ViolationIn"];
             };
         };
         responses: {
@@ -10570,6 +10710,89 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["MyTaskAnswerOut"];
                 };
+            };
+            /** @description Некорректный запрос (bad_request, invalid_link) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Нет сессии или она истекла (unauthorized, mfa_expired) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Нет прав на действие (forbidden, wrong_password, email_not_verified) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Объект не найден или недоступен этой роли (not_found) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Конфликт состояния (conflict, invalid_state) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Ошибка валидации полей (validation_error, details — по полям) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Превышен лимит запросов (rate_limited) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    report_violation_api_v1_candidate_tasks__task_id__violation_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                task_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Некорректный запрос (bad_request, invalid_link) */
             400: {

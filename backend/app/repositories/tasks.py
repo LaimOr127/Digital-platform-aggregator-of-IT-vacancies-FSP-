@@ -19,7 +19,11 @@ class CompanyTaskRepository(OwnedRepository[EmployerTask]):
     async def answer_counts(self, task_ids: list[uuid.UUID]) -> dict[uuid.UUID, int]:
         stmt = (
             select(TaskAnswer.task_id, func.count())
-            .where(TaskAnswer.task_id.in_(task_ids), TaskAnswer.company_id == self.owner_id)
+            .where(
+                TaskAnswer.task_id.in_(task_ids),
+                TaskAnswer.company_id == self.owner_id,
+                TaskAnswer.blocked.is_(False),
+            )
             .group_by(TaskAnswer.task_id)
         )
         return {task_id: count for task_id, count in await self.session.execute(stmt)}
@@ -62,5 +66,8 @@ class ProfileAnswerRepository(OwnedRepository[TaskAnswer]):
         return list((await self.session.execute(stmt)).scalars())
 
     async def last_answered_at(self) -> datetime | None:
-        stmt = select(func.max(TaskAnswer.created_at)).where(TaskAnswer.profile_id == self.owner_id)
+        """Закрытая из-за снимка экрана задача не считается ответом: период не сдвигается."""
+        stmt = select(func.max(TaskAnswer.created_at)).where(
+            TaskAnswer.profile_id == self.owner_id, TaskAnswer.blocked.is_(False)
+        )
         return (await self.session.execute(stmt)).scalar_one_or_none()

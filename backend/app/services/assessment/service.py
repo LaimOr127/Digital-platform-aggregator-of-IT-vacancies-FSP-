@@ -152,6 +152,28 @@ class AssessmentService:
         await self.session.commit()
         return views.result(attempt)
 
+    async def forfeit(self, attempt_id: uuid.UUID, reason: str) -> AttemptResultOut:
+        """Снимок экрана во время теста: попытка не засчитана — как проваленная, с теми же
+        правилами повтора (этот грейд и выше — через 14 дней)."""
+        profile = await self.profiles.own_or_404(for_update=True)
+        attempt = await AssessmentRepository(self.session, profile.id).lock_or_404(attempt_id)
+        if attempt.status != AssessmentStatus.IN_PROGRESS:
+            raise InvalidStateError("тест уже завершён")
+        attempt.status = AssessmentStatus.COMPLETED
+        attempt.finished_at = datetime.now(UTC)
+        attempt.result = AssessmentResult.FAILED
+        attempt.correct, attempt.score, attempt.confident = 0, 0, False
+        attempt.violation = reason
+        await self.audit.record(
+            "assessment.violation",
+            self.principal.user_id,
+            "assessment",
+            attempt.id,
+            {"grade": attempt.grade, "reason": reason},
+        )
+        await self.session.commit()
+        return views.result(attempt)
+
     async def _active(self, repo: AssessmentRepository) -> Assessment | None:
         """Открытая попытка; просроченные закрываются при обращении (ответы не засчитаны)."""
         active = None

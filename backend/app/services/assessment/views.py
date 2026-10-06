@@ -65,6 +65,7 @@ def result(row: Assessment) -> AttemptResultOut:
         topics=[TopicResultOut(topic=t, correct=c, total=n) for t, (c, n) in topics.items()],
         started_at=as_aware(row.started_at),
         finished_at=as_aware(row.finished_at) if row.finished_at else None,
+        violation=row.violation,
     )
 
 
