@@ -40,7 +40,7 @@ from app.services.access import Action, Principal, policy
 from app.services.catalog import cards_by_profile
 
 TASK_PERIOD = timedelta(days=7)
-NO_SURVEY = "Пройдите опрос в разделе «Тест»: задачи подбираются по специализации"
+NO_SURVEY = "Пройдите опрос в разделе «Профиль → Грейд»: задачи подбираются по специализации"
 NO_TASKS = "Новых задач для вашей специализации пока нет — загляните позже"
 
 

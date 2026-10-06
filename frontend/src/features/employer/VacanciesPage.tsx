@@ -12,7 +12,7 @@ import { Segmented } from "../../ui/Segmented";
 import { useAction } from "../../ui/useAction";
 import { useCompany, useDeleteVacancy, useVacancies } from "./hooks";
 import { TestPreviewDialog } from "./TestPreviewDialog";
-import { VacancyCard } from "./VacancyCard";
+import { VacancyCard, vacancyRank } from "./VacancyCard";
 import { VacancyForm } from "./VacancyForm";
 
 type Filter = VacancyStatus | "all";
@@ -89,9 +89,11 @@ type ListProps = {
 
 function VacancyList({ status, canPublish, onCreate, ...actions }: ListProps) {
   const query = useVacancies(status);
+  // ponytail: порядок — среди загруженных страниц; при сотнях вакансий сортировать на сервере
+  const items = [...query.items].sort((a, b) => vacancyRank(a) - vacancyRank(b));
   return (
     <CursorListView
-      query={query}
+      query={{ ...query, items }}
       empty={{
         icon: <Briefcase className="size-5" />,
         title: status ? "Здесь пока пусто" : "Вакансий пока нет",

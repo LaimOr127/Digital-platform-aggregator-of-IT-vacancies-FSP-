@@ -52,7 +52,7 @@ describe("candidate contact flow", () => {
       "/candidate/applications": () => json({ items: [invitation], next_cursor: null }),
       "/candidate/applications/a1/accept": () => json({ ...invitation, status: "accepted" }),
     });
-    renderWithApp(<ApplicationsInbox />);
+    renderWithApp(<ApplicationsInbox direction="invitation" />);
     expect(await screen.findByText("Просмотрено")).toBeInTheDocument();
     expect(screen.getByText("Telegram @hr")).toBeInTheDocument();
     expect(screen.getByText(/250.000/)).toBeInTheDocument();
@@ -68,8 +68,7 @@ describe("candidate contact flow", () => {
       "/candidate/applications": () =>
         json({ items: [{ ...invitation, direction: "response", status: "sent", message: "Готова к собеседованию" }], next_cursor: null }),
     });
-    renderWithApp(<ApplicationsInbox />);
-    await userEvent.click(await screen.findByRole("radio", { name: "Мои отклики" }));
+    renderWithApp(<ApplicationsInbox direction="response" />);
     expect(await screen.findByText("Ваше письмо: Готова к собеседованию")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Отозвать отклик" })).toBeInTheDocument();
   });

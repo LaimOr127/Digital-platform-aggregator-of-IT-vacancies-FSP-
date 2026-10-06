@@ -2757,6 +2757,38 @@ export interface components {
             reason: string;
         };
         /** MyTaskAnswerOut */
+        /**
+         * CandidateUpdatesOut
+         * @description Когда в разделе кабинета кандидата последний раз что-то менялось (null — событий нет).
+         */
+        CandidateUpdatesOut: {
+            /** Vacancies */
+            vacancies: string | null;
+            /** Invitations */
+            invitations: string | null;
+            /** Responses */
+            responses: string | null;
+            /** Interviews */
+            interviews: string | null;
+            /** Offers */
+            offers: string | null;
+        };
+        /**
+         * EmployerUpdatesOut
+         * @description Время последнего события по разделам кабинета компании и вакансии, которые пора продлить.
+         */
+        EmployerUpdatesOut: {
+            /** Renew Due */
+            renew_due: number;
+            /** Applications */
+            applications: string | null;
+            /** Tasks */
+            tasks: string | null;
+            /** Interviews */
+            interviews: string | null;
+            /** Offers */
+            offers: string | null;
+        };
         MyTaskAnswerOut: {
             /**
              * Id

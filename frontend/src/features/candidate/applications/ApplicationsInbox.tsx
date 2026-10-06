@@ -9,18 +9,23 @@ import { Badge } from "../../../ui/Badge";
 import { Button } from "../../../ui/Button";
 import { ConfirmDialog } from "../../../ui/ConfirmDialog";
 import { CursorListView } from "../../../ui/CursorListView";
-import { Segmented } from "../../../ui/Segmented";
 import { useAction } from "../../../ui/useAction";
 import { useAcceptInvitation, useDeclineInvitation, useMyApplications, useWithdrawResponse } from "./hooks";
 import { ExpandableText } from "../../../ui/ExpandableText";
 
-const TABS: { value: ApplicationDirection; label: string }[] = [
-  { value: "invitation", label: "Приглашения" },
-  { value: "response", label: "Мои отклики" },
-];
+const HEADERS: Record<ApplicationDirection, { title: string; text: string }> = {
+  invitation: {
+    title: "Приглашения",
+    text: "Компании приходят к вам сами — с описанием предложения и зарплатной вилкой. Имя и контакты они увидят, только если вы примете приглашение.",
+  },
+  response: {
+    title: "Мои отклики",
+    text: "Отклики на вакансии и их статусы. Отклик сразу передаёт компании ваши контакты.",
+  },
+};
 
-export function ApplicationsInbox() {
-  const [tab, setTab] = useState<ApplicationDirection>("invitation");
+/** Приглашения и мои отклики — отдельные подвкладки раздела «Поиск работы». */
+export function ApplicationsInbox({ direction: tab }: { direction: ApplicationDirection }) {
   const [accepting, setAccepting] = useState<Application | null>(null);
   const list = useMyApplications(tab);
   const accept = useAcceptInvitation();
@@ -30,13 +35,7 @@ export function ApplicationsInbox() {
 
   return (
     <>
-      <PageHeader
-        title="Приглашения и отклики"
-        text="Компании приходят к вам сами — с описанием предложения и зарплатной вилкой. Имя и контакты они увидят, только если вы примете приглашение."
-      />
-      <div className="mb-6">
-        <Segmented label="Вид обращений" value={tab} options={TABS} onChange={setTab} />
-      </div>
+      <PageHeader {...HEADERS[tab]} />
       <CursorListView
         query={list}
         empty={{
@@ -44,8 +43,8 @@ export function ApplicationsInbox() {
           title: tab === "invitation" ? "Приглашений пока нет" : "Откликов пока нет",
           text:
             tab === "invitation"
-              ? "Пройдите тест в разделе «Тест» — так работодатели найдут вас в своей категории."
-              : "Откликнитесь на вакансию в разделе «Вакансии», если не хотите ждать приглашения.",
+              ? "Пройдите тест в разделе «Профиль → Грейд» — так работодатели найдут вас в своей категории."
+              : "Откликнитесь на вакансию в разделе «Поиск работы → Вакансии», если не хотите ждать приглашения.",
         }}
       >
         {(item) => (
