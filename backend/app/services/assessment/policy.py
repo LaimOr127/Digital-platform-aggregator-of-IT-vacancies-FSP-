@@ -1,7 +1,8 @@
 """Когда кандидату можно пройти тест на грейд.
 
 - Грейд не понижается принудительно: не прошедший тест сразу может пройти тест на грейд ниже.
-- Тот же грейд после неудачи — не раньше чем через 14 дней (иначе тест можно «перебирать»).
+- Проваленный тест закрывает на 14 дней этот грейд и все грейды выше (иначе тест можно
+  «перебирать» или перескочить через проваленный уровень); путь вниз открыт сразу.
 - Подтверждённый грейд меняется (вверх или вниз) не чаще раза в 90 дней.
 - Исключение: после уверенного результата 14 дней доступен тест на грейд выше — так сильный
   кандидат сразу калибруется, а не ждёт три месяца.
@@ -44,11 +45,21 @@ def decide(
     if confirmed == target:
         return Decision(False, "грейд уже подтверждён")
     failed = next(
-        (a for a in attempts if a.grade == target and a.result == AssessmentResult.FAILED), None
+        (
+            a
+            for a in attempts
+            if a.result == AssessmentResult.FAILED and level(a.grade) <= level(target)
+        ),
+        None,
     )
     if failed and failed.finished_at and now < failed.finished_at + RETRY_COOLDOWN:
         retry_at = failed.finished_at + RETRY_COOLDOWN
-        return Decision(False, "повторить тест на этот грейд можно позже", retry_at)
+        reason = (
+            "повторить тест на этот грейд можно позже"
+            if failed.grade == target
+            else "после неудачи грейды выше проваленного откроются позже"
+        )
+        return Decision(False, reason, retry_at)
     if confirmed is None or confirmed_at is None:
         return Decision(True, "")
     if _upgrade_offered(target, confirmed, attempts, now):

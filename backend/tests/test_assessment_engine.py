@@ -141,6 +141,15 @@ def test_failed_grade_retry_waits_but_lower_grade_is_open():
     assert decide(Grade.SENIOR, None, None, failed, NOW + timedelta(days=14)).allowed
 
 
+def test_failed_grade_also_locks_grades_above():
+    failed = [_attempt(Grade.MIDDLE, AssessmentResult.FAILED, 1)]
+    for higher in (Grade.SENIOR, Grade.LEAD):
+        blocked = decide(higher, None, None, failed, NOW)
+        assert not blocked.allowed and blocked.retry_at == NOW + timedelta(days=13)
+    assert decide(Grade.JUNIOR, None, None, failed, NOW).allowed  # путь вниз открыт сразу
+    assert decide(Grade.LEAD, None, None, failed, NOW + timedelta(days=14)).allowed
+
+
 def test_confirmed_grade_changes_once_per_quarter():
     confirmed_at = NOW - timedelta(days=10)
     history = [_attempt(Grade.MIDDLE, AssessmentResult.PASSED, 10)]
