@@ -9,6 +9,7 @@ from sqlalchemy import Select, func, select
 from app.models import EmployerTask, TaskAnswer
 from app.models.enums import Grade, Specialization
 from app.repositories.base import BaseRepository, OwnedRepository
+from app.repositories.companies import approved_company_ids
 
 
 class CompanyTaskRepository(OwnedRepository[EmployerTask]):
@@ -25,12 +26,15 @@ class CompanyTaskRepository(OwnedRepository[EmployerTask]):
 
 
 class OpenTaskRepository(BaseRepository[EmployerTask]):
-    """Активные задачи для кандидатов (на PostgreSQL то же ограничивает RLS)."""
+    """Активные задачи одобренных компаний — для кандидатов (активность дублирует RLS)."""
 
     model = EmployerTask
 
     def _scope(self, stmt: Select[Any]) -> Select[Any]:
-        return stmt.where(EmployerTask.is_active.is_(True))
+        return stmt.where(
+            EmployerTask.is_active.is_(True),
+            EmployerTask.company_id.in_(approved_company_ids()),
+        )
 
     async def offered_for(
         self, specialization: Specialization, grade: Grade | None, answered: list[uuid.UUID]

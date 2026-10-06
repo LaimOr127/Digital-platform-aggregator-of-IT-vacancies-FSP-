@@ -42,6 +42,13 @@ def is_open(application: Application) -> bool:
     return effective_status(application) in OPEN
 
 
+def decline(application: Application, reason: str) -> None:
+    """Отказ любой стороны: статус, причина (по желанию) и время ответа."""
+    application.status = ApplicationStatus.DECLINED
+    application.decline_reason = reason.strip() or None
+    application.responded_at = datetime.now(UTC)
+
+
 def contacts_available(application: Application) -> bool:
     """Компания видит контакты по принятому приглашению и по любому живому отклику."""
     if application.direction == ApplicationDirection.INVITATION:

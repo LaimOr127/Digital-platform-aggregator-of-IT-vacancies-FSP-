@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.crypto import FieldCipher
 from app.models import EmployerCompany
 from app.models.enums import CompanyStatus, RecipientType
+from app.repositories.applications import withdraw_open_invitations
 from app.repositories.audit import AuditRepository
 from app.repositories.base import Page
 from app.repositories.companies import CompanyRepository
@@ -37,10 +38,11 @@ class AdminService:
         company = await self.companies.get_or_404(company_id)
         previous = company.status
         company.status = status
-        blocked_vacancies = withdrawn_offers = 0
+        blocked_vacancies = withdrawn_offers = withdrawn_invitations = 0
         if status == CompanyStatus.BLOCKED:
             blocked_vacancies = await VacancyRepository(self.session, company.id).block_open()
             withdrawn_offers = await withdraw_pending_for_company(self.session, company.id)
+            withdrawn_invitations = await withdraw_open_invitations(self.session, company.id)
         await self.audit.record(
             "admin.company_status",
             self.principal.user_id,
@@ -52,6 +54,7 @@ class AdminService:
                 "reason": reason,
                 "vacancies": blocked_vacancies,
                 "offers": withdrawn_offers,
+                "invitations": withdrawn_invitations,
             },
         )
         if status != previous and status != CompanyStatus.PENDING:

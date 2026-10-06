@@ -6,9 +6,10 @@ from typing import Any
 from sqlalchemy import Select, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import EmployerCompany, Skill, Vacancy, vacancy_skills
-from app.models.enums import CompanyStatus, Grade, Specialization, VacancyStatus, WorkFormat
+from app.models import Skill, Vacancy, vacancy_skills
+from app.models.enums import Grade, Specialization, VacancyStatus, WorkFormat
 from app.repositories.base import BaseRepository
+from app.repositories.companies import approved_company_ids
 
 
 class VacancyRepository(BaseRepository[Vacancy]):
@@ -52,14 +53,23 @@ class PublishedVacancyRepository(BaseRepository[Vacancy]):
     model = Vacancy
 
     def _scope(self, stmt: Select[Any]) -> Select[Any]:
-        approved = select(EmployerCompany.id).where(
-            EmployerCompany.status == CompanyStatus.APPROVED
-        )
         return stmt.where(
             Vacancy.status == VacancyStatus.ACTIVE,
             or_(Vacancy.expires_at.is_(None), Vacancy.expires_at > datetime.now(UTC)),
-            Vacancy.company_id.in_(approved),
+            Vacancy.company_id.in_(approved_company_ids()),
         )
+
+    async def version(self) -> tuple[int, datetime | None]:
+        """Признак изменения ленты: кэш рейтинга сбрасывается при публикации или правке вакансии."""
+        stmt = self._scope(select(func.count(), func.max(Vacancy.updated_at)).select_from(Vacancy))
+        count, updated = (await self.session.execute(stmt)).one()
+        return count, updated
+
+    async def by_ids(self, ids: list[uuid.UUID]) -> dict[uuid.UUID, Vacancy]:
+        if not ids:
+            return {}
+        rows = await self.session.execute(self._select().where(Vacancy.id.in_(ids)))
+        return {v.id: v for v in rows.scalars()}
 
     async def search(self, filters: BoardFilters, limit: int) -> list[Vacancy]:
         stmt = self._select().where(*_board_conditions(filters))

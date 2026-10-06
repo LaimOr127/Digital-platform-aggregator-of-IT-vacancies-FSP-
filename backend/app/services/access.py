@@ -23,6 +23,7 @@ class Action(StrEnum):
     CATALOG_READ = "catalog.read"
     OFFER_SEND = "offer.send"
     OFFER_MANAGE = "offer.manage"
+    APPLICATION_MANAGE = "application.manage"
     OFFER_RESPOND = "offer.respond"
     TASK_PUBLISH = "task.publish"
     ADMIN_MODERATE = "admin.moderate"
@@ -95,6 +96,7 @@ _RULES: dict[Action, Callable[[Principal, Any], bool]] = {
     Action.CATALOG_READ: _approved_employer,
     Action.OFFER_SEND: _approved_employer,
     Action.OFFER_MANAGE: _manages_offer,
+    Action.APPLICATION_MANAGE: _manages_offer,
     Action.OFFER_RESPOND: _is_candidate,
     Action.TASK_PUBLISH: _approved_employer,
     Action.ADMIN_MODERATE: _is_admin,

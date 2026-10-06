@@ -142,3 +142,28 @@ async def test_short_answer_rejected(client: AsyncClient, db, app):
     task = await publish(client, employer["token"])
     token = await candidate_with_survey(client)
     assert (await answer(client, token, task["id"], text="да")).status_code == 422
+
+
+async def test_tasks_of_blocked_company_are_not_offered(client: AsyncClient, db, app):
+    from tests.test_applications import block
+
+    employer = await approved_employer(client, db, app)
+    await publish(client, employer["token"])
+    await block(client, db, app, employer)
+    token = await candidate_with_survey(client)
+    assert (await client.get(CURRENT, headers=bearer(token))).json()["task"] is None
+
+
+def test_weekly_pick_ignores_tasks_published_this_week():
+    """Новая задача посреди недели не подменяет уже предложенную."""
+    import uuid
+    from datetime import UTC, datetime, timedelta
+    from types import SimpleNamespace
+
+    from app.services.tasks import _weekly_pick
+
+    old = SimpleNamespace(created_at=datetime.now(UTC) - timedelta(days=30))
+    fresh = SimpleNamespace(created_at=datetime.now(UTC))
+    for _ in range(20):
+        assert _weekly_pick(uuid.uuid4(), [old, fresh]) is old  # type: ignore[list-item]
+    assert _weekly_pick(uuid.uuid4(), [fresh]) is fresh  # type: ignore[list-item]

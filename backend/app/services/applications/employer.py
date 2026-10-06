@@ -32,6 +32,7 @@ from app.services.applications.common import (
     DECLINE_COOLDOWN,
     base_fields,
     contacts_available,
+    decline,
     is_open,
     notify,
     read_contacts,
@@ -117,12 +118,8 @@ class EmployerApplicationService:
             conditions.append(Application.direction == direction)
         page = await self.applications.list_page(*conditions, cursor=cursor, limit=limit)
         # компания открыла список — новые отклики в нём становятся «просмотрено»
-        await self.applications.mark_viewed(
-            ApplicationDirection.RESPONSE, [a.id for a in page.items], now
-        )
+        await self.applications.mark_viewed(ApplicationDirection.RESPONSE, page.items, now)
         await self.session.commit()
-        for application in page.items:
-            await self.session.refresh(application)
         return await self._outs(page.items), page.next_cursor
 
     async def accept_response(
@@ -144,9 +141,7 @@ class EmployerApplicationService:
         self, application_id: uuid.UUID, reason: str
     ) -> EmployerApplicationOut:
         application = await self._open(application_id, ApplicationDirection.RESPONSE)
-        application.status = ApplicationStatus.DECLINED
-        application.decline_reason = reason.strip() or None
-        application.responded_at = datetime.now(UTC)
+        decline(application, reason)
         await self.audit.record(
             "application.declined", self.principal.user_id, "application", application.id
         )
@@ -164,7 +159,9 @@ class EmployerApplicationService:
         return (await self._outs([application]))[0]
 
     async def contacts(self, application_id: uuid.UUID) -> OfferContactsOut:
-        """Контакты — после согласия кандидата; каждое раскрытие пишется в аудит."""
+        """Контакты — после согласия кандидата; каждое раскрытие пишется в аудит.
+        Заблокированная модератором компания контакты не получает."""
+        policy.ensure(self.principal, Action.APPLICATION_MANAGE)
         application = await self.applications.get_or_404(application_id)
         if not contacts_available(application):
             raise ForbiddenError("контакты откроются, когда кандидат примет приглашение")
@@ -183,6 +180,7 @@ class EmployerApplicationService:
     async def _open(
         self, application_id: uuid.UUID, direction: ApplicationDirection
     ) -> Application:
+        policy.ensure(self.principal, Action.APPLICATION_MANAGE)
         application = await self.applications.lock_or_404(application_id)
         if application.direction != direction or not is_open(application):
             raise InvalidStateError("ответить можно только на открытое обращение")

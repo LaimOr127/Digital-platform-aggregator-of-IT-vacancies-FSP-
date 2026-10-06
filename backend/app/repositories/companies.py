@@ -1,7 +1,16 @@
 import uuid
+from typing import Any
+
+from sqlalchemy import Select, select
 
 from app.models import CompanyMember, EmployerCompany
+from app.models.enums import CompanyStatus
 from app.repositories.base import BaseRepository
+
+
+def approved_company_ids() -> Select[Any]:
+    """Компании, которые видны кандидатам: заблокированные и непроверенные исключены."""
+    return select(EmployerCompany.id).where(EmployerCompany.status == CompanyStatus.APPROVED)
 
 
 class CompanyRepository(BaseRepository[EmployerCompany]):

@@ -87,6 +87,7 @@ class EmployerTaskService:
     async def list_answers(
         self, task_id: uuid.UUID, cursor: str | None, limit: int
     ) -> tuple[list[TaskAnswerOut], str | None]:
+        policy.ensure(self.principal, Action.APPLICATION_MANAGE)
         task = await self.tasks.get_or_404(task_id)
         page = await self.answers.list_page(
             TaskAnswer.task_id == task.id, cursor=cursor, limit=limit
@@ -94,6 +95,7 @@ class EmployerTaskService:
         return await self._outs(page.items), page.next_cursor
 
     async def rate(self, task_id: uuid.UUID, answer_id: uuid.UUID, rating: int) -> TaskAnswerOut:
+        policy.ensure(self.principal, Action.APPLICATION_MANAGE)
         task = await self.tasks.get_or_404(task_id)
         answer = await self.answers.lock_or_404(answer_id)
         if answer.task_id != task.id:
@@ -138,7 +140,7 @@ class CandidateTaskService:
         )
         if not offered:
             return CurrentTaskOut(task=None, reason=NO_TASKS)
-        task = offered[_weekly_index(profile.anon_id, len(offered))]
+        task = _weekly_pick(profile.anon_id, offered)
         company = await CompanyRepository(self.session).get_or_404(task.company_id)
         return CurrentTaskOut(task=_offered(task, company.name))
 
@@ -197,10 +199,17 @@ def _grade(profile: CandidateProfile) -> Grade | None:
     return profile.confirmed_grade or profile.grade
 
 
-def _weekly_index(anon_id: uuid.UUID, count: int) -> int:
-    year, week, _ = datetime.now(UTC).isocalendar()
+def _weekly_pick(anon_id: uuid.UUID, offered: list[EmployerTask]) -> EmployerTask:
+    """Задача недели: детерминированный выбор по анонимному id и номеру недели. Задачи,
+    опубликованные в течение недели, участвуют со следующей — выбор не меняется посреди недели."""
+    now = datetime.now(UTC)
+    week_start = (now - timedelta(days=now.weekday())).replace(
+        hour=0, minute=0, second=0, microsecond=0
+    )
+    settled = [t for t in offered if as_aware(t.created_at) < week_start] or offered
+    year, week, _ = now.isocalendar()
     digest = hashlib.sha256(f"{anon_id}:{year}-{week}".encode()).digest()
-    return int.from_bytes(digest[:4]) % count
+    return settled[int.from_bytes(digest[:4]) % len(settled)]
 
 
 def _offered(task: EmployerTask, company_name: str) -> OfferedTaskOut:

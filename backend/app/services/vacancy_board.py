@@ -6,9 +6,10 @@ from dataclasses import asdict
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.cache import TtlCache
 from app.core.errors import NotFoundError
 from app.core.timeutil import as_aware
-from app.models import Application, EmployerCompany, Vacancy
+from app.models import Application, CandidateProfile, EmployerCompany, Vacancy
 from app.repositories.applications import CandidateApplicationRepository
 from app.repositories.candidates import CandidateProfileRepository
 from app.repositories.catalog import CatalogRepository
@@ -22,6 +23,7 @@ from app.services.matching.factors import Candidate
 from app.services.matching.scorer import MatchResult, match
 
 MAX_VACANCIES = 500
+BOARD_CACHE: TtlCache[list[tuple[uuid.UUID, MatchResult]]] = TtlCache(ttl=60, max_items=512)
 _PREFIX = "v"
 
 
@@ -36,21 +38,33 @@ class VacancyBoardService:
         self, filters: BoardFilters, cursor: str | None, limit: int
     ) -> tuple[list[BoardVacancyOut], str | None]:
         profile = await self.profiles.own_or_404()
-        categories = await CatalogRepository(self.session).categories_for([profile.id])
-        candidate = Candidate(profile, categories.get(profile.id, []))
-        ranked = sorted(
-            ((v, match(v, candidate)) for v in await self.vacancies.search(filters, MAX_VACANCIES)),
-            key=lambda pair: pair[1].score,
-            reverse=True,
-        )
+        # рейтинг считается один раз и листается из кэша; правка профиля или вакансий его сбрасывает
+        key = (profile.id, profile.updated_at, filters, await self.vacancies.version())
+        ranked = BOARD_CACHE.get(key)
+        if ranked is None:
+            ranked = await self._rank(profile, filters)
+            BOARD_CACHE.put(key, ranked)
         offset = parse_offset(cursor, _PREFIX)
         page = ranked[offset : offset + limit]
+        # снятые с публикации после расчёта рейтинга вакансии не показываются
+        published = await self.vacancies.by_ids([vacancy_id for vacancy_id, _ in page])
+        shown = [(published[vid], result) for vid, result in page if vid in published]
         applied = await CandidateApplicationRepository(self.session, profile.id).by_vacancies(
-            [v.id for v, _ in page]
+            [v.id for v, _ in shown]
         )
-        found = await companies(self.session, {v.company_id for v, _ in page})
-        items = [_out(v, result, found.get(v.company_id), applied.get(v.id)) for v, result in page]
+        found = await companies(self.session, {v.company_id for v, _ in shown})
+        items = [_out(v, result, found.get(v.company_id), applied.get(v.id)) for v, result in shown]
         return items, next_offset(offset, limit, len(ranked), _PREFIX)
+
+    async def _rank(
+        self, profile: CandidateProfile, filters: BoardFilters
+    ) -> list[tuple[uuid.UUID, MatchResult]]:
+        categories = await CatalogRepository(self.session).categories_for([profile.id])
+        candidate = Candidate(profile, categories.get(profile.id, []))
+        scored = [
+            (v.id, match(v, candidate)) for v in await self.vacancies.search(filters, MAX_VACANCIES)
+        ]
+        return sorted(scored, key=lambda pair: pair[1].score, reverse=True)
 
     async def vacancy(self, vacancy_id: uuid.UUID) -> BoardVacancyOut:
         profile = await self.profiles.own_or_404()

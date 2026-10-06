@@ -12,7 +12,7 @@ from tests.flows import (
     invitation_body,
     verified_candidate,
 )
-from tests.helpers import bearer, register_candidate
+from tests.helpers import bearer, company_id, create_admin, create_vacancy, register_candidate
 
 BOARD = "/api/v1/candidate/vacancies"
 
@@ -218,3 +218,43 @@ async def test_invitations_limited_per_company(client: AsyncClient, db, app):
         APPLICATIONS, json=invitation_body(second, employer), headers=bearer(employer["token"])
     )
     assert r.status_code == 429
+
+
+async def block(client: AsyncClient, db, app, employer: dict) -> None:
+    cid = await company_id(client, employer["token"])
+    r = await client.post(
+        f"/api/v1/admin/companies/{cid}/status",
+        json={"status": "blocked", "reason": "жалобы кандидатов"},
+        headers=bearer(await create_admin(db, app)),
+    )
+    assert r.status_code == 200, r.text
+
+
+async def test_blocked_company_loses_contact_channel(client: AsyncClient, db, app):
+    """Заблокированная компания не получает контакты ни по новым, ни по прежним обращениям."""
+    employer = await approved_employer(client, db, app)
+    candidate = await verified_candidate(client)
+    sent = await invite(client, candidate, employer, vacancy_id=None)
+    await block(client, db, app, employer)
+    # открытое приглашение отозвано блокировкой — принять его нельзя
+    accepted = await client.post(
+        f"{MY_APPLICATIONS}/{sent['id']}/accept", headers=bearer(candidate["token"])
+    )
+    assert accepted.status_code == 409
+    contacts = await client.get(
+        f"{APPLICATIONS}/{sent['id']}/contacts", headers=bearer(employer["token"])
+    )
+    assert contacts.status_code == 403
+
+
+async def test_board_shows_new_vacancy_despite_cache(client: AsyncClient, db, app):
+    """Рейтинг ленты кэшируется, но публикация вакансии сразу сбрасывает кэш."""
+    employer = await approved_employer(client, db, app)
+    candidate = await verified_candidate(client)
+    first = (await client.get(BOARD, headers=bearer(candidate["token"]))).json()["items"]
+    vacancy = await create_vacancy(client, employer["token"], title="Ещё одна вакансия")
+    await client.post(
+        f"/api/v1/employer/vacancies/{vacancy['id']}/publish", headers=bearer(employer["token"])
+    )
+    second = (await client.get(BOARD, headers=bearer(candidate["token"]))).json()["items"]
+    assert len(second) == len(first) + 1

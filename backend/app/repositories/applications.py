@@ -17,9 +17,10 @@ class _ScopedRepository(OwnedRepository[Application]):
     model = Application
 
     async def mark_viewed(
-        self, direction: ApplicationDirection, ids: list[uuid.UUID], now: datetime
+        self, direction: ApplicationDirection, applications: list[Application], now: datetime
     ) -> None:
         """Адресат открыл список: отправленные ему записи становятся «просмотрено»."""
+        ids = [a.id for a in applications]
         if not ids:
             return
         await self.session.execute(
@@ -32,8 +33,11 @@ class _ScopedRepository(OwnedRepository[Application]):
                 Application.expires_at > now,
             )
             .values(status=ApplicationStatus.VIEWED, viewed_at=now)
-            # без синхронизации в памяти: записи перечитываются после commit
             .execution_options(synchronize_session=False)
+        )
+        # одним запросом обновить загруженные объекты страницы, а не по запросу на запись
+        await self.session.execute(
+            self._select().where(Application.id.in_(ids)).execution_options(populate_existing=True)
         )
 
 
@@ -90,6 +94,20 @@ async def expire_pair(
         .values(status=ApplicationStatus.EXPIRED)
         .execution_options(synchronize_session=False)
     )
+
+
+async def withdraw_open_invitations(session: AsyncSession, company_id: uuid.UUID) -> int:
+    """Блокировка компании: открытые приглашения отзываются — принять их кандидат не сможет."""
+    result = await session.execute(
+        update(Application)
+        .where(
+            Application.company_id == company_id,
+            Application.direction == ApplicationDirection.INVITATION,
+            Application.status.in_(OPEN),
+        )
+        .values(status=ApplicationStatus.WITHDRAWN)
+    )
+    return result.rowcount  # type: ignore[attr-defined]
 
 
 async def expire_overdue(session: AsyncSession, now: datetime) -> int:

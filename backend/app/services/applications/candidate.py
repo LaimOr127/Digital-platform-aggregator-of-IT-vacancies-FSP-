@@ -33,6 +33,7 @@ from app.services.applications.common import (
     APPLICATION_TTL,
     candidate_out,
     companies,
+    decline,
     is_open,
     notify,
     snapshot_contacts,
@@ -63,10 +64,8 @@ class CandidateApplicationService:
             conditions.append(Application.direction == direction)
         page = await repo.list_page(*conditions, cursor=cursor, limit=limit)
         # кандидат открыл список — новые приглашения в нём становятся «просмотрено»
-        await repo.mark_viewed(ApplicationDirection.INVITATION, [a.id for a in page.items], now)
+        await repo.mark_viewed(ApplicationDirection.INVITATION, page.items, now)
         await self.session.commit()
-        for application in page.items:
-            await self.session.refresh(application)
         return await self._outs(page.items), page.next_cursor
 
     async def accept(self, application_id: uuid.UUID) -> ApplicationOut:
@@ -86,9 +85,7 @@ class CandidateApplicationService:
     async def decline(self, application_id: uuid.UUID, reason: str) -> ApplicationOut:
         profile = await self.profiles.own_or_404()
         application = await self._open(profile.id, application_id, ApplicationDirection.INVITATION)
-        application.status = ApplicationStatus.DECLINED
-        application.decline_reason = reason.strip() or None
-        application.responded_at = datetime.now(UTC)
+        decline(application, reason)
         await self.audit.record(
             "application.declined", self.principal.user_id, "application", application.id
         )
