@@ -16,8 +16,19 @@ fill() {
   esac
 }
 
+# GitHub Codespaces: сайт открыт на проброшенном порту, а не на localhost — туда же ведут ссылки
+# в письмах (подтверждение почты, сброс пароля). Заменяем только значение по умолчанию.
+codespaces_url() {
+  [ -n "${CODESPACE_NAME:-}" ] && grep -q '^PUBLIC_URL=http://localhost' .env || return 0
+  port=$(sed -n 's/^HTTP_PORT=//p' .env)
+  url="https://${CODESPACE_NAME}-${port:-8088}.${GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN:-app.github.dev}"
+  sed "s|^PUBLIC_URL=.*|PUBLIC_URL=$url|" .env > .env.tmp && mv .env.tmp .env
+  echo "PUBLIC_URL для Codespaces: $url"
+}
+
 if [ ! -f .env ]; then
   while IFS= read -r line; do fill "$line"; done < .env.example > .env
+  codespaces_url
   chmod 600 .env
   echo ".env создан (секреты сгенерированы локально, в git не попадут)"
   exit 0
@@ -32,5 +43,6 @@ while IFS= read -r line; do
     added="$added $key"
   fi
 done < .env.example
+codespaces_url
 chmod 600 .env
 if [ -n "$added" ]; then echo ".env дополнен новыми ключами:$added"; else echo ".env актуален"; fi
