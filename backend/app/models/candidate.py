@@ -11,12 +11,13 @@ from sqlalchemy import (
     String,
     Table,
     Text,
+    false,
     true,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, IdMixin, TimestampMixin, str_enum
-from app.models.enums import Grade, SearchStatus, Specialization, VerificationTier, WorkFormat
+from app.models.enums import Education, Grade, SearchStatus, Specialization, VerificationTier
 
 profile_skills = Table(
     "profile_skills",
@@ -49,10 +50,13 @@ class CandidateProfile(IdMixin, TimestampMixin, Base):
     title: Mapped[str | None] = mapped_column(String(120), default=None)
     about: Mapped[str | None] = mapped_column(Text, default=None)
     grade: Mapped[Grade | None] = mapped_column(str_enum(Grade, "grade"), default=None, index=True)
-    work_format: Mapped[WorkFormat | None] = mapped_column(
-        str_enum(WorkFormat, "work_format"), default=None
-    )
+    # форматы работы (WorkFormat): можно несколько — например, удалённо и гибрид
+    work_formats: Mapped[list[str]] = mapped_column(JSON, default=list)
     city: Mapped[str | None] = mapped_column(String(100), default=None)
+    relocation: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
+    education: Mapped[Education | None] = mapped_column(
+        str_enum(Education, "education"), default=None
+    )
     salary_min: Mapped[int | None] = mapped_column(Integer, default=None)
     salary_max: Mapped[int | None] = mapped_column(Integer, default=None)
     verification_tier: Mapped[VerificationTier] = mapped_column(
@@ -77,7 +81,8 @@ class CandidateProfile(IdMixin, TimestampMixin, Base):
     experience_years: Mapped[int | None] = mapped_column(Integer, default=None)
     industries: Mapped[list[str]] = mapped_column(JSON, default=list)
     roles: Mapped[list[str]] = mapped_column(JSON, default=list)
-    soft_skills: Mapped[list[str]] = mapped_column(JSON, default=list)
+    soft_skills: Mapped[list[str]] = mapped_column(JSON, default=list)  # ключи справочника и свои
+    custom_skills: Mapped[list[str]] = mapped_column(JSON, default=list)  # навыки вне справочника
     survey_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True), default=None)
     # категория = специализация x грейд, подтверждённый тестом (grade — заявленный кандидатом)
     confirmed_grade: Mapped[Grade | None] = mapped_column(

@@ -40,7 +40,7 @@ from app.services.access import Action, Principal, policy
 from app.services.catalog import cards_by_profile
 
 TASK_PERIOD = timedelta(days=7)
-NO_SURVEY = "Пройдите опрос в разделе «Тест»: задачи подбираются по специализации"
+NO_SURVEY = "Пройдите опрос в разделе «Профиль → Грейд»: задачи подбираются по специализации"
 NO_TASKS = "Новых задач для вашей специализации пока нет — загляните позже"
 
 
@@ -90,7 +90,7 @@ class EmployerTaskService:
         policy.ensure(self.principal, Action.APPLICATION_MANAGE)
         task = await self.tasks.get_or_404(task_id)
         page = await self.answers.list_page(
-            TaskAnswer.task_id == task.id, cursor=cursor, limit=limit
+            TaskAnswer.task_id == task.id, TaskAnswer.blocked.is_(False), cursor=cursor, limit=limit
         )
         return await self._outs(page.items), page.next_cursor
 
@@ -164,6 +164,7 @@ class CandidateTaskService:
             company_id=task.company_id,
             profile_id=profile.id,
             task_title=task.title,
+            task_body=task.body,
             company_name=company.name,
             answer=data.answer.strip(),
         )
@@ -176,12 +177,34 @@ class CandidateTaskService:
         await self.session.commit()
         return MyTaskAnswerOut.model_validate(answer)
 
+    async def block(self, task_id: uuid.UUID) -> None:
+        """Снимок экрана во время решения: задача закрывается для кандидата навсегда
+        (запись без ответа: компании не видна, следующую задачу период не откладывает)."""
+        profile = await self.profiles.own_or_404(for_update=True)
+        task = await self.open_tasks.get_or_404(task_id)
+        company = await CompanyRepository(self.session).get_or_404(task.company_id)
+        mark = TaskAnswer(
+            task_id=task.id,
+            company_id=task.company_id,
+            profile_id=profile.id,
+            task_title=task.title,
+            company_name=company.name,
+            answer="",
+            blocked=True,
+        )
+        try:
+            await ProfileAnswerRepository(self.session, profile.id).add(mark)
+        except IntegrityError:
+            await self.session.rollback()  # уже ответил или уже закрыта — менять нечего
+            return
+        await self.session.commit()
+
     async def my_answers(
         self, cursor: str | None, limit: int
     ) -> tuple[list[MyTaskAnswerOut], str | None]:
         profile = await self.profiles.own_or_404()
         page = await ProfileAnswerRepository(self.session, profile.id).list_page(
-            cursor=cursor, limit=limit
+            TaskAnswer.blocked.is_(False), cursor=cursor, limit=limit
         )
         return [MyTaskAnswerOut.model_validate(a) for a in page.items], page.next_cursor
 

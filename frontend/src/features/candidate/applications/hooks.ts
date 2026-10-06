@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { myApplicationsApi } from "../../../api/endpoints";
 import { useCursorList } from "../../../api/queries";
-import type { ApplicationDirection, BoardFilters } from "../../../api/types";
+import type { ApplicationDirection, BoardFilters, ComplaintInput } from "../../../api/types";
 
 const MINE = ["my-applications"] as const;
 const BOARD = ["vacancy-board"] as const;
@@ -27,3 +27,8 @@ export const useDeclineInvitation = () =>
 export const useWithdrawResponse = () => useMineMutation(myApplicationsApi.withdraw);
 export const useRespond = () =>
   useMineMutation(({ id, message }: { id: string; message: string }) => myApplicationsApi.respond(id, message));
+
+export const useComplain = () =>
+  useMutation({
+    mutationFn: ({ id, body }: { id: string; body: ComplaintInput }) => myApplicationsApi.complain(id, body),
+  });

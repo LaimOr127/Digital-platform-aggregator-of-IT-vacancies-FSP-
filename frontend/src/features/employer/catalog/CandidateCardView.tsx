@@ -1,26 +1,33 @@
 import { Award, BadgeCheck, MapPin } from "lucide-react";
 import type { ReactNode } from "react";
-import type { CandidateCard } from "../../../api/types";
+import type { AiReview, CandidateCard } from "../../../api/types";
 import { formatSalaryRange, labels, tierLabels } from "../../../lib/format";
+import { cn } from "../../../lib/cn";
 import { searchTone, tierTone } from "../../../lib/tones";
 import { Badge } from "../../../ui/Badge";
+import { AiReviewNote } from "./AiReviewBar";
 import { MatchPanel } from "./MatchPanel";
+import { ExpandableText } from "../../../ui/ExpandableText";
 
 const MAX_ACHIEVEMENTS = 3;
 
 /** Анонимная карточка кандидата: категория и тест — главное, самоописание — дополнительно.
  * Имени и контактов нет: их видно после того, как кандидат примет приглашение. */
-export function CandidateCardView({ card, action }: { card: CandidateCard; action?: ReactNode }) {
+type Props = { card: CandidateCard; action?: ReactNode; className?: string; aiReview?: AiReview };
+
+export function CandidateCardView({ card, action, className, aiReview }: Props) {
   const meta = [
     card.specialization ? labels.specialization[card.specialization] : null,
     card.experience_years !== null ? `стаж ${card.experience_years} лет` : null,
-    card.work_format ? labels.workFormat[card.work_format] : null,
+    card.work_formats.length ? card.work_formats.map((f) => labels.workFormat[f]).join(" / ") : null,
+    card.education ? labels.education[card.education] : null,
+    card.relocation ? "готов к переезду" : null,
   ].filter(Boolean);
   const extra = card.achievements.length - MAX_ACHIEVEMENTS;
   const declared = card.skills.filter((s) => !card.confirmed_skills.includes(s));
 
   return (
-    <article className="flex flex-col gap-4 rounded-2xl border border-line bg-surface p-5">
+    <article className={cn("flex flex-col gap-4 rounded-2xl border border-line bg-surface p-5", className)}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-xs text-muted">Кандидат #{card.anon_id.slice(0, 6).toUpperCase()}</p>
@@ -43,6 +50,7 @@ export function CandidateCardView({ card, action }: { card: CandidateCard; actio
       <CategoryLine card={card} />
       {card.match && <MatchPanel match={card.match} kind="match" />}
       {!card.match && card.strength && <MatchPanel match={card.strength} kind="strength" />}
+      {aiReview && <AiReviewNote review={aiReview} />}
 
       <p className="text-sm">
         <span className="text-muted">Ожидания: </span>
@@ -85,7 +93,7 @@ export function CandidateCardView({ card, action }: { card: CandidateCard; actio
         </ul>
       )}
 
-      {card.about && <p className="line-clamp-3 text-sm leading-relaxed text-muted">{card.about}</p>}
+      {card.about && <ExpandableText className="text-sm leading-relaxed text-muted" text={card.about} />}
       {action && <div className="border-t border-line pt-4">{action}</div>}
     </article>
   );

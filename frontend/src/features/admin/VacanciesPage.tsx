@@ -12,7 +12,7 @@ import { useAction } from "../../ui/useAction";
 import { useAdminVacancies, useModerateVacancy } from "./hooks";
 import { ReasonDialog } from "./ReasonDialog";
 
-type Filter = VacancyStatus | "all";
+type Filter = VacancyStatus | "all" | "complaints";
 type Pending = { vacancy: AdminVacancy; action: ModerationAction };
 
 const FILTERS: { value: Filter; label: string }[] = [
@@ -20,6 +20,7 @@ const FILTERS: { value: Filter; label: string }[] = [
   { value: "blocked", label: "Заблокированы" },
   { value: "draft", label: "Черновики" },
   { value: "closed", label: "Закрыты" },
+  { value: "complaints", label: "С жалобами" },
   { value: "all", label: "Все" },
 ];
 
@@ -41,7 +42,8 @@ const COPY: Record<ModerationAction, { title: string; confirm: string; text: str
 export function VacanciesPage() {
   const [filter, setFilter] = useState<Filter>("active");
   const [pending, setPending] = useState<Pending | null>(null);
-  const query = useAdminVacancies(filter === "all" ? undefined : filter);
+  const status = filter === "all" || filter === "complaints" ? undefined : filter;
+  const query = useAdminVacancies(status, filter === "complaints");
 
   return (
     <>
@@ -72,11 +74,19 @@ function VacancyRow({ vacancy, onModerate }: { vacancy: AdminVacancy; onModerate
         <div className="flex flex-wrap items-center gap-2">
           <h3 className="font-semibold">{vacancy.title}</h3>
           <Badge tone={vacancyTone[vacancy.status]}>{labels.vacancyStatus[vacancy.status]}</Badge>
+          {vacancy.complaints > 0 && <Badge tone="danger">Жалоб: {vacancy.complaints}</Badge>}
         </div>
         <p className="mt-1 text-sm text-muted">
           {vacancy.company_name} · {labels.grade[vacancy.grade]} · {formatSalaryRange(vacancy.salary_min, vacancy.salary_max)} ·
           создана {formatDate(vacancy.created_at)}
         </p>
+        {vacancy.complaint_notes.length > 0 && (
+          <ul className="mt-2 flex flex-col gap-1 text-sm" aria-label="Жалобы кандидатов">
+            {vacancy.complaint_notes.map((note, i) => (
+              <li key={i}>— {note}</li>
+            ))}
+          </ul>
+        )}
       </div>
       {vacancy.status === "blocked" ? (
         <Button variant="secondary" size="sm" onClick={() => onModerate("unblock")}>

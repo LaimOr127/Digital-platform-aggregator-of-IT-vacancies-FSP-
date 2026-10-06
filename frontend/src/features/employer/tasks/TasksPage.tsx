@@ -14,6 +14,7 @@ import { useNeedVacancies } from "../catalog/hooks";
 import { AnswersDialog } from "./AnswersDialog";
 import { useCloseTask, useEmployerTasks } from "./hooks";
 import { TaskDialog } from "./TaskDialog";
+import { ExpandableText } from "../../../ui/ExpandableText";
 
 export function TasksPage({ company }: { company: Company | undefined }) {
   const tasks = useEmployerTasks();
@@ -86,7 +87,7 @@ function TaskRow({ task, onAnswers, onClose }: { task: EmployerTask; onAnswers: 
         </div>
         <Badge tone={task.is_active ? "success" : "neutral"}>{task.is_active ? "Активна" : "Снята"}</Badge>
       </div>
-      <p className="mt-3 line-clamp-3 whitespace-pre-line text-sm leading-relaxed">{task.body}</p>
+      <ExpandableText className="mt-3 text-sm leading-relaxed" text={task.body} />
       <div className="mt-4 flex flex-wrap gap-2 border-t border-line pt-4">
         <Button variant="secondary" size="sm" onClick={onAnswers} disabled={task.answers_count === 0}>
           <MessageSquareText className="size-3.5" aria-hidden />

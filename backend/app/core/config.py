@@ -79,6 +79,7 @@ class Settings(BaseSettings):
     # частные сети (10/8, 172.16/12, 192.168/16): on-prem модель или Ollama на хосте; иначе закрыто
     ai_allow_private_network: bool = False
     resume_rate_limit: str = "20/hour"  # разборов резюме на пользователя
+    ai_rate_limit: str = "60/hour"  # подсказок и оценок языковой модели на пользователя
 
     # Почта (нужна только worker): ссылки в письмах ведут на public_url
     public_url: str = "http://localhost:8088"

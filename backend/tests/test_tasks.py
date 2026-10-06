@@ -70,6 +70,7 @@ async def test_task_offered_answered_and_rated(client: AsyncClient, db, app):
     assert rated.json()["rating"] == 4
 
     (mine,) = (await client.get(MY_ANSWERS, headers=bearer(token))).json()["items"]
+    assert mine["task_body"] == task["body"]  # своё задание видно и после снятия задачи
     assert (mine["task_title"], mine["company_name"], mine["rating"]) == (
         "Медленный запрос ленты",
         "ООО Найм",
@@ -167,3 +168,20 @@ def test_weekly_pick_ignores_tasks_published_this_week():
     for _ in range(20):
         assert _weekly_pick(uuid.uuid4(), [old, fresh]) is old  # type: ignore[list-item]
     assert _weekly_pick(uuid.uuid4(), [fresh]) is fresh  # type: ignore[list-item]
+
+
+async def test_screenshot_closes_task_for_candidate(client: AsyncClient, db, app):
+    employer = await approved_employer(client, db, app)
+    task = await publish(client, employer["token"])
+    token = await candidate_with_survey(client)
+    url = f"/api/v1/candidate/tasks/{task['id']}/violation"
+    assert (await client.post(url, headers=bearer(token))).status_code == 204
+    assert (await client.post(url, headers=bearer(token))).status_code == 204  # повтор безвреден
+    # задача больше не предлагается и не принимает ответ; период не сдвинут
+    current = (await client.get(CURRENT, headers=bearer(token))).json()
+    assert current["task"] is None and current["next_at"] is None
+    assert (await answer(client, token, task["id"])).status_code == 409
+    # компания не видит пустой записи, кандидат — в своих ответах
+    listed = (await client.get(TASKS, headers=bearer(employer["token"]))).json()["items"]
+    assert listed[0]["answers_count"] == 0
+    assert (await client.get(MY_ANSWERS, headers=bearer(token))).json()["items"] == []

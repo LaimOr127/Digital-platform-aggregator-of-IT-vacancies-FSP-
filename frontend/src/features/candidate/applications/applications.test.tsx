@@ -52,7 +52,7 @@ describe("candidate contact flow", () => {
       "/candidate/applications": () => json({ items: [invitation], next_cursor: null }),
       "/candidate/applications/a1/accept": () => json({ ...invitation, status: "accepted" }),
     });
-    renderWithApp(<ApplicationsInbox />);
+    renderWithApp(<ApplicationsInbox direction="invitation" />);
     expect(await screen.findByText("Просмотрено")).toBeInTheDocument();
     expect(screen.getByText("Telegram @hr")).toBeInTheDocument();
     expect(screen.getByText(/250.000/)).toBeInTheDocument();
@@ -68,8 +68,7 @@ describe("candidate contact flow", () => {
       "/candidate/applications": () =>
         json({ items: [{ ...invitation, direction: "response", status: "sent", message: "Готова к собеседованию" }], next_cursor: null }),
     });
-    renderWithApp(<ApplicationsInbox />);
-    await userEvent.click(await screen.findByRole("radio", { name: "Мои отклики" }));
+    renderWithApp(<ApplicationsInbox direction="response" />);
     expect(await screen.findByText("Ваше письмо: Готова к собеседованию")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Отозвать отклик" })).toBeInTheDocument();
   });
@@ -86,5 +85,20 @@ describe("candidate contact flow", () => {
     await userEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Откликнуться" }));
     expect(await screen.findByText("Отклик отправлен")).toBeInTheDocument();
     expect(bodyOf(fetchMock, "/candidate/vacancies/v1/respond")).toEqual({ message: "Готова" });
+  });
+
+  it("reports a suspicious vacancy to the moderator", async () => {
+    const fetchMock = serveRoutes({
+      "/candidate/vacancies": () => json({ items: [vacancy], next_cursor: null }),
+      "/candidate/vacancies/v1/complaint": () => new Response(null, { status: 204 }),
+    });
+    renderWithApp(<VacancyBoard />);
+    await userEvent.click(await screen.findByRole("button", { name: "Пожаловаться" }));
+    const dialog = screen.getByRole("dialog");
+    await userEvent.selectOptions(within(dialog).getByLabelText("Причина"), "salary");
+    await userEvent.type(within(dialog).getByLabelText(/Подробности/), "В тексте другая сумма");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Отправить жалобу" }));
+    expect(await screen.findByText("Жалоба отправлена модератору")).toBeInTheDocument();
+    expect(bodyOf(fetchMock, "/candidate/vacancies/v1/complaint")).toEqual({ reason: "salary", comment: "В тексте другая сумма" });
   });
 });

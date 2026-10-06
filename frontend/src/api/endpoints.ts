@@ -1,69 +1,77 @@
 // Эндпоинты API в одном месте: компоненты не собирают URL сами.
 import { api } from "./client";
 import type {
-  AiProvider,
-  AiProviderInput,
-  AiProviderUpdate,
-  AiTest,
-  Growth,
-  SalaryRadar,
-  AssessmentState,
-  Application,
-  ApplicationDirection,
-  ApplicationStatus,
-  Attempt,
-  BoardFilters,
-  BoardVacancy,
-  CompanyUpdate,
-  EmployerApplication,
-  EmployerTask,
-  CurrentTask,
-  MyTaskAnswer,
-  TaskAnswer,
-  TaskInput,
-  InvitationInput,
-  AttemptResult,
-  Dictionaries,
-  FspCategory,
-  PreviewQuestion,
-  SurveyInput,
-  EmployerInterview,
-  Interview,
-  InterviewInvite,
-  InterviewResult,
-  InterviewStatus,
-  ImportCapabilities,
-  ProfileDraft,
   Accepted,
   AdminUser,
   AdminVacancy,
+  AiProvider,
+  AiProviderInput,
+  AiProviderUpdate,
+  AiReview,
+  AiStatus,
+  AiTest,
+  Application,
+  ApplicationDirection,
+  ApplicationStatus,
+  AssessmentState,
+  Attempt,
+  AttemptResult,
   AuditEntry,
+  BoardFilters,
+  BoardVacancy,
   CandidateCard,
   CandidateRegisterIn,
+  CandidateSection,
+  CandidateUpdates,
   CatalogCategory,
   CatalogFilters,
   Company,
   CompanyStatus,
+  CompanyUpdate,
+  ComplaintInput,
+  CurrentTask,
+  Dictionaries,
+  EmployerApplication,
+  EmployerInterview,
+  EmployerOffer,
   EmployerRegisterIn,
+  EmployerSection,
+  EmployerTask,
+  EmployerUpdates,
+  FspCategory,
   FspLinkStart,
   FspStatus,
   Grade,
+  Growth,
+  ImportCapabilities,
+  Interview,
+  InterviewInvite,
+  InterviewResult,
+  InterviewStatus,
+  InvitationInput,
   LoginIn,
   LoginResult,
   Me,
   MfaSetup,
   ModerationAction,
+  MyTaskAnswer,
   Offer,
   OfferContacts,
   OfferCreate,
   OfferStatus,
-  EmployerOffer,
   Page,
   Passport,
   PassportVerify,
+  PreviewQuestion,
   Profile,
+  ProfileDraft,
   ProfileUpdate,
+  SalaryRadar,
   Skill,
+  Suggestion,
+  SurveyInput,
+  TaskAnswer,
+  TaskInput,
   TokenOut,
   UserRole,
   Vacancy,
@@ -116,6 +124,10 @@ export const candidateApi = {
   updateProfile: (body: ProfileUpdate) => api<Profile>("PATCH", "/candidate/profile", { body }),
   /** удаление аккаунта и всех данных (152-ФЗ); сервер завершает сессию */
   deleteAccount: (password: string) => api<void>("POST", "/candidate/account/delete", { body: { password } }),
+  /** время последнего события по разделам — для индикаторов нового */
+  updates: () => api<CandidateUpdates>("GET", "/candidate/updates"),
+  /** раздел открыт — отметка общая для всех устройств аккаунта */
+  markSeen: (section: CandidateSection) => api<void>("POST", "/candidate/updates/seen", { body: { section } }),
 };
 
 export const insightsApi = {
@@ -130,6 +142,8 @@ const vacancyUrl = (id: string, action = "") => `/employer/vacancies/${encodeURI
 
 export const employerApi = {
   company: () => api<Company>("GET", "/employer/company"),
+  updates: () => api<EmployerUpdates>("GET", "/employer/updates"),
+  markSeen: (section: EmployerSection) => api<void>("POST", "/employer/updates/seen", { body: { section } }),
   updateCompany: (body: CompanyUpdate) => api<Company>("PATCH", "/employer/company", { body }),
   vacancies: (status: VacancyStatus | undefined, cursor: string | undefined) =>
     api<Page<Vacancy>>("GET", "/employer/vacancies", { query: { status, cursor, limit: 20 } }),
@@ -145,11 +159,18 @@ export const employerApi = {
 export const assessmentApi = {
   state: () => api<AssessmentState>("GET", "/candidate/assessment"),
   saveSurvey: (body: SurveyInput) => api<AssessmentState>("PUT", "/candidate/assessment/survey", { body }),
+  /** подсказка специализации и грейда: языковая модель или правила по стеку и стажу */
+  suggest: () => api<Suggestion>("POST", "/candidate/assessment/suggestion"),
   start: (grade: Grade) => api<Attempt>("POST", "/candidate/assessment/attempts", { body: { grade } }),
   /** ответы по порядку: номер варианта или число; null — без ответа */
   submit: (id: string, responses: (string | null)[]) =>
     api<AttemptResult>("POST", `/candidate/assessment/attempts/${encodeURIComponent(id)}/submit`, {
       body: { responses },
+    }),
+  /** снимок экрана во время теста: попытка не засчитывается */
+  violation: (id: string) =>
+    api<AttemptResult>("POST", `/candidate/assessment/attempts/${encodeURIComponent(id)}/violation`, {
+      body: { reason: "screenshot" },
     }),
 };
 
@@ -158,6 +179,10 @@ export const catalogApi = {
   fspCategories: () => api<FspCategory[]>("GET", "/employer/catalog/fsp-categories"),
   candidates: (filters: CatalogFilters, cursor: string | undefined) =>
     api<Page<CandidateCard>>("GET", "/employer/catalog/candidates", { query: { ...filters, cursor, limit: 20 } }),
+  aiStatus: () => api<AiStatus>("GET", "/employer/catalog/ai-status"),
+  /** второе мнение языковой модели о кандидатах под вакансию (до 10, по анонимным карточкам) */
+  aiReview: (vacancyId: string, anonIds: string[]) =>
+    api<AiReview[]>("POST", "/employer/catalog/ai-review", { body: { vacancy_id: vacancyId, anon_ids: anonIds } }),
 };
 
 const offerUrl = (id: string, action = "") => `/employer/offers/${encodeURIComponent(id)}${action}`;
@@ -186,8 +211,10 @@ export const adminApi = {
     api<Page<Company>>("GET", "/admin/companies", { query: { status, cursor, limit: 20 } }),
   setCompanyStatus: (id: string, status: CompanyStatus, reason: string) =>
     api<Company>("POST", `/admin/companies/${encodeURIComponent(id)}/status`, { body: { status, reason } }),
-  vacancies: (status: VacancyStatus | undefined, cursor: string | undefined) =>
-    api<Page<AdminVacancy>>("GET", "/admin/vacancies", { query: { status, cursor, limit: 20 } }),
+  vacancies: (status: VacancyStatus | undefined, withComplaints: boolean, cursor: string | undefined) =>
+    api<Page<AdminVacancy>>("GET", "/admin/vacancies", {
+      query: { status, with_complaints: withComplaints || undefined, cursor, limit: 20 },
+    }),
   moderateVacancy: (id: string, action: ModerationAction, reason: string) =>
     api<AdminVacancy>("POST", `/admin/vacancies/${encodeURIComponent(id)}/moderation`, { body: { action, reason } }),
   users: (filters: { role?: UserRole; q?: string }, cursor: string | undefined) =>
@@ -240,6 +267,9 @@ export const myApplicationsApi = {
     api<Page<BoardVacancy>>("GET", "/candidate/vacancies", { query: { ...filters, cursor, limit: 20 } }),
   respond: (vacancyId: string, message: string) =>
     api<Application>("POST", interviewUrl("/candidate/vacancies", vacancyId, "/respond"), { body: { message } }),
+  /** жалоба на вакансию — её увидит модератор */
+  complain: (vacancyId: string, body: ComplaintInput) =>
+    api<void>("POST", interviewUrl("/candidate/vacancies", vacancyId, "/complaint"), { body }),
 };
 
 export const tasksApi = {
@@ -260,6 +290,8 @@ export const myTasksApi = {
     api<MyTaskAnswer>("POST", interviewUrl("/candidate/tasks", taskId, "/answers"), { body: { answer } }),
   answers: (cursor: string | undefined) =>
     api<Page<MyTaskAnswer>>("GET", "/candidate/tasks/answers", { query: { cursor, limit: 20 } }),
+  /** снимок экрана во время решения: задача закрывается */
+  violation: (taskId: string) => api<void>("POST", interviewUrl("/candidate/tasks", taskId, "/violation")),
 };
 
 export const interviewsApi = {

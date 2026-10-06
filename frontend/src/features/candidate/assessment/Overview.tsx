@@ -45,8 +45,8 @@ export function GradeOptions({ state, starting, onStart }: OptionsProps) {
     <Card>
       <CardTitle>Пройти тест</CardTitle>
       <p className="mt-1 text-sm text-muted">
-        15 заданий на 25 минут: уровни ниже, на уровне и выше заявленного. Задания составляются заново для каждой
-        попытки.
+        15 заданий на 25 минут по вашей специализации, навыкам и выбранному грейду. У каждого кандидата свой вариант
+        заданий, поэтому чужие ответы не помогут.
       </p>
       <ul className="mt-4 flex flex-col gap-2">
         {state.options.map((o) => (

@@ -67,6 +67,7 @@ class MyTaskAnswerOut(BaseModel):
 
     id: uuid.UUID
     task_title: str
+    task_body: str
     company_name: str
     answer: str
     rating: int | None

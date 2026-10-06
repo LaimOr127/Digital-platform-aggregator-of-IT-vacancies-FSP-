@@ -6,9 +6,15 @@ from app.api.deps import SessionDep, SignerDep
 from app.schemas.assessment import DictionariesOut, OptionOut, SpecializationOut
 from app.schemas.common import SkillOut
 from app.schemas.fsp import PassportVerifyOut
+from app.services.cities import CITIES
 from app.services.directory import list_skills
 from app.services.passport import verify_passport
-from app.services.specializations import INDUSTRIES, ROLES, SOFT_SKILLS, SPECIALIZATIONS
+from app.services.specializations import (
+    INDUSTRIES,
+    ROLES,
+    SOFT_SKILLS,
+    SPECIALIZATIONS,
+)
 
 router = APIRouter(prefix="/public", tags=["public"])
 
@@ -18,7 +24,9 @@ async def skills(session: SessionDep) -> list[SkillOut]:
     return await list_skills(session)
 
 
-@router.get("/dictionaries", summary="Справочники: специализации, отрасли, роли")
+@router.get(
+    "/dictionaries", summary="Справочники: специализации, отрасли, роли, софт-скиллы, города"
+)
 async def dictionaries() -> DictionariesOut:
     return DictionariesOut(
         specializations=[
@@ -28,6 +36,7 @@ async def dictionaries() -> DictionariesOut:
         industries=[OptionOut(value=k, label=v) for k, v in INDUSTRIES.items()],
         roles=[OptionOut(value=k, label=v) for k, v in ROLES.items()],
         soft_skills=[OptionOut(value=k, label=v) for k, v in SOFT_SKILLS.items()],
+        cities=list(CITIES),
     )
 
 

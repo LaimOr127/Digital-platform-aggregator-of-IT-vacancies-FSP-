@@ -6,6 +6,7 @@ from app.api.v1 import (
     account,
     admin,
     admin_ai,
+    ai_assist,
     applications,
     assessment,
     auth,
@@ -21,6 +22,7 @@ from app.api.v1 import (
     profile_import,
     public,
     tasks,
+    updates,
 )
 from app.core.errors import ERROR_RESPONSES
 
@@ -31,6 +33,7 @@ for module in (
     account,
     candidate,
     assessment,
+    ai_assist,
     profile_import,
     fsp,
     applications,
@@ -41,6 +44,7 @@ for module in (
     catalog,
     tasks,
     insights,
+    updates,
     admin,
     admin_ai,
     public,

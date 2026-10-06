@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Save } from "lucide-react";
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useDictionaries } from "../../api/queries";
 import type { Profile, ProfileDraft, Skill } from "../../api/types";
@@ -8,9 +8,10 @@ import { labels, options } from "../../lib/format";
 import { applyServerErrors } from "../../lib/forms";
 import { Button } from "../../ui/Button";
 import { Card, CardTitle } from "../../ui/Card";
-import { Field, FieldGroup, Input, Select, Switch, Textarea } from "../../ui/form";
+import { Field, FieldGroup, Input, MoneyInput, Select, Switch, Textarea } from "../../ui/form";
 import { Segmented } from "../../ui/Segmented";
 import { ChipGroup } from "../../ui/ChipGroup";
+import { CitySelect } from "../../ui/CitySelect";
 import { SkillPicker } from "../../ui/SkillPicker";
 import { useToast } from "../../ui/Toast";
 import { useUpdateProfile } from "./hooks";
@@ -20,12 +21,16 @@ import { ImportCard } from "./import/ImportCard";
 import { formToUpdate, profileSchema, profileToForm, type ProfileFormInput, type ProfileFormOutput } from "./schemas";
 
 const FIELDS = [
-  "full_name", "title", "about", "grade", "work_format", "city", "salary_min", "salary_max",
-  "skills", "is_hidden", "search_status", "phone", "telegram", "contact_email", "experience_years",
-  "roles", "soft_skills",
+  "full_name", "title", "about", "grade", "work_formats", "city", "relocation", "education", "salary_min",
+  "salary_max", "skills", "custom_skills", "is_hidden", "search_status", "phone", "telegram", "contact_email",
+  "experience_years", "roles", "soft_skills",
 ];
+const FORMAT_OPTIONS = options(labels.workFormat);
+const EDUCATION_OPTIONS = options(labels.education);
 const SEARCH_OPTIONS = options(labels.searchStatus);
 const ALIASES = { "contacts.phone": "phone", "contacts.telegram": "telegram", "contacts.email": "contact_email" };
+/** сколько держится «Все изменения сохранены» после сохранения */
+const SAVED_NOTICE_MS = 3000;
 
 function Section({ title, text, children }: { title: string; text?: string; children: ReactNode }) {
   return (
@@ -53,13 +58,20 @@ export function ProfileForm({ profile, skills, fspLinked, autoFsp }: Props) {
   });
   const { register, control, formState } = form;
   const { errors, isDirty } = formState;
+  // панель сохранения видна, пока есть правки, и ещё несколько секунд после сохранения
+  const [justSaved, setJustSaved] = useState(false);
+  useEffect(() => {
+    if (!justSaved) return;
+    const timer = setTimeout(() => setJustSaved(false), SAVED_NOTICE_MS);
+    return () => clearTimeout(timer);
+  }, [justSaved]);
 
   const onSubmit = form.handleSubmit(async (values) => {
     try {
       const saved = await update.mutateAsync(formToUpdate(values));
       // сохранённое — новая точка отсчёта: иначе поля, изменённые до сохранения, остаются «грязными»
       form.reset(profileToForm(saved));
-      notify("Профиль сохранён");
+      setJustSaved(true);
     } catch (err) {
       const message = applyServerErrors(err, form.setError, FIELDS, ALIASES);
       if (message) notify(message, "error");
@@ -68,8 +80,12 @@ export function ProfileForm({ profile, skills, fspLinked, autoFsp }: Props) {
 
   const applyDraft = (changes: FieldChange[], added: DraftLists) => {
     const options = { shouldDirty: true, shouldValidate: true } as const;
-    for (const change of changes) form.setValue(change.field, change.value as never, options);
-    for (const name of ["skills", "roles", "soft_skills"] as const) {
+    for (const change of changes) {
+      // в черновике один формат работы, в форме — список
+      if (change.field === "work_format") form.setValue("work_formats", [change.value] as never, options);
+      else form.setValue(change.field, change.value as never, options);
+    }
+    for (const name of ["skills", "custom_skills", "roles", "soft_skills"] as const) {
       if (added[name].length) form.setValue(name, [...form.getValues(name), ...added[name]], options);
     }
     setDraft(null);
@@ -113,12 +129,32 @@ export function ProfileForm({ profile, skills, fspLinked, autoFsp }: Props) {
         <Field label="Грейд" error={errors.grade?.message}>
           <Select placeholder="Не выбран" options={options(labels.grade)} {...register("grade")} />
         </Field>
-        <Field label="Формат работы" error={errors.work_format?.message}>
-          <Select placeholder="Не выбран" options={options(labels.workFormat)} {...register("work_format")} />
+        <Field label="Образование" error={errors.education?.message}>
+          <Select placeholder="Не указано" options={EDUCATION_OPTIONS} {...register("education")} />
         </Field>
-        <Field label="Город" error={errors.city?.message}>
-          <Input autoComplete="address-level2" {...register("city")} />
-        </Field>
+        <FieldGroup label="Формат работы" hint="Можно выбрать несколько" error={errors.work_formats?.message}>
+          <Controller
+            control={control}
+            name="work_formats"
+            render={({ field }) => <ChipGroup options={FORMAT_OPTIONS} value={field.value} onChange={field.onChange} />}
+          />
+        </FieldGroup>
+        <Controller
+          control={control}
+          name="city"
+          render={({ field }) => (
+            <Field label="Город" error={errors.city?.message}>
+              <CitySelect value={field.value} onChange={field.onChange} onBlur={field.onBlur} name={field.name} />
+            </Field>
+          )}
+        />
+        <div className="flex items-end sm:col-span-2">
+          <Switch
+            label="Готов к переезду"
+            description="Работодатели из других городов увидят вас в фильтре по своему городу"
+            {...register("relocation")}
+          />
+        </div>
       </Section>
 
       <Section title="Опыт, роли и софт-скиллы" text="Заполняются из резюме автоматически — проверьте и поправьте.">
@@ -134,12 +170,12 @@ export function ProfileForm({ profile, skills, fspLinked, autoFsp }: Props) {
                 render={({ field }) => <ChipGroup options={dictionaries.roles} value={field.value} onChange={field.onChange} max={5} />}
               />
             </FieldGroup>
-            <FieldGroup label="Софт-скиллы" hint="До 8" error={errors.soft_skills?.message} className="sm:col-span-2">
+            <FieldGroup label="Софт-скиллы" hint="До 10: выберите или впишите своё" error={errors.soft_skills?.message} className="sm:col-span-2">
               <Controller
                 control={control}
                 name="soft_skills"
                 render={({ field }) => (
-                  <ChipGroup options={dictionaries.soft_skills} value={field.value} onChange={field.onChange} max={8} />
+                  <ChipGroup options={dictionaries.soft_skills} value={field.value} onChange={field.onChange} max={10} allowCustom />
                 )}
               />
             </FieldGroup>
@@ -148,24 +184,39 @@ export function ProfileForm({ profile, skills, fspLinked, autoFsp }: Props) {
       </Section>
 
       <Section title="Ожидания по зарплате" text="Рубли в месяц до вычета налогов. Компании предлагают оффер с вилкой.">
-        <Field label="От" error={errors.salary_min?.message}>
-          <Input type="number" inputMode="numeric" min={0} step={5000} className="tabular" {...register("salary_min")} />
+        <Field label="От, ₽" error={errors.salary_min?.message}>
+          <MoneyInput {...register("salary_min")} />
         </Field>
-        <Field label="До" error={errors.salary_max?.message}>
-          <Input type="number" inputMode="numeric" min={0} step={5000} className="tabular" {...register("salary_max")} />
+        <Field label="До, ₽" error={errors.salary_max?.message}>
+          <MoneyInput {...register("salary_max")} />
         </Field>
       </Section>
 
       <Card>
         <FieldGroup
           label="Навыки"
-          hint="Из общего справочника — так работодатели находят вас по стеку."
-          error={errors.skills?.message}
+          hint="Из справочника — так работодатели находят вас по стеку. Нет нужного — добавьте свой."
+          error={errors.skills?.message ?? errors.custom_skills?.message}
         >
           <Controller
             control={control}
             name="skills"
-            render={({ field }) => <SkillPicker skills={skills} value={field.value} onChange={field.onChange} max={50} />}
+            render={({ field }) => (
+              <Controller
+                control={control}
+                name="custom_skills"
+                render={({ field: own }) => (
+                  <SkillPicker
+                    skills={skills}
+                    value={field.value}
+                    onChange={field.onChange}
+                    max={50}
+                    custom={own.value}
+                    onCustomChange={own.onChange}
+                  />
+                )}
+              />
+            )}
           />
         </FieldGroup>
       </Card>
@@ -201,17 +252,21 @@ export function ProfileForm({ profile, skills, fspLinked, autoFsp }: Props) {
         />
       </Card>
 
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-bg/90 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-end gap-3 px-4 py-3 sm:px-6">
-          <span className="text-sm text-muted" aria-live="polite">
-            {isDirty ? "Есть несохранённые изменения" : "Все изменения сохранены"}
-          </span>
-          <Button type="submit" loading={update.isPending} disabled={!isDirty}>
-            <Save className="size-4" aria-hidden />
-            Сохранить
-          </Button>
+      {(isDirty || justSaved) && (
+        <div className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-bg/90 backdrop-blur">
+          <div className="mx-auto flex max-w-6xl items-center justify-end gap-3 px-4 py-3 sm:px-6">
+            <span className="text-sm text-muted" aria-live="polite">
+              {isDirty ? "Есть несохранённые изменения" : "Все изменения сохранены"}
+            </span>
+            {isDirty && (
+              <Button type="submit" loading={update.isPending}>
+                <Save className="size-4" aria-hidden />
+                Сохранить
+              </Button>
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </form>
   );
 }

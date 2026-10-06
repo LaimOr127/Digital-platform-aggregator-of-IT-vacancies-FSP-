@@ -68,7 +68,28 @@ async def test_experience_roles_and_soft_skills(client: AsyncClient):
         ["mentor"],
         ["teamwork"],
     )
-    bad = await client.patch(PROFILE, json={"soft_skills": ["telepathy"]}, headers=bearer(token))
+    # своё качество, которого нет в справочнике, сохраняется как есть
+    own = await client.patch(PROFILE, json={"soft_skills": ["  Эмпатия "]}, headers=bearer(token))
+    assert own.json()["soft_skills"] == ["Эмпатия"]
+    bad = await client.patch(PROFILE, json={"soft_skills": ["x" * 41]}, headers=bearer(token))
+    assert bad.status_code == 422
+
+
+async def test_formats_city_education_and_own_skills(client: AsyncClient):
+    token = await register_candidate(client)
+    body = {
+        "work_formats": ["remote", "hybrid", "remote"],
+        "city": "Казань",
+        "relocation": True,
+        "education": "master",
+        "custom_skills": ["Камунда", "Камунда"],
+    }
+    saved = (await client.patch(PROFILE, json=body, headers=bearer(token))).json()
+    assert saved["work_formats"] == ["remote", "hybrid"]
+    assert (saved["city"], saved["relocation"], saved["education"]) == ("Казань", True, "master")
+    assert saved["custom_skills"] == ["Камунда"]
+    # город — только из справочника
+    bad = await client.patch(PROFILE, json={"city": "Мск"}, headers=bearer(token))
     assert bad.status_code == 422
 
 

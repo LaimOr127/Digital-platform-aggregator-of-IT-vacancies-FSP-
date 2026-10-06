@@ -63,6 +63,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "auth": settings.auth_rate_limit,
             "email": settings.email_rate_limit,
             "resume": settings.resume_rate_limit,
+            "ai": settings.ai_rate_limit,
             "interview_invite": settings.interview_invite_rate_limit,
             "application_invite": settings.application_invite_rate_limit,
             "application_respond": settings.application_respond_rate_limit,

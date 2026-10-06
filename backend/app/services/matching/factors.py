@@ -158,8 +158,14 @@ class SkillsFactor(VacancyFactor):
             return 0.5, "в вакансии навыки не указаны"
         confirmed = set(candidate.profile.confirmed_skills or [])
         declared = {s.slug for s in candidate.profile.skills}
+        # свои навыки кандидата (вне справочника) сравниваются с вакансией по названию
+        custom = {name.lower() for name in getattr(candidate.profile, "custom_skills", None) or []}
         tested = [name for slug, name in wanted.items() if slug in confirmed]
-        claimed = [name for slug, name in wanted.items() if slug in declared - confirmed]
+        claimed = [
+            name
+            for slug, name in wanted.items()
+            if slug not in confirmed and (slug in declared or name.lower() in custom)
+        ]
         missing = len(wanted) - len(tested) - len(claimed)
         parts = [f"подтверждены тестом: {', '.join(tested[:4])}" if tested else ""]
         parts.append(f"заявлены: {', '.join(claimed[:4])}" if claimed else "")
@@ -210,8 +216,10 @@ class FormatFactor(VacancyFactor):
         )
         if same_city:
             return 1.0, f"тот же город: {vacancy.city}"
-        if profile.work_format == WorkFormat.REMOTE:
-            return 0.0, "кандидат хочет удалённо"
+        if getattr(profile, "relocation", False):
+            return 0.8, "готов к переезду"
+        if (profile.work_formats or []) == [WorkFormat.REMOTE]:
+            return 0.0, "кандидат хочет только удалённо"
         return 0.4, "город не совпадает или не указан"
 
 

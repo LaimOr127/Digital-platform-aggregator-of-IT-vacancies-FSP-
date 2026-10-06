@@ -102,6 +102,16 @@ async def answer_task(task_id: uuid.UUID, data: AnswerIn, service: CandidateDep)
     return await service.answer(task_id, data)
 
 
+@router.post(
+    "/candidate/tasks/{task_id}/violation",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=Candidate,
+    summary="Снимок экрана во время решения: задача закрывается для кандидата",
+)
+async def report_violation(task_id: uuid.UUID, service: CandidateDep) -> None:
+    await service.block(task_id)
+
+
 @router.get("/candidate/tasks/answers", dependencies=Candidate, summary="Мои ответы и оценки")
 async def my_answers(
     service: CandidateDep, cursor: str | None = None, limit: Limit = 20

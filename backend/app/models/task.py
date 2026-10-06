@@ -1,6 +1,15 @@
 import uuid
 
-from sqlalchemy import Boolean, CheckConstraint, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+    false,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base, IdMixin, TimestampMixin, str_enum
@@ -50,6 +59,10 @@ class TaskAnswer(IdMixin, TimestampMixin, Base):
         ForeignKey("candidate_profiles.id", ondelete="CASCADE"), index=True
     )
     task_title: Mapped[str] = mapped_column(String(160))
+    # текст задачи: кандидат перечитывает своё задание и после её снятия
+    task_body: Mapped[str] = mapped_column(Text, default="")
     company_name: Mapped[str] = mapped_column(String(200))
     answer: Mapped[str] = mapped_column(Text)
     rating: Mapped[int | None] = mapped_column(Integer, default=None)  # оценка компании 1..5
+    # снимок экрана во время решения: задача закрыта для кандидата, компании ответ не виден
+    blocked: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())

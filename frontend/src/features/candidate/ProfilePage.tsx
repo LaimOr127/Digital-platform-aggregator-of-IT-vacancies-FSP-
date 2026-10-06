@@ -54,6 +54,7 @@ export function ProfilePage() {
             autoFsp={autoFsp}
           />
           <aside className="flex flex-col gap-6 lg:sticky lg:top-24">
+            <GradeCard profile={profile.data} />
             <StatusCard profile={profile.data} />
             <FspPromoCard verified={profile.data.verification_tier === "verified_fsp"} />
             <PrivacyCard profile={profile.data} />
@@ -78,6 +79,31 @@ function OnboardingCard({ surveyed }: { surveyed: boolean }) {
       </div>
       <Link to="/app/assessment" className={buttonClasses("primary", "md")}>
         {surveyed ? "К тесту" : "Начать"}
+      </Link>
+    </Card>
+  );
+}
+
+/** Текущий грейд на «Основной информации»; тест и история — на подвкладке «Грейд». */
+function GradeCard({ profile }: { profile: Profile }) {
+  const confirmed = profile.confirmed_grade;
+  return (
+    <Card>
+      <CardTitle>Грейд</CardTitle>
+      <p className="mt-3 text-2xl font-semibold">{confirmed ? labels.grade[confirmed] : "Не подтверждён"}</p>
+      <p className="mt-1 text-sm text-muted">
+        {confirmed && profile.specialization
+          ? `${labels.specialization[profile.specialization]} · подтверждён тестом${
+              profile.assessment_score !== null && profile.assessment_score !== undefined
+                ? `, ${profile.assessment_score} из 100`
+                : ""
+            }`
+          : profile.grade
+            ? `Заявлен: ${labels.grade[profile.grade]}. Подтвердите его тестом, чтобы попасть в каталог.`
+            : "Пройдите опрос и тест, чтобы попасть в каталог работодателей."}
+      </p>
+      <Link to="/app/assessment" className={buttonClasses("secondary", "sm", "mt-4 w-full")}>
+        Подробнее
       </Link>
     </Card>
   );

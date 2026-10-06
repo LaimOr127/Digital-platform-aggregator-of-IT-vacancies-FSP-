@@ -1,20 +1,22 @@
 import { Route, Routes } from "react-router";
+import { employerApi } from "../../api/endpoints";
 import type { Company } from "../../api/types";
 import { labels } from "../../lib/format";
 import { companyTone } from "../../lib/tones";
 import { Alert } from "../../ui/Alert";
-import { AppShell } from "../../ui/AppShell";
+import { useNews } from "../../lib/news";
+import { AppShell, type NavItem } from "../../ui/AppShell";
 import { Badge } from "../../ui/Badge";
 import { ApplicationsPage } from "./applications/ApplicationsPage";
 import { CatalogPage } from "./catalog/CatalogPage";
 import { CompanyPage } from "./CompanyPage";
-import { useCompany } from "./hooks";
+import { useCompany, useRenewDue } from "./hooks";
 import { InterviewsPage } from "./interviews/InterviewsPage";
 import { EmployerOffersPage } from "./offers/EmployerOffersPage";
 import { TasksPage } from "./tasks/TasksPage";
 import { VacanciesPage } from "./VacanciesPage";
 
-const NAV = [
+const NAV: NavItem[] = [
   { to: "/company", label: "Вакансии", end: true },
   { to: "/company/catalog", label: "Каталог кандидатов" },
   { to: "/company/applications", label: "Приглашения и отклики" },
@@ -24,10 +26,22 @@ const NAV = [
   { to: "/company/profile", label: "Компания" },
 ];
 
+/** Разделы с индикатором нового: где видны их события. */
+const NEWS_PATHS = {
+  applications: "/company/applications",
+  tasks: "/company/tasks",
+  interviews: "/company/interviews",
+  offers: "/company/offers",
+};
+
 export default function EmployerPortal() {
   const company = useCompany();
+  const news = useNews("employer", employerApi.updates, employerApi.markSeen, NEWS_PATHS);
+  const renewDue = useRenewDue();
+  // вакансии к продлению держат точку, пока их не продлят
+  const nav = NAV.map((item) => ({ ...item, dot: item.to === "/company" ? renewDue > 0 : news[item.to] }));
   return (
-    <AppShell nav={NAV}>
+    <AppShell nav={nav}>
       {company.data && <CompanyBanner company={company.data} />}
       <Routes>
         <Route index element={<VacanciesPage />} />

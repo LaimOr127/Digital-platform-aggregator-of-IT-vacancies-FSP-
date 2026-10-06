@@ -1,24 +1,52 @@
 @import "tailwindcss";
 @import "@fontsource-variable/inter";
+@import "@fontsource-variable/montserrat";
 
-/* Дизайн-токены: единственное место, где заданы цвета. Палитра ФСП (из шаблона презентации):
-   глубокий фиолетовый фон, малиновый акцент, лавандовый для справочных статусов.
-   Оттенки высветлены для тёмной темы: контраст текста и бейджей не ниже 4.5:1. */
+/* Дизайн-токены: единственное место, где заданы цвета. Палитра шаблона презентации ФСП:
+   фиолетовый фон (#310F53 -> #520978), белые карточки, малиновый акцент (#FF0053, наведение #FC3777),
+   дополнительные #8A83D1 и #FFD6E4, базовые #FFFFFF и #1C1D22.
+   Два контекста: на фиолетовом фоне текст белый, внутри белых поверхностей (карточки, панели,
+   диалоги) токены текста и статусов переопределены на тёмные — контраст не ниже 4.5:1.
+   Малиновый — для кнопок и плашек; мелкий малиновый текст на фиолетовом не используется
+   (text-accent там светло-розовый). */
 :root {
   color-scheme: dark;
-  --bg: #120b1e;
-  --surface: #1a1129;
-  --surface-2: #221735;
-  --border: #35264f;
-  --text: #f2eef8;
-  --muted: #aba2c4;
-  --accent: #ff3d7f;
-  --accent-strong: #ff6b9b;
+  --bg: #310f53;
+  --bg-end: #520978;
+  --surface: #ffffff;
+  --surface-2: #431570;
+  --border: #6b3f96;
+  --text: #ffffff;
+  --muted: #dccdee;
+  --accent: #ff0053;
+  --accent-strong: #fc3777;
+  --accent-text: #ffd6e4;
   --on-accent: #1a0010;
-  --success: #3ddc97;
-  --warn: #f5c044;
-  --danger: #ff7a52;
-  --info: #a9a3ee;
+  --pill: #ffd6e4;
+  --on-pill: #520978;
+  --success: #6ee7b0;
+  --warn: #ffd27a;
+  --danger: #ffa98a;
+  --info: #c9c4ff;
+}
+
+/* Белые поверхности: всё внутри них читается тёмным по белому. В слое base — чтобы явные
+   text-* утилиты на самих поверхностях имели приоритет. */
+@layer base {
+  .bg-surface,
+  [class*="bg-surface/"],
+  dialog {
+    --surface-2: #f5f0fa;
+    --border: #e4d9f0;
+    --text: #1c1d22;
+    --muted: #5c5470;
+    --accent-text: #d1004a;
+    --success: #0f7a4a;
+    --warn: #8a5a00;
+    --danger: #c2410c;
+    --info: #4b3fb5;
+    color: var(--text);
+  }
 }
 
 @theme inline {
@@ -35,15 +63,33 @@
   --color-warn: var(--warn);
   --color-danger: var(--danger);
   --color-info: var(--info);
+  --color-pill: var(--pill);
+  --color-on-pill: var(--on-pill);
   --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Montserrat Variable", "Inter Variable", ui-sans-serif, system-ui, sans-serif;
 }
 
 html,
 body {
-  background: var(--bg);
+  background: linear-gradient(160deg, var(--bg) 0%, var(--bg-end) 100%) fixed var(--bg);
   color: var(--text);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+}
+
+/* Montserrat — заголовки, кнопки и навигация; основной текст, таблицы и формы — Inter */
+h1,
+h2,
+h3,
+button,
+nav a,
+.font-display {
+  font-family: var(--font-display);
+}
+
+/* мелкий малиновый текст: на фиолетовом — светло-розовый, на белом — тёмно-малиновый */
+.text-accent {
+  color: var(--accent-text);
 }
 
 :focus-visible {
@@ -60,6 +106,8 @@ body {
   :root {
     color-scheme: light;
     --bg: #ffffff;
+    --bg-end: #ffffff;
+    --accent-text: #c2004a;
     --surface: #ffffff;
     --surface-2: #f4f5f7;
     --border: #d5d9df;

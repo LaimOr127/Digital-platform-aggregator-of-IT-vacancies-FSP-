@@ -15,6 +15,7 @@ export type ProfileUpdate = Schemas["ProfileUpdateIn"];
 export type Skill = Schemas["SkillOut"];
 export type Grade = Schemas["Grade"];
 export type WorkFormat = Schemas["WorkFormat"];
+export type Education = Schemas["Education"];
 export type VerificationTier = Schemas["VerificationTier"];
 export type Company = Schemas["CompanyOut"];
 export type CompanyStatus = Schemas["CompanyStatus"];
@@ -51,6 +52,8 @@ export type CatalogFilters = {
   specialization?: Specialization;
   grade?: Grade;
   work_format?: WorkFormat;
+  /** живёт в городе или готов к переезду */
+  city?: string;
   /** все выбранные навыки */
   skill?: string[];
   search_status?: SearchStatus;
@@ -127,4 +130,13 @@ export type TaskInput = Schemas["TaskIn"];
 export type CurrentTask = Schemas["CurrentTaskOut"];
 export type TaskAnswer = Schemas["TaskAnswerOut"];
 export type MyTaskAnswer = Schemas["MyTaskAnswerOut"];
+export type CandidateUpdates = Schemas["CandidateUpdatesOut"];
+export type ComplaintInput = Schemas["ComplaintIn"];
+export type Suggestion = Schemas["SuggestionOut"];
+export type AiReview = Schemas["AiReviewOut"];
+export type AiStatus = Schemas["AiStatusOut"];
+export type ComplaintReason = Schemas["ComplaintReason"];
+export type EmployerUpdates = Schemas["EmployerUpdatesOut"];
+export type CandidateSection = Schemas["CandidateSeenIn"]["section"];
+export type EmployerSection = Schemas["EmployerSeenIn"]["section"];
 export type OfferedTask = Schemas["OfferedTaskOut"];

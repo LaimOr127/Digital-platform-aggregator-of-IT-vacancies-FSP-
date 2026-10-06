@@ -74,6 +74,9 @@ async def catalog_candidates(
     specialization: Specialization | None = None,
     grade: Grade | None = None,
     work_format: WorkFormat | None = None,
+    city: Annotated[
+        str | None, Query(max_length=100, description="живёт в городе или готов к переезду")
+    ] = None,
     skill: Skills = [],  # noqa: B006 - FastAPI копирует значение по умолчанию
     search_status: SearchStatus | None = None,
     confirmed_only: bool = False,
@@ -93,6 +96,7 @@ async def catalog_candidates(
         specialization=specialization,
         grade=grade,
         work_format=work_format,
+        city=city,
         skills=tuple(dict.fromkeys(skill)),
         search_status=search_status,
         confirmed_only=confirmed_only,

@@ -55,7 +55,9 @@ function Cv({ profile: p, assessment, fsp }: CvProps) {
   const category = assessment.category;
   const facts = [
     p.city,
-    p.work_format && labels.workFormat[p.work_format],
+    p.relocation && "готов к переезду",
+    p.work_formats.map((f) => labels.workFormat[f]).join(" / "),
+    p.education && labels.education[p.education],
     p.experience_years !== null && p.experience_years !== undefined && `опыт ${p.experience_years} лет`,
   ].filter(Boolean);
 
@@ -111,7 +113,13 @@ function Cv({ profile: p, assessment, fsp }: CvProps) {
               {confirmed.has(s.slug) ? <strong>{s.name}</strong> : s.name}
             </span>
           ))}
-          {p.skills.length === 0 && <span className="text-muted">Не указаны</span>}
+          {p.custom_skills.map((name, i) => (
+            <span key={`own-${name}`}>
+              {(p.skills.length > 0 || i > 0) && ", "}
+              {name}
+            </span>
+          ))}
+          {p.skills.length === 0 && p.custom_skills.length === 0 && <span className="text-muted">Не указаны</span>}
         </p>
         {confirmed.size > 0 && <p className="mt-1 text-xs text-muted">Жирным — подтверждены ответами теста</p>}
       </Block>

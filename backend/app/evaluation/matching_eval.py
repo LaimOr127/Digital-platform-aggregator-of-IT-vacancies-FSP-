@@ -133,7 +133,7 @@ def _candidate(person: Person, rng: random.Random) -> Candidate:
         if person.fsp_tier
         else VerificationTier.SELF_DECLARED,
         city=person.city,
-        work_format=person.work_format,
+        work_formats=[person.work_format],
         salary_min=person.salary_min,
         last_activity_at=datetime.now(UTC) - timedelta(days=rng.randint(0, 150)),
     )

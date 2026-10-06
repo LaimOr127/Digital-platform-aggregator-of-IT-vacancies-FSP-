@@ -1,7 +1,17 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, Column, DateTime, ForeignKey, Integer, String, Table, Text
+from sqlalchemy import (
+    CheckConstraint,
+    Column,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Table,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, IdMixin, TimestampMixin, str_enum
@@ -47,3 +57,19 @@ class Vacancy(IdMixin, TimestampMixin, Base):
     expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
 
     skills: Mapped[list[Skill]] = relationship(secondary=vacancy_skills, lazy="selectin")
+
+
+class VacancyComplaint(IdMixin, TimestampMixin, Base):
+    """Жалоба кандидата на вакансию: одна от кандидата на вакансию, видна модератору."""
+
+    __tablename__ = "vacancy_complaints"
+    __table_args__ = (UniqueConstraint("vacancy_id", "profile_id"),)
+
+    vacancy_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("vacancies.id", ondelete="CASCADE"), index=True
+    )
+    profile_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("candidate_profiles.id", ondelete="CASCADE"), index=True
+    )
+    reason: Mapped[str] = mapped_column(String(32))  # ComplaintReason
+    comment: Mapped[str] = mapped_column(Text, default="")

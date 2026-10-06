@@ -95,7 +95,7 @@ export function Landing() {
         </motion.div>
       </section>
 
-      <section aria-labelledby="how" className="border-y border-line bg-surface/50">
+      <section aria-labelledby="how" className="border-y border-line bg-white/5">
         <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
           <motion.h2 id="how" {...fadeUp()} className="text-3xl font-semibold tracking-tight">
             Обратная механика подбора

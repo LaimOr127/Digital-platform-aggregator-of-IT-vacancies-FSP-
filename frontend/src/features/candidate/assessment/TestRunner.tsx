@@ -4,6 +4,7 @@ import { Clock, Send } from "lucide-react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import type { Attempt, AttemptResult, Question } from "../../../api/types";
 import { errorMessage } from "../../../api/errors";
+import { useContentGuard } from "../../../lib/contentGuard";
 import { labels } from "../../../lib/format";
 import { Badge } from "../../../ui/Badge";
 import { Button } from "../../../ui/Button";
@@ -11,7 +12,7 @@ import { Card } from "../../../ui/Card";
 import { ConfirmDialog } from "../../../ui/ConfirmDialog";
 import { Input } from "../../../ui/form";
 import { useToast } from "../../../ui/Toast";
-import { useSubmitAttempt } from "./hooks";
+import { useReportViolation, useSubmitAttempt } from "./hooks";
 
 type Props = { attempt: Attempt; onFinished: (result: AttemptResult) => void };
 
@@ -19,7 +20,15 @@ export function TestRunner({ attempt, onFinished }: Props) {
   const [answers, setAnswers] = useState<(string | null)[]>(() => attempt.questions.map(() => null));
   const [confirming, setConfirming] = useState(false);
   const submit = useSubmitAttempt();
+  const violation = useReportViolation();
   const notify = useToast();
+  // снимок экрана — тест не засчитан (сервер завершает попытку как проваленную)
+  const guard = useContentGuard<HTMLDivElement>(() => {
+    violation.mutate(attempt.id, {
+      onSuccess: onFinished,
+      onError: (err) => notify(errorMessage(err), "error"),
+    });
+  });
   const answered = answers.filter((a) => a !== null && a !== "").length;
   const total = attempt.questions.length;
 
@@ -46,7 +55,10 @@ export function TestRunner({ attempt, onFinished }: Props) {
     setAnswers((prev) => prev.map((a, i) => (i === index ? value : a)));
 
   return (
-    <div className="flex flex-col gap-5">
+    <div ref={guard} className="no-print flex select-none flex-col gap-5">
+      <p className="rounded-xl border border-warn/40 bg-warn/10 px-4 py-3 text-sm">
+        Копирование заданий отключено. Снимок экрана во время теста — тест не засчитывается.
+      </p>
       <div className="sticky top-28 z-20 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-line bg-surface/95 px-5 py-3 backdrop-blur">
         <div>
           <p className="font-semibold">
@@ -104,7 +116,7 @@ function QuestionCard({ question: q, value, onChange }: { question: Question; va
           {q.prompt}
         </p>
         {q.code && (
-          <pre className="mt-3 overflow-x-auto rounded-xl border border-line bg-bg p-4 text-sm leading-relaxed">
+          <pre className="mt-3 overflow-x-auto rounded-xl border border-line bg-surface-2 p-4 text-sm leading-relaxed">
             <code>{q.code}</code>
           </pre>
         )}

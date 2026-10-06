@@ -1,5 +1,5 @@
 // Вакансии для самостоятельного отклика: дополнение к приглашениям, по соответствию профилю.
-import { Briefcase, Building2, Send } from "lucide-react";
+import { Briefcase, Building2, Flag, Send } from "lucide-react";
 import { useState } from "react";
 import type { BoardFilters, BoardVacancy, Grade, Specialization } from "../../../api/types";
 import { formatSalaryRange, labels, options } from "../../../lib/format";
@@ -13,6 +13,7 @@ import { Dialog } from "../../../ui/Dialog";
 import { Field, Input, Select, Textarea } from "../../../ui/form";
 import { useAction } from "../../../ui/useAction";
 import { MatchPanel } from "../../employer/catalog/MatchPanel";
+import { ComplaintDialog } from "./ComplaintDialog";
 import { useRespond, useVacancyBoard } from "./hooks";
 
 export function VacancyBoard() {
@@ -21,6 +22,7 @@ export function VacancyBoard() {
   const q = useDebounced(query.trim(), 300) || undefined;
   const board = useVacancyBoard({ ...filters, q });
   const [responding, setResponding] = useState<BoardVacancy | null>(null);
+  const [complaining, setComplaining] = useState<BoardVacancy | null>(null);
   const pick = <T extends string>(value: string) => (value || undefined) as T | undefined;
 
   return (
@@ -55,14 +57,17 @@ export function VacancyBoard() {
         className="grid gap-4 md:grid-cols-2"
         empty={{ icon: <Briefcase className="size-5" />, title: "Вакансий не найдено", text: "Измените фильтры." }}
       >
-        {(v) => <VacancyRow key={v.id} vacancy={v} onRespond={() => setResponding(v)} />}
+        {(v) => <VacancyRow key={v.id} vacancy={v} onRespond={() => setResponding(v)} onComplain={() => setComplaining(v)} />}
       </CursorListView>
       <RespondDialog key={responding?.id ?? "none"} vacancy={responding} onClose={() => setResponding(null)} />
+      <ComplaintDialog key={complaining?.id ?? "none"} vacancy={complaining} onClose={() => setComplaining(null)} />
     </>
   );
 }
 
-function VacancyRow({ vacancy: v, onRespond }: { vacancy: BoardVacancy; onRespond: () => void }) {
+type RowProps = { vacancy: BoardVacancy; onRespond: () => void; onComplain: () => void };
+
+function VacancyRow({ vacancy: v, onRespond, onComplain }: RowProps) {
   return (
     <article className="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -85,14 +90,18 @@ function VacancyRow({ vacancy: v, onRespond }: { vacancy: BoardVacancy; onRespon
       </p>
       <MatchPanel match={v.match} />
       {v.skills.length > 0 && <p className="text-xs text-muted">{v.skills.join(" · ")}</p>}
-      {!v.application_status && (
-        <div className="border-t border-line pt-3">
+      <div className="flex flex-wrap items-center gap-2 border-t border-line pt-3">
+        {!v.application_status && (
           <Button size="sm" onClick={onRespond}>
             <Send className="size-3.5" aria-hidden />
             Откликнуться
           </Button>
-        </div>
-      )}
+        )}
+        <Button variant="ghost" size="sm" className="ml-auto" onClick={onComplain}>
+          <Flag className="size-3.5" aria-hidden />
+          Пожаловаться
+        </Button>
+      </div>
     </article>
   );
 }

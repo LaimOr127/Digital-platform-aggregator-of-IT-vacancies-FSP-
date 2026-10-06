@@ -6,6 +6,7 @@ from pydantic import BaseModel, EmailStr, Field, HttpUrl
 from app.models.enums import CompanyStatus, Grade, Specialization, VacancyStatus, WorkFormat
 from app.schemas.candidate import SkillSlug
 from app.schemas.common import ORMModel, SalaryRangeMixin, SkillOut
+from app.services.cities import City
 
 
 class CompanyOut(ORMModel):
@@ -40,7 +41,7 @@ class VacancyUpdateIn(SalaryRangeMixin):
     grade: Grade | None = None
     specialization: Specialization | None = None
     work_format: WorkFormat | None = None
-    city: str | None = Field(default=None, max_length=100)
+    city: City | None = None
     skills: list[SkillSlug] | None = Field(default=None, max_length=30)
 
 

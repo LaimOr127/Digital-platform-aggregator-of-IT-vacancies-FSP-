@@ -6,10 +6,12 @@ import { useState } from "react";
 import { myTasksApi } from "../../../api/endpoints";
 import { useCursorList } from "../../../api/queries";
 import type { MyTaskAnswer, OfferedTask } from "../../../api/types";
+import { useContentGuard } from "../../../lib/contentGuard";
 import { formatDate } from "../../../lib/format";
 import { Button } from "../../../ui/Button";
 import { Card, CardTitle } from "../../../ui/Card";
 import { Field, Textarea } from "../../../ui/form";
+import { useToast } from "../../../ui/Toast";
 import { useAction } from "../../../ui/useAction";
 
 const TASKS = ["candidate-tasks"] as const;
@@ -51,11 +53,24 @@ function TaskForm({ task }: { task: OfferedTask }) {
     onSuccess: () => Promise.all([TASKS, ["assessment"]].map((queryKey) => client.invalidateQueries({ queryKey }))),
   });
   const short = answer.trim().length < MIN_ANSWER;
+  const notify = useToast();
+  // снимок экрана — задача закрывается: решить её больше нельзя
+  const block = useMutation({
+    mutationFn: () => myTasksApi.violation(task.id),
+    onSuccess: () => {
+      notify("Задача закрыта: во время решения был сделан снимок экрана", "error");
+      return client.invalidateQueries({ queryKey: TASKS });
+    },
+  });
+  const guard = useContentGuard<HTMLDivElement>(() => block.mutate());
   return (
-    <div>
+    <div ref={guard}>
       <p className="text-xs text-muted">{task.company_name}</p>
-      <h3 className="mt-0.5 font-medium">{task.title}</h3>
-      <p className="mt-2 whitespace-pre-line text-sm leading-relaxed">{task.body}</p>
+      <h3 className="mt-0.5 font-medium">Задача «{task.title}»</h3>
+      <p className="no-print mt-2 select-none whitespace-pre-line text-sm leading-relaxed">{task.body}</p>
+      <p className="mt-2 text-xs text-muted">
+        Копирование текста задачи отключено. Снимок экрана закрывает задачу — решить её будет нельзя.
+      </p>
       <Field label="Ваш ответ" hint={`Решение или подход, от ${MIN_ANSWER} символов`} className="mt-4">
         <Textarea rows={5} maxLength={4000} value={answer} onChange={(e) => setAnswer(e.target.value)} />
       </Field>
@@ -76,13 +91,24 @@ function TaskForm({ task }: { task: OfferedTask }) {
 
 function AnswerItem({ item }: { item: MyTaskAnswer }) {
   return (
-    <li className="flex flex-wrap items-baseline justify-between gap-2 text-sm">
-      <span className="min-w-0">
-        {item.task_title} <span className="text-muted">· {item.company_name} · {formatDate(item.created_at)}</span>
-      </span>
-      <span className={item.rating ? "font-medium" : "text-muted"}>
-        {item.rating ? `оценка ${item.rating} из 5` : "ещё не оценён"}
-      </span>
+    <li className="text-sm">
+      <details>
+        <summary className="flex cursor-pointer flex-wrap items-baseline justify-between gap-2">
+          <span className="min-w-0">
+            Задача «{item.task_title}» <span className="text-muted">· {item.company_name} · {formatDate(item.created_at)}</span>
+          </span>
+          <span className={item.rating ? "font-medium" : "text-muted"}>
+            {item.rating ? `оценка ${item.rating} из 5` : "ещё не оценён"}
+          </span>
+        </summary>
+        <div className="mt-2 flex flex-col gap-2 rounded-xl bg-surface-2 p-3">
+          {item.task_body && <p className="whitespace-pre-line leading-relaxed">{item.task_body}</p>}
+          <p className="whitespace-pre-line leading-relaxed">
+            <span className="text-muted">Ваш ответ: </span>
+            {item.answer}
+          </p>
+        </div>
+      </details>
     </li>
   );
 }

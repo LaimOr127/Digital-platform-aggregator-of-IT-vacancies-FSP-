@@ -13,8 +13,11 @@ const profile: Profile = {
   title: null,
   about: null,
   grade: null,
-  work_format: null,
+  work_formats: [],
   city: "Москва",
+  relocation: false,
+  education: null,
+  custom_skills: [],
   salary_min: null,
   salary_max: null,
   verification_tier: "self_declared",
@@ -94,13 +97,14 @@ describe("profile autofill", () => {
     // пустые поля отмечены, заполненные (город, имя) — нет
     expect(within(dialog).getByRole("checkbox", { name: /Должность/ })).toBeChecked();
     expect(within(dialog).getByRole("checkbox", { name: /Город/ })).not.toBeChecked();
-    expect(within(dialog).getByText(/Нет в справочнике.*Rust/)).toBeInTheDocument();
+    expect(within(dialog).getByText(/Нет в справочнике — добавятся как свои навыки: Rust/)).toBeInTheDocument();
     expect(await within(dialog).findByText("Наставничество, Работа в команде")).toBeInTheDocument();
     await userEvent.click(within(dialog).getByRole("button", { name: "Перенести в профиль" }));
 
     expect(screen.getByPlaceholderText("Backend-разработчик")).toHaveValue("Backend-разработчик");
     expect(screen.getByDisplayValue("Москва")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Убрать Go" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Убрать свой навык Rust" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Наставничество", pressed: true })).toBeInTheDocument();
     expect(screen.getByLabelText("Опыт в профессии, лет")).toHaveValue(5);
     expect(screen.getByText("Есть несохранённые изменения")).toBeInTheDocument();
@@ -125,5 +129,7 @@ describe("profile autofill", () => {
     expect(screen.getByText("Есть несохранённые изменения")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Сохранить" }));
     expect(await screen.findByText("Все изменения сохранены")).toBeInTheDocument();
+    // кнопка — только когда есть что сохранять
+    expect(screen.queryByRole("button", { name: "Сохранить" })).not.toBeInTheDocument();
   });
 });

@@ -18,7 +18,7 @@ from app.core.config import get_settings
 from app.core.crypto import FieldCipher
 from app.core.errors import NotFoundError
 from app.core.security import TokenService
-from app.db.demo import seed_candidates, seed_market
+from app.db.demo import seed_candidates, seed_logins, seed_market
 from app.db.session import get_database
 from app.schemas.auth import PasswordMixin
 from app.services.account import AccountService
@@ -91,9 +91,13 @@ async def seed_demo(count: int, companies: int, vacancies_each: int) -> None:
             cipher = FieldCipher(settings.secret("field_encryption_key"))
             created = await seed_candidates(session, cipher, count) if count else 0
             vacancies = await seed_market(session, companies, vacancies_each) if companies else 0
+            logins = await seed_logins(session, cipher)
     finally:
         await db.dispose()
     sys.stdout.write(f"demo candidates: {created}, demo vacancies: {vacancies}\n")
+    # пароль показывается один раз — как код подключения 2FA у create-admin
+    for email, password in logins.items():
+        sys.stdout.write(f"demo login: {email} / {password}\n")
 
 
 def _validate_email(email: str) -> str:

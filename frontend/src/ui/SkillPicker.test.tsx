@@ -43,4 +43,20 @@ describe("SkillPicker", () => {
     await userEvent.click(screen.getByRole("button", { name: "Go" }));
     expect(screen.getByRole("button", { name: "Python" })).toBeDisabled();
   });
+
+  it("adds an own skill that is not in the dictionary", async () => {
+    function OwnHarness() {
+      const [value, setValue] = useState<string[]>([]);
+      const [own, setOwn] = useState<string[]>([]);
+      return <SkillPicker skills={skills} value={value} onChange={setValue} max={5} custom={own} onCustomChange={setOwn} />;
+    }
+    render(<OwnHarness />);
+    const search = screen.getByLabelText("Найти навык");
+    await userEvent.type(search, "Camunda");
+    await userEvent.click(screen.getByRole("button", { name: "Добавить «Camunda» как свой навык" }));
+    expect(screen.getByRole("button", { name: "Убрать свой навык Camunda" })).toBeInTheDocument();
+    // название из справочника своим не добавляется
+    await userEvent.type(search, "go");
+    expect(screen.queryByRole("button", { name: /как свой навык/ })).not.toBeInTheDocument();
+  });
 });

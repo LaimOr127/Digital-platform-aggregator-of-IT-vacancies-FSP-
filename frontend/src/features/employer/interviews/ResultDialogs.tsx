@@ -9,7 +9,7 @@ import { randomKey } from "../../../lib/ids";
 import { Alert } from "../../../ui/Alert";
 import { Button } from "../../../ui/Button";
 import { Dialog } from "../../../ui/Dialog";
-import { Field, Input, Select, Textarea } from "../../../ui/form";
+import { Field, MoneyInput, Select, Textarea } from "../../../ui/form";
 import { useToast } from "../../../ui/Toast";
 import { useActiveVacancies, useSendOffer } from "../catalog/hooks";
 import { useCompleteInterview } from "./hooks";
@@ -97,10 +97,10 @@ function OfferForm({ interview, onDone }: { interview: EmployerInterview; onDone
         </div>
       )}
       <Field label="Зарплата от, ₽" error={errors.salary_min?.message}>
-        <Input type="number" inputMode="numeric" min={0} step={5000} className="tabular" {...form.register("salary_min")} />
+        <MoneyInput {...form.register("salary_min")} />
       </Field>
       <Field label="Зарплата до, ₽" error={errors.salary_max?.message}>
-        <Input type="number" inputMode="numeric" min={0} step={5000} className="tabular" {...form.register("salary_max")} />
+        <MoneyInput {...form.register("salary_max")} />
       </Field>
       <Field label="Сообщение кандидату" error={errors.message?.message} className="sm:col-span-2">
         <Textarea rows={4} placeholder="Условия, команда, следующий шаг" {...form.register("message")} />
