@@ -24,4 +24,5 @@ async def current_user(session: AsyncSession, principal: Principal) -> MeOut:
         role=user.role,
         is_superadmin=user.is_superadmin,
         company_id=principal.company_id,
+        consent_at=user.consent_at,
     )

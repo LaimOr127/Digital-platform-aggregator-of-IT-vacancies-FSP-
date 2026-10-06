@@ -45,6 +45,7 @@ async def test_me_returns_current_user(client: AsyncClient):
     r = await client.get("/api/v1/auth/me", headers=bearer(token))
     assert r.status_code == 200
     assert r.json()["role"] == "candidate" and r.json()["company_id"] is None
+    assert r.json()["consent_at"] is not None  # согласие с регистрации видно в настройках
 
 
 @pytest.mark.parametrize("password", ["short1", "aaaaaaaaaaaa", "123456789012", "abababababab1"])

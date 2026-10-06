@@ -1,5 +1,7 @@
 // Приватность: что из анонимной карточки видит работодатель. Сохраняется сразу.
 import type { Profile } from "../../api/types";
+import { useAuth } from "../../auth/AuthProvider";
+import { formatDate } from "../../lib/format";
 import { Card, CardTitle } from "../../ui/Card";
 import { Switch } from "../../ui/form";
 import { useAction } from "../../ui/useAction";
@@ -14,6 +16,7 @@ const OPTIONS = [
 export function PrivacyCard({ profile }: { profile: Profile }) {
   const update = useUpdateProfile();
   const run = useAction();
+  const consentAt = useAuth().user?.consent_at;
   return (
     <Card>
       <CardTitle>Что видит работодатель</CardTitle>
@@ -30,6 +33,13 @@ export function PrivacyCard({ profile }: { profile: Profile }) {
           />
         ))}
       </div>
+      <p className="mt-4 border-t border-line pt-4 text-sm text-muted">
+        {consentAt
+          ? `Согласие на обработку и публикацию данных профиля дано ${formatDate(consentAt)}.`
+          : "Согласие на обработку и публикацию данных профиля не зафиксировано."}{" "}
+        Снять профиль с публикации — «Скрыть профиль от работодателей» в форме профиля; отозвать согласие —
+        удалить аккаунт.
+      </p>
     </Card>
   );
 }

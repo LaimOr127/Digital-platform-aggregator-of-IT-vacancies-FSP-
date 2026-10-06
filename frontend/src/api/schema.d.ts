@@ -2698,6 +2698,11 @@ export interface components {
             is_superadmin: boolean;
             /** Company Id */
             company_id?: string | null;
+            /**
+             * Consent At
+             * @description когда дано согласие на обработку и публикацию данных профиля
+             */
+            consent_at?: string | null;
         };
         /**
          * MfaChallengeOut
