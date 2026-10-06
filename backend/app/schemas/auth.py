@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
@@ -86,6 +87,9 @@ class MeOut(BaseModel):
     role: UserRole
     is_superadmin: bool
     company_id: uuid.UUID | None = None
+    consent_at: datetime | None = Field(
+        default=None, description="когда дано согласие на обработку и публикацию данных профиля"
+    )
 
 
 class MfaChallengeOut(BaseModel):
