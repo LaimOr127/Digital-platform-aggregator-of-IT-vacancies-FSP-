@@ -3,7 +3,7 @@
 // аккаунта: открыл раздел на телефоне — на ноутбуке точка погаснет при ближайшем опросе
 // (раз в 15 секунд) или сразу при возврате на вкладку.
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { useLocation } from "react-router";
 
 const REFRESH_MS = 15_000;
@@ -35,9 +35,6 @@ export function useNews<K extends string>(
     // точное время отметки — серверное (часы устройства могут спешить или отставать)
     onSettled: () => client.invalidateQueries({ queryKey }),
   });
-  const markRef = useRef(mark.mutate);
-  markRef.current = mark.mutate;
-
   const sections = Object.keys(paths) as K[];
   const time = (value: unknown) => (typeof value === "string" ? Date.parse(value) : 0);
   const latest = (section: K) => time((updates.data as Record<string, unknown> | undefined)?.[section]);
@@ -47,8 +44,9 @@ export function useNews<K extends string>(
 
   useEffect(() => {
     if (!current || !updates.data) return;
-    markRef.current(current);
-    return () => markRef.current(current);
+    // mutate у TanStack Query стабилен между рендерами — в зависимости его не добавляем
+    mark.mutate(current);
+    return () => mark.mutate(current);
   }, [current, currentLatest, Boolean(updates.data)]);
 
   return Object.fromEntries(sections.map((section) => [paths[section], latest(section) > seenAt(section)]));

@@ -1640,7 +1640,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Справочники: специализации, отрасли, роли, образование, города */
+        /** Справочники: специализации, отрасли, роли, софт-скиллы, города */
         get: operations["dictionaries_api_v1_public_dictionaries_get"];
         put?: never;
         post?: never;
@@ -2442,8 +2442,6 @@ export interface components {
             roles: components["schemas"]["OptionOut"][];
             /** Soft Skills */
             soft_skills: components["schemas"]["OptionOut"][];
-            /** Education */
-            education: components["schemas"]["OptionOut"][];
             /** Cities */
             cities: string[];
         };

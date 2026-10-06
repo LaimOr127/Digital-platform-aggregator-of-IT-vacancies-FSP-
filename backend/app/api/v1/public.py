@@ -10,7 +10,6 @@ from app.services.cities import CITIES
 from app.services.directory import list_skills
 from app.services.passport import verify_passport
 from app.services.specializations import (
-    EDUCATION,
     INDUSTRIES,
     ROLES,
     SOFT_SKILLS,
@@ -26,7 +25,7 @@ async def skills(session: SessionDep) -> list[SkillOut]:
 
 
 @router.get(
-    "/dictionaries", summary="Справочники: специализации, отрасли, роли, образование, города"
+    "/dictionaries", summary="Справочники: специализации, отрасли, роли, софт-скиллы, города"
 )
 async def dictionaries() -> DictionariesOut:
     return DictionariesOut(
@@ -37,7 +36,6 @@ async def dictionaries() -> DictionariesOut:
         industries=[OptionOut(value=k, label=v) for k, v in INDUSTRIES.items()],
         roles=[OptionOut(value=k, label=v) for k, v in ROLES.items()],
         soft_skills=[OptionOut(value=k, label=v) for k, v in SOFT_SKILLS.items()],
-        education=[OptionOut(value=k, label=v) for k, v in EDUCATION.items()],
         cities=list(CITIES),
     )
 

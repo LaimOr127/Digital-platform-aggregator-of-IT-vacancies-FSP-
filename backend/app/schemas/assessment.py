@@ -159,5 +159,4 @@ class DictionariesOut(BaseModel):
     industries: list[OptionOut]
     roles: list[OptionOut]
     soft_skills: list[OptionOut]
-    education: list[OptionOut]
     cities: list[str]
