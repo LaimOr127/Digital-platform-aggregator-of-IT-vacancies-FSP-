@@ -1,6 +1,11 @@
 # Сервер: автоперезапуск, лимиты ресурсов, 80/443 наружу, egress для реального API ФСП.
+# APP_ENV=prod задаётся здесь явно: prod-режим не зависит от значения в .env.
+# Демо-коды ФСП в prod выключены; для демо-стенда с моком — явно FSP_DEMO_CODES_PROD=true.
 x-limits: &limits
   restart: unless-stopped
+x-prod-env: &prod-env
+  APP_ENV: prod
+  FSP_DEMO_CODES: ${FSP_DEMO_CODES_PROD:-false}
 
 services:
   proxy:
@@ -10,12 +15,20 @@ services:
   web:
     <<: *limits
     deploy: { resources: { limits: { cpus: "0.25", memory: 64M } } }
+  migrate:
+    environment: *prod-env
   api:
     <<: *limits
+    environment:
+      <<: *prod-env
+      # процессы uvicorn: CPU-задачи (подбор, argon2) не останавливают остальные запросы;
+      # лимиты общие для всех процессов (PostgreSQL), так что их число можно менять свободно
+      WEB_CONCURRENCY: ${API_WORKERS:-2}
     networks: [edge, internal, egress]
-    deploy: { resources: { limits: { cpus: "1.0", memory: 384M } } }
+    deploy: { resources: { limits: { cpus: "1.0", memory: 512M } } }
   worker:
     <<: *limits
+    environment: *prod-env
     networks: [internal, egress]
     deploy: { resources: { limits: { cpus: "0.5", memory: 256M } } }
   db:
@@ -23,4 +36,11 @@ services:
     deploy: { resources: { limits: { cpus: "1.0", memory: 512M } } }
   fsp-mock:
     <<: *limits
+    environment:
+      FSP_MOCK_EXPOSE_CODES: ${FSP_DEMO_CODES_PROD:-false}
     deploy: { resources: { limits: { cpus: "0.25", memory: 96M } } }
+
+# В dev и GitHub Codespaces сеть edge открыта (compose.base.yml: Docker в Codespaces иначе не
+# доставляет трафик); на сервере web и api снова без выхода в интернет.
+networks:
+  edge: { internal: true }

@@ -1,8 +1,48 @@
-"""Корневой роутер v1. Порталы (candidate/employer/admin) подключаются здесь в следующих фазах."""
+"""Корневой роутер v1: подключает порталы кандидата, работодателя и админа."""
 
 from fastapi import APIRouter
 
-from app.api.v1 import health
+from app.api.v1 import (
+    account,
+    admin,
+    admin_ai,
+    applications,
+    assessment,
+    auth,
+    candidate,
+    candidate_interviews,
+    candidate_offers,
+    catalog,
+    employer,
+    employer_interviews,
+    fsp,
+    health,
+    insights,
+    profile_import,
+    public,
+    tasks,
+)
+from app.core.errors import ERROR_RESPONSES
 
-api_router = APIRouter(prefix="/api/v1")
-api_router.include_router(health.router)
+api_router = APIRouter(prefix="/api/v1", responses=ERROR_RESPONSES)
+for module in (
+    health,
+    auth,
+    account,
+    candidate,
+    assessment,
+    profile_import,
+    fsp,
+    applications,
+    candidate_interviews,
+    candidate_offers,
+    employer,
+    employer_interviews,
+    catalog,
+    tasks,
+    insights,
+    admin,
+    admin_ai,
+    public,
+):
+    api_router.include_router(module.router)

@@ -4,7 +4,17 @@ services:
     build: { context: ../backend, target: runtime }
     extends: { file: common.yml, service: python-app }
     command: ["python", "-m", "app.worker"]
+    # почта нужна только worker: api ставит письма в очередь, worker их отправляет
+    environment:
+      PUBLIC_URL: ${PUBLIC_URL:-http://localhost:8088}
+      SMTP_HOST: ${SMTP_HOST:-mailpit}
+      SMTP_PORT: ${SMTP_PORT:-1025}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-IT Match <no-reply@itmatch.local>}
+      SMTP_STARTTLS: ${SMTP_STARTTLS:-false}
     healthcheck: { disable: true }
     networks: [internal]
     depends_on:
       db: { condition: service_healthy }
+      migrate: { condition: service_completed_successfully }

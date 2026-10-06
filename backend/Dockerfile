@@ -12,15 +12,18 @@ RUN --mount=type=cache,target=/root/.cache/pip pip install --prefix=/install -r 
 FROM base AS test
 COPY requirements.txt requirements-dev.txt ./
 RUN --mount=type=cache,target=/root/.cache/pip pip install -r requirements-dev.txt
-COPY pyproject.toml .
+COPY pyproject.toml alembic.ini ./
+COPY migrations ./migrations
 COPY app ./app
 COPY tests ./tests
-CMD ["sh", "-c", "ruff check . && pytest -q"]
+CMD ["sh", "-c", "ruff check . && ruff format --check . && pytest -q -p no:cacheprovider --cov"]
 
 # ---- runtime: минимальный образ, non-root ----
 FROM base AS runtime
 RUN groupadd -g 10001 app && useradd -u 10001 -g app -s /usr/sbin/nologin -M app
 COPY --from=deps /install /usr/local
+COPY alembic.ini ./
+COPY migrations ./migrations
 COPY app ./app
 USER 10001:10001
 EXPOSE 8000

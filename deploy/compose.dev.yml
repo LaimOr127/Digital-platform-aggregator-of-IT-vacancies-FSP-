@@ -3,5 +3,26 @@ services:
   proxy:
     ports: ["127.0.0.1:${HTTP_PORT:-8088}:80"]   # порт меняется в .env (HTTP_PORT)
   api:
-    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    # --proxy-headers: реальный IP клиента за Caddy (иначе у всех один лимит запросов)
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload",
+              "--proxy-headers", "--forwarded-allow-ips", "*"]
     volumes: ["../backend/app:/app/app:ro"]
+    networks: [edge, internal, egress]   # выход наружу — только для языковых моделей
+    environment:
+      # локальная модель (Ollama, LM Studio) на этом компьютере: http://host.docker.internal:11434/v1
+      AI_ALLOW_HTTP: ${AI_ALLOW_HTTP:-true}
+      AI_ALLOW_PRIVATE_NETWORK: ${AI_ALLOW_PRIVATE_NETWORK:-true}
+    extra_hosts: ["host.docker.internal:host-gateway"]
+  worker:
+    depends_on:
+      mailpit: { condition: service_started }
+  # Почтовый ящик для разработки: все письма видны на http://localhost:8025 (наружу не уходят)
+  mailpit:
+    image: axllent/mailpit:v1.27
+    extends: { file: common.yml, service: hardened }
+    user: "65534:65534"
+    environment:
+      MP_DISABLE_VERSION_CHECK: "true"
+      MP_MAX_MESSAGES: "500"
+    ports: ["127.0.0.1:${MAIL_UI_PORT:-8025}:8025"]
+    networks: [internal, public]

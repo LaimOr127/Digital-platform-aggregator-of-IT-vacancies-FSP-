@@ -3,7 +3,7 @@ name: itmatch
 
 networks:
   public: {}                     # только proxy: опубликованные порты 80/443 (8080 в dev)
-  edge: { internal: true }       # proxy <-> web/api, без выхода в интернет
+  edge: {}                       # proxy <-> web/api; в prod — internal (compose.prod.yml)
   internal: { internal: true }   # api/worker <-> db/fsp-mock, без выхода в интернет
   egress: {}                     # только prod: api/worker -> реальный API ФСП
 

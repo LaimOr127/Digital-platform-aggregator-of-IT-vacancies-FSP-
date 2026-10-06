@@ -19,6 +19,13 @@
 		max_size 6MB
 	}
 
+	# паспорт навыков: не индексируется поисковиками и не кэшируется (отзыв действует сразу)
+	@passport path /passport/* /api/v1/public/passport/*
+	header @passport {
+		X-Robots-Tag "noindex, nofollow"
+		Cache-Control "no-store"
+	}
+
 	handle /api/* {
 		reverse_proxy api:8000
 	}
