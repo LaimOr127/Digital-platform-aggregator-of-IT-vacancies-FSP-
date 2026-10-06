@@ -57,3 +57,27 @@ async def test_employer_sees_vacancy_to_renew_and_application(client: AsyncClien
     news = (await client.get(THEIRS, headers=bearer(employer["token"]))).json()
     assert news["renew_due"] == 1
     assert news["applications"] is not None
+
+
+async def test_seen_mark_is_shared_by_all_devices(client: AsyncClient, db, app):
+    """Отметка на сервере: открыл раздел на телефоне — точка гаснет и на ноутбуке."""
+    candidate = await verified_candidate(client)
+    phone = bearer(candidate["token"])
+    r = await client.post(f"{MINE}/seen", json={"section": "offers"}, headers=phone)
+    assert r.status_code == 204
+    first = (await client.get(MINE, headers=phone)).json()["seen"]["offers"]
+    # повторная отметка двигает время только вперёд; неизвестный раздел — ошибка
+    await client.post(f"{MINE}/seen", json={"section": "offers"}, headers=phone)
+    laptop = (await client.get(MINE, headers=phone)).json()["seen"]
+    assert datetime.fromisoformat(laptop["offers"]) >= datetime.fromisoformat(first)
+    bad = await client.post(f"{MINE}/seen", json={"section": "tasks"}, headers=phone)
+    assert bad.status_code == 422
+
+    employer = await approved_employer(client, db, app)
+    hr = bearer(employer["token"])
+    assert (
+        await client.post(f"{THEIRS}/seen", json={"section": "tasks"}, headers=hr)
+    ).status_code == 204
+    assert "tasks" in (await client.get(THEIRS, headers=hr)).json()["seen"]
+    # отметки кандидата и компании не смешиваются
+    assert "tasks" not in (await client.get(MINE, headers=phone)).json()["seen"]

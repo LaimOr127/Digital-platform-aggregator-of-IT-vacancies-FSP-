@@ -36,7 +36,7 @@ const NEWS_PATHS = {
 
 export default function EmployerPortal() {
   const company = useCompany();
-  const news = useNews("employer", employerApi.updates, NEWS_PATHS);
+  const news = useNews("employer", employerApi.updates, employerApi.markSeen, NEWS_PATHS);
   const renewDue = useRenewDue();
   // вакансии к продлению держат точку, пока их не продлят
   const nav = NAV.map((item) => ({ ...item, dot: item.to === "/company" ? renewDue > 0 : news[item.to] }));

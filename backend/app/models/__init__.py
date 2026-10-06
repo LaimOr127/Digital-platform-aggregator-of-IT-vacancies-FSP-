@@ -14,7 +14,7 @@ from app.models.notify import EmailToken, OutboxMessage
 from app.models.offer import ContactReveal, Offer
 from app.models.passport import Passport
 from app.models.task import EmployerTask, TaskAnswer
-from app.models.user import RefreshToken, User
+from app.models.user import RefreshToken, SectionView, User
 from app.models.vacancy import Vacancy, VacancyComplaint, vacancy_skills
 
 __all__ = [
@@ -38,6 +38,7 @@ __all__ = [
     "OutboxMessage",
     "Passport",
     "RefreshToken",
+    "SectionView",
     "Skill",
     "TaskAnswer",
     "User",

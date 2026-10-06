@@ -333,3 +333,17 @@ async def test_vacancy_complaints_visible_only_to_author_and_moderator(
     assert await _scalar(db, admin_id, "admin", sql) == 1
     assert await _scalar(db, other_id, "candidate", sql) == 0
     assert await _scalar(db, owner_id, "employer", sql) == 0
+
+
+async def test_section_views_visible_only_to_owner(client: AsyncClient, db: Database):
+    """Отметки «раздел просмотрен» другого пользователя не видны и не меняются."""
+    alice = await register_candidate(client, name="Алиса")
+    await register_candidate(client, name="Боб")
+    r = await client.post(
+        "/api/v1/candidate/updates/seen", json={"section": "offers"}, headers=bearer(alice)
+    )
+    assert r.status_code == 204, r.text
+    alice_id, bob_id = await _user_ids(db, "candidate")
+    sql = "SELECT count(*) FROM section_views"
+    assert await _scalar(db, alice_id, "candidate", sql) == 1
+    assert await _scalar(db, bob_id, "candidate", sql) == 0

@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -11,6 +12,9 @@ class CandidateUpdatesOut(BaseModel):
     responses: datetime | None
     interviews: datetime | None
     offers: datetime | None
+    seen: dict[str, datetime] = Field(
+        default={}, description="когда раздел открывали (на любом устройстве): раздел -> время"
+    )
 
 
 class EmployerUpdatesOut(BaseModel):
@@ -21,3 +25,18 @@ class EmployerUpdatesOut(BaseModel):
     tasks: datetime | None = Field(description="последний ответ кандидата на задачу компании")
     interviews: datetime | None
     offers: datetime | None
+    seen: dict[str, datetime] = Field(
+        default={}, description="когда раздел открывали (на любом устройстве): раздел -> время"
+    )
+
+
+CandidateSection = Literal["vacancies", "invitations", "responses", "interviews", "offers"]
+EmployerSection = Literal["applications", "tasks", "interviews", "offers"]
+
+
+class CandidateSeenIn(BaseModel):
+    section: CandidateSection
+
+
+class EmployerSeenIn(BaseModel):
+    section: EmployerSection

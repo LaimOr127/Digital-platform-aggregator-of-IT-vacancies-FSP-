@@ -44,7 +44,7 @@ function nav(news: Record<string, boolean>): NavItem[] {
 }
 
 export default function CandidatePortal() {
-  const news = useNews("candidate", candidateApi.updates, NEWS_PATHS);
+  const news = useNews("candidate", candidateApi.updates, candidateApi.markSeen, NEWS_PATHS);
   return (
     <AppShell nav={nav(news)}>
       <Routes>
