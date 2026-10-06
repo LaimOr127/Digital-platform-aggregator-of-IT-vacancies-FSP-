@@ -1,7 +1,7 @@
 import { Send, Users } from "lucide-react";
 import { useState } from "react";
 import { errorMessage } from "../../../api/errors";
-import type { CandidateCard, CatalogFilters, Company } from "../../../api/types";
+import type { CandidateCard, Company } from "../../../api/types";
 import { Alert } from "../../../ui/Alert";
 import { PageHeader } from "../../../ui/AppShell";
 import { Button } from "../../../ui/Button";
@@ -12,7 +12,13 @@ import { LoadingBlock } from "../../../ui/Spinner";
 import { CandidateCardView } from "./CandidateCardView";
 import { FiltersPanel } from "./CatalogFilters";
 import { CategoryGrid, recommendedCategories } from "./CategoryGrid";
-import { useCatalogCandidates, useCatalogCategories, useFspCategories, useNeedVacancies } from "./hooks";
+import {
+  useCatalogCandidates,
+  useCatalogCategories,
+  useCatalogUrlState,
+  useFspCategories,
+  useNeedVacancies,
+} from "./hooks";
 import { InvitationDialog } from "../applications/InvitationDialog";
 
 export function CatalogPage({ company }: { company: Company | undefined }) {
@@ -29,21 +35,17 @@ export function CatalogPage({ company }: { company: Company | undefined }) {
   return <Catalog company={company} />;
 }
 
-const DEFAULT_FILTERS: CatalogFilters = { confirmed_only: true };
-
 function Catalog({ company }: { company: Company }) {
-  const [filters, setFilters] = useState<CatalogFilters>(DEFAULT_FILTERS);
+  const { filters, need: chosen, update, reset, choose } = useCatalogUrlState();
   const [inviteTo, setInviteTo] = useState<CandidateCard | null>(null);
   // подбор «из коробки»: по первой вакансии (описанию потребности), пока работодатель не выберет другую
   const vacancies = useNeedVacancies();
-  const [chosen, setChosen] = useState<string | null>(null);
   const matchVacancy = chosen ?? vacancies.data?.[0]?.id ?? "";
   const need = vacancies.data?.find((v) => v.id === matchVacancy);
   const recommended = need?.specialization ? recommendedCategories(need.specialization, need.grade) : [];
   const categories = useCatalogCategories(true);
   const fspCategories = useFspCategories();
   const candidates = useCatalogCandidates({ ...filters, vacancy_id: matchVacancy || undefined }, !vacancies.isPending);
-  const update = (patch: Partial<CatalogFilters>) => setFilters((f) => ({ ...f, ...patch }));
 
   return (
     <>
@@ -60,7 +62,7 @@ function Catalog({ company }: { company: Company }) {
           placeholder="Без вакансии — по силе профиля"
           options={(vacancies.data ?? []).map((v) => ({ value: v.id, label: v.title }))}
           value={matchVacancy}
-          onChange={(e) => setChosen(e.target.value)}
+          onChange={(e) => choose(e.target.value)}
         />
       </Field>
       {categories.error && <Alert>{errorMessage(categories.error)}</Alert>}
@@ -81,7 +83,7 @@ function Catalog({ company }: { company: Company }) {
         filters={filters}
         fspCategories={fspCategories.data ?? []}
         onChange={update}
-        onReset={() => setFilters(DEFAULT_FILTERS)}
+        onReset={reset}
       />
       <CursorListView
         query={candidates}
