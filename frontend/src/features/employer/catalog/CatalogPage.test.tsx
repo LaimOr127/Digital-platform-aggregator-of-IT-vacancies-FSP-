@@ -1,7 +1,7 @@
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { json, renderWithApp, serveRoutes } from "../../../test/render";
+import { bodyOf, json, renderWithApp, serveRoutes } from "../../../test/render";
 import { CatalogPage } from "./CatalogPage";
 
 const company = { id: "c1", name: "ООО", inn: null, website: null, status: "approved", created_at: "2026-10-01T00:00:00Z" };
@@ -111,5 +111,22 @@ describe("CatalogPage", () => {
     expect(query.get("confirmed_only")).toBe("false");
     expect(query.getAll("skill")).toEqual(["python"]);
     expect(query.get("vacancy_id")).toBeNull();
+  });
+
+  it("adds a second opinion of the language model to the top candidates", async () => {
+    const fetchMock = serveRoutes({
+      "/employer/vacancies": () =>
+        json({ items: [{ id: "v1", title: "Python-разработчик", status: "active", specialization: "backend", grade: "middle" }], next_cursor: null }),
+      "/employer/catalog/categories": () => json(categories),
+      "/employer/catalog/fsp-categories": () => json([]),
+      "/employer/catalog/candidates": () => json({ items: [card], next_cursor: null }),
+      "/employer/catalog/ai-status": () => json({ available: true, provider: "Тестовая модель" }),
+      "/employer/catalog/ai-review": () => json([{ anon_id: card.anon_id, fit: 81, reason: "стек совпадает" }]),
+      "/public/skills": () => json([]),
+    });
+    renderWithApp(<CatalogPage company={company as never} />);
+    await userEvent.click(await screen.findByRole("button", { name: "Оценить с ИИ" }));
+    expect(await screen.findByText("ИИ: 81%")).toBeInTheDocument();
+    expect(bodyOf(fetchMock, "/employer/catalog/ai-review")).toEqual({ vacancy_id: "v1", anon_ids: [card.anon_id] });
   });
 });

@@ -7,6 +7,8 @@ import type {
   AiProvider,
   AiProviderInput,
   AiProviderUpdate,
+  AiReview,
+  AiStatus,
   AiTest,
   Application,
   ApplicationDirection,
@@ -19,6 +21,7 @@ import type {
   BoardVacancy,
   CandidateCard,
   CandidateRegisterIn,
+  CandidateSection,
   CandidateUpdates,
   CatalogCategory,
   CatalogFilters,
@@ -32,6 +35,7 @@ import type {
   EmployerInterview,
   EmployerOffer,
   EmployerRegisterIn,
+  EmployerSection,
   EmployerTask,
   EmployerUpdates,
   FspCategory,
@@ -64,6 +68,7 @@ import type {
   ProfileUpdate,
   SalaryRadar,
   Skill,
+  Suggestion,
   SurveyInput,
   TaskAnswer,
   TaskInput,
@@ -121,6 +126,8 @@ export const candidateApi = {
   deleteAccount: (password: string) => api<void>("POST", "/candidate/account/delete", { body: { password } }),
   /** время последнего события по разделам — для индикаторов нового */
   updates: () => api<CandidateUpdates>("GET", "/candidate/updates"),
+  /** раздел открыт — отметка общая для всех устройств аккаунта */
+  markSeen: (section: CandidateSection) => api<void>("POST", "/candidate/updates/seen", { body: { section } }),
 };
 
 export const insightsApi = {
@@ -136,6 +143,7 @@ const vacancyUrl = (id: string, action = "") => `/employer/vacancies/${encodeURI
 export const employerApi = {
   company: () => api<Company>("GET", "/employer/company"),
   updates: () => api<EmployerUpdates>("GET", "/employer/updates"),
+  markSeen: (section: EmployerSection) => api<void>("POST", "/employer/updates/seen", { body: { section } }),
   updateCompany: (body: CompanyUpdate) => api<Company>("PATCH", "/employer/company", { body }),
   vacancies: (status: VacancyStatus | undefined, cursor: string | undefined) =>
     api<Page<Vacancy>>("GET", "/employer/vacancies", { query: { status, cursor, limit: 20 } }),
@@ -151,6 +159,8 @@ export const employerApi = {
 export const assessmentApi = {
   state: () => api<AssessmentState>("GET", "/candidate/assessment"),
   saveSurvey: (body: SurveyInput) => api<AssessmentState>("PUT", "/candidate/assessment/survey", { body }),
+  /** подсказка специализации и грейда: языковая модель или правила по стеку и стажу */
+  suggest: () => api<Suggestion>("POST", "/candidate/assessment/suggestion"),
   start: (grade: Grade) => api<Attempt>("POST", "/candidate/assessment/attempts", { body: { grade } }),
   /** ответы по порядку: номер варианта или число; null — без ответа */
   submit: (id: string, responses: (string | null)[]) =>
@@ -169,6 +179,10 @@ export const catalogApi = {
   fspCategories: () => api<FspCategory[]>("GET", "/employer/catalog/fsp-categories"),
   candidates: (filters: CatalogFilters, cursor: string | undefined) =>
     api<Page<CandidateCard>>("GET", "/employer/catalog/candidates", { query: { ...filters, cursor, limit: 20 } }),
+  aiStatus: () => api<AiStatus>("GET", "/employer/catalog/ai-status"),
+  /** второе мнение языковой модели о кандидатах под вакансию (до 10, по анонимным карточкам) */
+  aiReview: (vacancyId: string, anonIds: string[]) =>
+    api<AiReview[]>("POST", "/employer/catalog/ai-review", { body: { vacancy_id: vacancyId, anon_ids: anonIds } }),
 };
 
 const offerUrl = (id: string, action = "") => `/employer/offers/${encodeURIComponent(id)}${action}`;

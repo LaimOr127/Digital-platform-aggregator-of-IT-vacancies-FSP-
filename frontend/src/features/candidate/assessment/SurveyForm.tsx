@@ -14,6 +14,7 @@ import { SkillPicker } from "../../../ui/SkillPicker";
 import { LoadingBlock } from "../../../ui/Spinner";
 import { useToast } from "../../../ui/Toast";
 import { useSaveSurvey } from "./hooks";
+import { SuggestionHint } from "./SuggestionHint";
 import { surveySchema, surveyToForm, type SurveyFormInput, type SurveyFormOutput } from "./schemas";
 
 const FIELDS = ["specialization", "grade", "experience_years", "industries", "roles", "skills"];
@@ -53,6 +54,13 @@ function Form({ state, onDone }: { state: AssessmentState | undefined; onDone?: 
 
   return (
     <form onSubmit={onSubmit} noValidate className="flex flex-col gap-7">
+      <SuggestionHint
+        onApply={(spec, grade) => {
+          const dirty = { shouldDirty: true, shouldValidate: true } as const;
+          form.setValue("specialization", spec, dirty);
+          if (grade) form.setValue("grade", grade, dirty);
+        }}
+      />
       <FieldGroup
         label="Специализация"
         hint="Категория, в которой вас увидят работодатели, — специализация и подтверждённый тестом грейд."

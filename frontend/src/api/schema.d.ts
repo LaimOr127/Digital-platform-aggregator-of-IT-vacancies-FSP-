@@ -379,6 +379,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/candidate/assessment/suggestion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Подсказка специализации и грейда для опроса: модель или правила по стеку и стажу */
+        post: operations["suggest_api_v1_candidate_assessment_suggestion_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/employer/catalog/ai-status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Подключена ли языковая модель для оценки кандидатов */
+        get: operations["ai_status_api_v1_employer_catalog_ai_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/employer/catalog/ai-review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Оценка до 10 кандидатов под вакансию языковой моделью (по анонимным карточкам) */
+        post: operations["ai_review_api_v1_employer_catalog_ai_review_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/candidate/import/capabilities": {
         parameters: {
             query?: never;
@@ -1325,6 +1376,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/candidate/updates/seen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Раздел открыт: точка гаснет на всех устройствах */
+        post: operations["candidate_seen_api_v1_candidate_updates_seen_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/employer/updates/seen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Раздел открыт: точка гаснет на всех устройствах */
+        post: operations["employer_seen_api_v1_employer_updates_seen_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/companies": {
         parameters: {
             query?: never;
@@ -1786,6 +1871,31 @@ export interface components {
              */
             clear_key: boolean;
         };
+        /** AiReviewOut */
+        AiReviewOut: {
+            /**
+             * Anon Id
+             * Format: uuid
+             */
+            anon_id: string;
+            /**
+             * Fit
+             * @description соответствие вакансии по мнению модели
+             */
+            fit: number;
+            /** Reason */
+            reason: string;
+        };
+        /** AiStatusOut */
+        AiStatusOut: {
+            /** Available */
+            available: boolean;
+            /**
+             * Provider
+             * @description куда уйдут анонимные карточки
+             */
+            provider?: string | null;
+        };
         /** AiTestOut */
         AiTestOut: {
             /** Ok */
@@ -2123,6 +2233,14 @@ export interface components {
             /** Full Name */
             full_name: string;
         };
+        /** CandidateSeenIn */
+        CandidateSeenIn: {
+            /**
+             * Section
+             * @enum {string}
+             */
+            section: "vacancies" | "invitations" | "responses" | "interviews" | "offers";
+        };
         /**
          * CandidateUpdatesOut
          * @description Когда в разделе кабинета кандидата последний раз что-то менялось (null — событий нет).
@@ -2141,6 +2259,14 @@ export interface components {
             interviews: string | null;
             /** Offers */
             offers: string | null;
+            /**
+             * Seen
+             * @description когда раздел открывали (на любом устройстве): раздел -> время
+             * @default {}
+             */
+            seen: {
+                [key: string]: string;
+            };
         };
         /**
          * CatalogCategoryOut
@@ -2498,6 +2624,14 @@ export interface components {
             /** Inn */
             inn?: string | null;
         };
+        /** EmployerSeenIn */
+        EmployerSeenIn: {
+            /**
+             * Section
+             * @enum {string}
+             */
+            section: "applications" | "tasks" | "interviews" | "offers";
+        };
         /**
          * EmployerUpdatesOut
          * @description Время последнего события по разделам кабинета компании и вакансии, которые пора продлить.
@@ -2519,6 +2653,14 @@ export interface components {
             interviews: string | null;
             /** Offers */
             offers: string | null;
+            /**
+             * Seen
+             * @description когда раздел открывали (на любом устройстве): раздел -> время
+             * @default {}
+             */
+            seen: {
+                [key: string]: string;
+            };
         };
         /** ErrorBody */
         ErrorBody: {
@@ -3500,6 +3642,16 @@ export interface components {
              */
             message: string;
         };
+        /** ReviewIn */
+        ReviewIn: {
+            /**
+             * Vacancy Id
+             * Format: uuid
+             */
+            vacancy_id: string;
+            /** Anon Ids */
+            anon_ids: string[];
+        };
         /**
          * SalaryBandOut
          * @description Распределение зарплат группы: только если в ней не меньше min_group значений.
@@ -3592,6 +3744,23 @@ export interface components {
         SubmitIn: {
             /** Responses */
             responses: (string | null)[];
+        };
+        /** SuggestionOut */
+        SuggestionOut: {
+            specialization: components["schemas"]["Specialization"] | null;
+            grade: components["schemas"]["Grade"] | null;
+            /** Reason */
+            reason: string;
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "ai" | "rules";
+            /**
+             * Provider
+             * @description какая модель дала подсказку
+             */
+            provider?: string | null;
         };
         /**
          * SurveyIn
@@ -5740,6 +5909,259 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PreviewQuestionOut"][];
+                };
+            };
+            /** @description Некорректный запрос (bad_request, invalid_link) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Нет сессии или она истекла (unauthorized, mfa_expired) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Нет прав на действие (forbidden, wrong_password, email_not_verified) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Объект не найден или недоступен этой роли (not_found) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Конфликт состояния (conflict, invalid_state) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Ошибка валидации полей (validation_error, details — по полям) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Превышен лимит запросов (rate_limited) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    suggest_api_v1_candidate_assessment_suggestion_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuggestionOut"];
+                };
+            };
+            /** @description Некорректный запрос (bad_request, invalid_link) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Нет сессии или она истекла (unauthorized, mfa_expired) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Нет прав на действие (forbidden, wrong_password, email_not_verified) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Объект не найден или недоступен этой роли (not_found) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Конфликт состояния (conflict, invalid_state) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Ошибка валидации полей (validation_error, details — по полям) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Превышен лимит запросов (rate_limited) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    ai_status_api_v1_employer_catalog_ai_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiStatusOut"];
+                };
+            };
+            /** @description Некорректный запрос (bad_request, invalid_link) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Нет сессии или она истекла (unauthorized, mfa_expired) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Нет прав на действие (forbidden, wrong_password, email_not_verified) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Объект не найден или недоступен этой роли (not_found) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Конфликт состояния (conflict, invalid_state) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Ошибка валидации полей (validation_error, details — по полям) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Превышен лимит запросов (rate_limited) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    ai_review_api_v1_employer_catalog_ai_review_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiReviewOut"][];
                 };
             };
             /** @description Некорректный запрос (bad_request, invalid_link) */
@@ -11431,6 +11853,176 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["EmployerUpdatesOut"];
                 };
+            };
+            /** @description Некорректный запрос (bad_request, invalid_link) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Нет сессии или она истекла (unauthorized, mfa_expired) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Нет прав на действие (forbidden, wrong_password, email_not_verified) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Объект не найден или недоступен этой роли (not_found) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Конфликт состояния (conflict, invalid_state) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Ошибка валидации полей (validation_error, details — по полям) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Превышен лимит запросов (rate_limited) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    candidate_seen_api_v1_candidate_updates_seen_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CandidateSeenIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Некорректный запрос (bad_request, invalid_link) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Нет сессии или она истекла (unauthorized, mfa_expired) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Нет прав на действие (forbidden, wrong_password, email_not_verified) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Объект не найден или недоступен этой роли (not_found) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Конфликт состояния (conflict, invalid_state) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Ошибка валидации полей (validation_error, details — по полям) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Превышен лимит запросов (rate_limited) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    employer_seen_api_v1_employer_updates_seen_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmployerSeenIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Некорректный запрос (bad_request, invalid_link) */
             400: {

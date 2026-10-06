@@ -1,10 +1,11 @@
 import { Award, BadgeCheck, MapPin } from "lucide-react";
 import type { ReactNode } from "react";
-import type { CandidateCard } from "../../../api/types";
+import type { AiReview, CandidateCard } from "../../../api/types";
 import { formatSalaryRange, labels, tierLabels } from "../../../lib/format";
 import { cn } from "../../../lib/cn";
 import { searchTone, tierTone } from "../../../lib/tones";
 import { Badge } from "../../../ui/Badge";
+import { AiReviewNote } from "./AiReviewBar";
 import { MatchPanel } from "./MatchPanel";
 import { ExpandableText } from "../../../ui/ExpandableText";
 
@@ -12,9 +13,9 @@ const MAX_ACHIEVEMENTS = 3;
 
 /** Анонимная карточка кандидата: категория и тест — главное, самоописание — дополнительно.
  * Имени и контактов нет: их видно после того, как кандидат примет приглашение. */
-type Props = { card: CandidateCard; action?: ReactNode; className?: string };
+type Props = { card: CandidateCard; action?: ReactNode; className?: string; aiReview?: AiReview };
 
-export function CandidateCardView({ card, action, className }: Props) {
+export function CandidateCardView({ card, action, className, aiReview }: Props) {
   const meta = [
     card.specialization ? labels.specialization[card.specialization] : null,
     card.experience_years !== null ? `стаж ${card.experience_years} лет` : null,
@@ -49,6 +50,7 @@ export function CandidateCardView({ card, action, className }: Props) {
       <CategoryLine card={card} />
       {card.match && <MatchPanel match={card.match} kind="match" />}
       {!card.match && card.strength && <MatchPanel match={card.strength} kind="strength" />}
+      {aiReview && <AiReviewNote review={aiReview} />}
 
       <p className="text-sm">
         <span className="text-muted">Ожидания: </span>
