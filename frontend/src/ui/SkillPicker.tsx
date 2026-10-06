@@ -3,11 +3,20 @@ import { Plus, X } from "lucide-react";
 import { useId, useMemo, useState } from "react";
 import type { Skill } from "../api/types";
 
-type Props = { skills: Skill[]; value: string[]; onChange: (slugs: string[]) => void; max: number };
+type Props = {
+  skills: Skill[];
+  value: string[];
+  onChange: (slugs: string[]) => void;
+  max: number;
+  /** свои навыки, которых нет в справочнике (если переданы — их можно добавлять) */
+  custom?: string[];
+  onCustomChange?: (names: string[]) => void;
+  maxCustom?: number;
+};
 
 const SUGGESTIONS = 12;
 
-export function SkillPicker({ skills, value, onChange, max }: Props) {
+export function SkillPicker({ skills, value, onChange, max, custom, onCustomChange, maxCustom = 20 }: Props) {
   const [query, setQuery] = useState("");
   const searchId = useId();
   const bySlug = useMemo(() => new Map(skills.map((s) => [s.slug, s])), [skills]);
@@ -24,11 +33,24 @@ export function SkillPicker({ skills, value, onChange, max }: Props) {
     setQuery("");
   };
   const remove = (slug: string) => onChange(value.filter((s) => s !== slug));
+  const own = custom ?? [];
+  const text = query.trim();
+  // свой навык — когда такого названия нет ни в справочнике, ни среди уже добавленных своих
+  const canAddOwn =
+    Boolean(onCustomChange && text) &&
+    own.length < maxCustom &&
+    !skills.some((s) => s.name.toLowerCase() === text.toLowerCase()) &&
+    !own.some((name) => name.toLowerCase() === text.toLowerCase());
+  const addOwn = () => {
+    if (!canAddOwn || !onCustomChange) return;
+    onCustomChange([...own, text.slice(0, 40)]);
+    setQuery("");
+  };
 
   return (
     <div className="flex flex-col gap-3">
       <ul aria-label="Выбранные навыки" className="flex min-h-9 flex-wrap gap-2">
-        {value.length === 0 && <li className="text-sm text-muted">Навыки не выбраны</li>}
+        {value.length === 0 && own.length === 0 && <li className="text-sm text-muted">Навыки не выбраны</li>}
         {value.map((slug) => (
           <li key={slug}>
             <button
@@ -38,6 +60,20 @@ export function SkillPicker({ skills, value, onChange, max }: Props) {
               aria-label={`Убрать ${bySlug.get(slug)?.name ?? slug}`}
             >
               {bySlug.get(slug)?.name ?? slug}
+              <X className="size-3.5" aria-hidden />
+            </button>
+          </li>
+        ))}
+        {own.map((name) => (
+          <li key={`own-${name}`}>
+            <button
+              type="button"
+              onClick={() => onCustomChange?.(own.filter((n) => n !== name))}
+              className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-accent/40 py-1 pl-3 pr-2 text-sm text-fg hover:bg-accent/10"
+              aria-label={`Убрать свой навык ${name}`}
+              title="Свой навык — нет в справочнике"
+            >
+              {name}
               <X className="size-3.5" aria-hidden />
             </button>
           </li>
@@ -55,8 +91,9 @@ export function SkillPicker({ skills, value, onChange, max }: Props) {
           if (e.key !== "Enter") return;
           e.preventDefault();
           if (query.trim() && available[0]) add(available[0].slug);
+          else addOwn();
         }}
-        placeholder="Найти навык: Python, Kubernetes, алгоритмы…"
+        placeholder={onCustomChange ? "Найти навык или добавить свой: Python, Camunda…" : "Найти навык: Python, Kubernetes, алгоритмы…"}
         className="h-10 w-full rounded-lg border border-line bg-surface-2 px-3 text-sm placeholder:text-muted/70 focus:border-accent focus:outline-none"
       />
       <div className="flex flex-wrap gap-2">
@@ -72,7 +109,17 @@ export function SkillPicker({ skills, value, onChange, max }: Props) {
             {s.name}
           </button>
         ))}
-        {available.length === 0 && query && <span className="text-sm text-muted">Ничего не найдено</span>}
+        {canAddOwn && (
+          <button
+            type="button"
+            onClick={addOwn}
+            className="inline-flex items-center gap-1 rounded-full border border-dashed border-accent/50 px-3 py-1 text-sm text-fg hover:bg-accent/10"
+          >
+            <Plus className="size-3.5" aria-hidden />
+            Добавить «{text}» как свой навык
+          </button>
+        )}
+        {available.length === 0 && query && !canAddOwn && <span className="text-sm text-muted">Ничего не найдено</span>}
       </div>
     </div>
   );

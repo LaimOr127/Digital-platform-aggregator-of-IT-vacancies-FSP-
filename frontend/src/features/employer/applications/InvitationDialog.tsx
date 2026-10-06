@@ -1,11 +1,12 @@
 // Выход на контакт: приглашение конкретному кандидату с описанием, вилкой и способом связи.
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Send } from "lucide-react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import type { CandidateCard, Company, Vacancy } from "../../../api/types";
 import { labels, options } from "../../../lib/format";
 import { applyServerErrors } from "../../../lib/forms";
 import { Button } from "../../../ui/Button";
+import { CitySelect } from "../../../ui/CitySelect";
 import { Dialog } from "../../../ui/Dialog";
 import { Field, Input, MoneyInput, Select, Textarea } from "../../../ui/form";
 import { useToast } from "../../../ui/Toast";
@@ -88,9 +89,15 @@ function InvitationForm({ candidate, vacancies, vacancyId, company, onDone }: Fo
       <Field label="Зарплата до, ₽" error={errors.salary_max?.message}>
         <MoneyInput {...form.register("salary_max")} />
       </Field>
-      <Field label="Город" error={errors.city?.message}>
-        <Input placeholder="Для удалёнки можно не указывать" {...form.register("city")} />
-      </Field>
+      <Controller
+        control={form.control}
+        name="city"
+        render={({ field }) => (
+          <Field label="Город" error={errors.city?.message} hint="Для удалёнки можно не указывать">
+            <CitySelect value={field.value} onChange={field.onChange} onBlur={field.onBlur} name={field.name} placeholder="Не указан" />
+          </Field>
+        )}
+      />
       <Field label="Как связаться с вами" error={errors.contact_method?.message}>
         <Input placeholder="Telegram @hr, hr@company.ru" {...form.register("contact_method")} />
       </Field>

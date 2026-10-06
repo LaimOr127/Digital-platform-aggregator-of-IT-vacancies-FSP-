@@ -4,6 +4,7 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 
 from app.models.enums import (
+    Education,
     Grade,
     OfferStatus,
     SearchStatus,
@@ -71,8 +72,10 @@ class CandidateCardOut(BaseModel):
     confirmed_grade: Grade | None = Field(description="подтверждённый тестом")
     assessment_score: int | None
     experience_years: int | None
-    work_format: WorkFormat | None
+    work_formats: list[WorkFormat]
     city: str | None
+    relocation: bool = False
+    education: Education | None = None
     salary_min: int | None
     salary_max: int | None
     verification_tier: VerificationTier

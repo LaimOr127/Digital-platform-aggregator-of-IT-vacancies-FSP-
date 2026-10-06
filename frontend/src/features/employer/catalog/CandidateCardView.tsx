@@ -18,7 +18,9 @@ export function CandidateCardView({ card, action, className }: Props) {
   const meta = [
     card.specialization ? labels.specialization[card.specialization] : null,
     card.experience_years !== null ? `стаж ${card.experience_years} лет` : null,
-    card.work_format ? labels.workFormat[card.work_format] : null,
+    card.work_formats.length ? card.work_formats.map((f) => labels.workFormat[f]).join(" / ") : null,
+    card.education ? labels.education[card.education] : null,
+    card.relocation ? "готов к переезду" : null,
   ].filter(Boolean);
   const extra = card.achievements.length - MAX_ACHIEVEMENTS;
   const declared = card.skills.filter((s) => !card.confirmed_skills.includes(s));

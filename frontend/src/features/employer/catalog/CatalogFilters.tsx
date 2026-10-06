@@ -3,6 +3,7 @@ import { useSkills } from "../../../api/queries";
 import type { CatalogFilters, FspCategory, Grade, SearchStatus, Specialization, WorkFormat } from "../../../api/types";
 import { labels, options } from "../../../lib/format";
 import { Button } from "../../../ui/Button";
+import { CitySelect } from "../../../ui/CitySelect";
 import { Field, FieldGroup, Select, Switch } from "../../../ui/form";
 import { SkillPicker } from "../../../ui/SkillPicker";
 
@@ -18,7 +19,7 @@ export function FiltersPanel({ filters, fspCategories, onChange, onReset }: Prop
   const pick = <T extends string>(value: string) => (value || undefined) as T | undefined;
   return (
     <section aria-label="Фильтры" className="mb-6 flex flex-col gap-4 rounded-2xl border border-line bg-surface p-4">
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <Field label="Специализация">
           <Select
             placeholder="Любая"
@@ -41,6 +42,13 @@ export function FiltersPanel({ filters, fspCategories, onChange, onReset }: Prop
             options={options(labels.workFormat)}
             value={filters.work_format ?? ""}
             onChange={(e) => onChange({ work_format: pick<WorkFormat>(e.target.value) })}
+          />
+        </Field>
+        <Field label="Город" hint="Живёт в нём или готов к переезду">
+          <CitySelect
+            placeholder="Любой"
+            value={filters.city}
+            onChange={(e) => onChange({ city: e.target.value || undefined })}
           />
         </Field>
         <Field label="Статус поиска">

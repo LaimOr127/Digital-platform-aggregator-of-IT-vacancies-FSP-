@@ -107,6 +107,17 @@ SOFT_SKILLS = {
 }
 
 
+EDUCATION = {
+    "secondary": "Среднее общее",
+    "vocational": "Среднее профессиональное",
+    "incomplete_higher": "Неоконченное высшее",
+    "bachelor": "Высшее — бакалавриат",
+    "specialist": "Высшее — специалитет",
+    "master": "Высшее — магистратура",
+    "phd": "Учёная степень",
+}
+
+
 def known_keys(values: list[str], allowed: dict[str, str], label: str) -> list[str]:
     """Значения из справочника без повторов; неизвестное значение — ошибка валидации."""
     unknown = [v for v in values if v not in allowed]

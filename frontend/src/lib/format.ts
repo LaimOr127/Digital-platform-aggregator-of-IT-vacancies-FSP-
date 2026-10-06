@@ -2,6 +2,7 @@
 import type {
   ApplicationStatus,
   CompanyStatus,
+  Education,
   Grade,
   InterviewFormat,
   InterviewResult,
@@ -67,6 +68,15 @@ export const labels = {
     hybrid: "Гибрид",
     remote: "Удалённо",
   } satisfies Record<WorkFormat, string>,
+  education: {
+    secondary: "Среднее общее",
+    vocational: "Среднее профессиональное",
+    incomplete_higher: "Неоконченное высшее",
+    bachelor: "Высшее — бакалавриат",
+    specialist: "Высшее — специалитет",
+    master: "Высшее — магистратура",
+    phd: "Учёная степень",
+  } satisfies Record<Education, string>,
   vacancyStatus: {
     draft: "Черновик",
     active: "Опубликована",

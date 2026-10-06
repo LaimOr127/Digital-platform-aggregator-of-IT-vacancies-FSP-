@@ -149,8 +149,9 @@ def _profile(rng: random.Random, user_id: uuid.UUID, cipher: FieldCipher) -> Can
         assessment_score=rng.randint(0, 100) if tested else None,
         last_activity_at=now - timedelta(days=rng.randint(0, 200)) if tested else None,
         grade=grade,
-        work_format=rng.choice(list(WorkFormat)),
+        work_formats=rng.sample([f.value for f in WorkFormat], k=rng.randint(1, 2)),
         city=rng.choice(_CITIES),
+        relocation=rng.random() < 0.3,
         salary_min=salary,
         salary_max=salary + 50_000,
         verification_tier=rng.choice(

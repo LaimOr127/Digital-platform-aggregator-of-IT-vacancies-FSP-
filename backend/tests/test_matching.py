@@ -58,7 +58,7 @@ def candidate(**overrides) -> Candidate:
         "assessment_score": 80,
         "confirmed_skills": ["python"],
         "last_activity_at": datetime.now(UTC),
-        "work_format": WorkFormat.OFFICE,
+        "work_formats": [WorkFormat.OFFICE],
         "city": "казань",
         "salary_min": 250_000,
         "verification_tier": VerificationTier.SELF_DECLARED,
@@ -110,8 +110,10 @@ def test_assessment_fits_vacancy_grade():
 
 def test_format_city_and_salary():
     assert FormatFactor().score(ctx(vacancy()), candidate()).detail == "тот же город: Казань"
-    remote_wanted = candidate(city="Пермь", work_format=WorkFormat.REMOTE)
+    remote_wanted = candidate(city="Пермь", work_formats=[WorkFormat.REMOTE])
     assert FormatFactor().score(ctx(vacancy()), remote_wanted).share == 0.0
+    movable = candidate(city="Пермь", work_formats=[WorkFormat.OFFICE], relocation=True)
+    assert FormatFactor().score(ctx(vacancy()), movable).detail == "готов к переезду"
     assert SalaryFactor().score(ctx(vacancy()), candidate()).share == 1.0
     assert SalaryFactor().score(ctx(vacancy()), candidate(salary_min=360_000)).share == 0.6
 

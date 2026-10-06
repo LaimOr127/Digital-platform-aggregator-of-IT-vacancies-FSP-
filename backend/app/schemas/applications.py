@@ -12,6 +12,7 @@ from app.models.enums import (
 )
 from app.schemas.catalog import CandidateCardOut, MatchOut
 from app.schemas.common import SalaryRangeMixin
+from app.services.cities import City
 
 
 class InvitationIn(SalaryRangeMixin):
@@ -23,7 +24,7 @@ class InvitationIn(SalaryRangeMixin):
     description: str = Field(min_length=10, max_length=4000, description="описание предложения")
     grade: Grade
     work_format: WorkFormat
-    city: str | None = Field(default=None, max_length=100)
+    city: City | None = None
     salary_min: int = Field(gt=0, le=10_000_000)
     salary_max: int = Field(gt=0, le=10_000_000)
     contact_method: str = Field(

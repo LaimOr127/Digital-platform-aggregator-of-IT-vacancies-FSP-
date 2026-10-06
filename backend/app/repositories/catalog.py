@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import Select, func, select
+from sqlalchemy import Select, String, cast, func, or_, select
 
 from app.models import (
     CandidateProfile,
@@ -26,7 +26,8 @@ class CatalogFilters:
     category: tuple[Specialization, Grade] | None = None  # категория: специализация x грейд
     specialization: Specialization | None = None
     grade: Grade | None = None  # подтверждённый тестом (если теста нет — заявленный)
-    work_format: WorkFormat | None = None
+    work_format: WorkFormat | None = None  # среди форматов, подходящих кандидату
+    city: str | None = None  # живёт в городе или готов к переезду
     skills: tuple[str, ...] = ()  # все выбранные навыки
     search_status: SearchStatus | None = None
     confirmed_only: bool = False  # только с категорией, подтверждённой тестом
@@ -152,7 +153,12 @@ def _conditions(filters: CatalogFilters) -> list[Any]:
     if filters.search_status:
         conditions.append(profile.search_status == filters.search_status)
     if filters.work_format:
-        conditions.append(profile.work_format == filters.work_format)
+        # список форматов хранится JSON-массивом: поиск по тексту одинаково работает в PostgreSQL
+        # и SQLite; значения — из перечисления, поэтому совпадение в кавычках точное
+        formats = cast(profile.work_formats, String)
+        conditions.append(formats.like(f'%"{filters.work_format.value}"%'))
+    if filters.city:
+        conditions.append(or_(profile.city == filters.city, profile.relocation.is_(True)))
     if filters.fsp_category:
         in_category = (
             select(candidate_categories.c.profile_id)

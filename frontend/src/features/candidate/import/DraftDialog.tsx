@@ -21,7 +21,7 @@ const SOURCE = { fsp: "Данные из анкеты ФСП", resume: "Данн
 export function DraftDialog({ draft, form, skillNames, onApply, onClose }: Props) {
   const changes = fieldChanges(draft, form);
   const lists = newLists(draft, form);
-  const { skills } = lists;
+  const skills = [...lists.skills, ...lists.custom_skills];
   const dictionaries = useDictionaries().data;
   const traitNames = new Map([...(dictionaries?.roles ?? []), ...(dictionaries?.soft_skills ?? [])].map((o) => [o.value, o.label]));
   const traits = [...lists.roles, ...lists.soft_skills];
@@ -91,9 +91,9 @@ export function DraftDialog({ draft, form, skillNames, onApply, onClose }: Props
           </li>
         )}
       </ul>
-      {draft.unknown_skills.length > 0 && (
+      {lists.custom_skills.length > 0 && (
         <p className="mt-3 text-xs text-muted">
-          Нет в справочнике (не добавлены): {draft.unknown_skills.join(", ")}
+          Нет в справочнике — добавятся как свои навыки: {lists.custom_skills.join(", ")}
         </p>
       )}
       <div className="mt-6 flex justify-end gap-3">
@@ -104,7 +104,8 @@ export function DraftDialog({ draft, form, skillNames, onApply, onClose }: Props
           disabled={nothing}
           onClick={() =>
             onApply(changes.filter((c) => selected.has(c.field)), {
-              skills: withSkills ? skills : [],
+              skills: withSkills ? lists.skills : [],
+              custom_skills: withSkills ? lists.custom_skills : [],
               roles: withTraits ? lists.roles : [],
               soft_skills: withTraits ? lists.soft_skills : [],
             })

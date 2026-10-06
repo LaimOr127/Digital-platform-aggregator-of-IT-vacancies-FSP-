@@ -54,6 +54,8 @@ function suggestedValues(draft: ProfileDraft): Partial<Record<DraftField, string
 
 function display(field: DraftField, value: unknown): string {
   if (value === "" || value === null || value === undefined) return "";
+  // в форме форматов может быть несколько, в черновике — один
+  if (Array.isArray(value)) return value.map((v) => display(field, v)).join(", ");
   if (field === "grade") return labels.grade[value as keyof typeof labels.grade] ?? String(value);
   if (field === "work_format") return labels.workFormat[value as keyof typeof labels.workFormat] ?? String(value);
   return String(value);
@@ -63,7 +65,7 @@ export function fieldChanges(draft: ProfileDraft, form: ProfileFormInput): Field
   const changes: FieldChange[] = [];
   for (const [field, value] of Object.entries(suggestedValues(draft)) as [DraftField, string | number | undefined][]) {
     if (value === undefined || value === "") continue;
-    const current = display(field, form[field]);
+    const current = display(field, field === "work_format" ? form.work_formats : form[field]);
     const suggested = display(field, value);
     if (current === suggested) continue;
     changes.push({ field, label: TEXT_LABELS[field], current, suggested, value, preselected: current === "" });
@@ -71,7 +73,7 @@ export function fieldChanges(draft: ProfileDraft, form: ProfileFormInput): Field
   return changes;
 }
 
-export type DraftLists = { skills: string[]; roles: string[]; soft_skills: string[] };
+export type DraftLists = { skills: string[]; custom_skills: string[]; roles: string[]; soft_skills: string[] };
 
 /** Значения из черновика, которых ещё нет в профиле (в пределах лимита). */
 function added(suggested: string[], have: string[], max: number): string[] {
@@ -87,7 +89,9 @@ export function newLists(draft: ProfileDraft, form: ProfileFormInput): DraftList
       form.skills,
       50,
     ),
+    // навыки, которых нет в справочнике, переносятся как свои
+    custom_skills: added(draft.unknown_skills, form.custom_skills, 20),
     roles: added(draft.roles, form.roles, 5),
-    soft_skills: added(draft.soft_skills, form.soft_skills, 8),
+    soft_skills: added(draft.soft_skills, form.soft_skills, 10),
   };
 }

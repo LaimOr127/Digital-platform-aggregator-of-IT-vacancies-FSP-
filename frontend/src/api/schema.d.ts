@@ -1240,6 +1240,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/candidate/updates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Когда что-то менялось в разделах */
+        get: operations["candidate_updates_api_v1_candidate_updates_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/employer/updates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Новое и вакансии к продлению */
+        get: operations["employer_updates_api_v1_employer_updates_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/companies": {
         parameters: {
             query?: never;
@@ -1470,7 +1504,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Справочники: специализации, отрасли, роли */
+        /** Справочники: специализации, отрасли, роли, образование, города */
         get: operations["dictionaries_api_v1_public_dictionaries_get"];
         put?: never;
         post?: never;
@@ -1959,9 +1993,16 @@ export interface components {
             assessment_score: number | null;
             /** Experience Years */
             experience_years: number | null;
-            work_format: components["schemas"]["WorkFormat"] | null;
+            /** Work Formats */
+            work_formats: components["schemas"]["WorkFormat"][];
             /** City */
             city: string | null;
+            /**
+             * Relocation
+             * @default false
+             */
+            relocation: boolean;
+            education?: components["schemas"]["Education"] | null;
             /** Salary Min */
             salary_min: number | null;
             /** Salary Max */
@@ -2013,6 +2054,25 @@ export interface components {
             email: string;
             /** Full Name */
             full_name: string;
+        };
+        /**
+         * CandidateUpdatesOut
+         * @description Когда в разделе кабинета кандидата последний раз что-то менялось (null — событий нет).
+         */
+        CandidateUpdatesOut: {
+            /**
+             * Vacancies
+             * @description публикация самой свежей вакансии
+             */
+            vacancies: string | null;
+            /** Invitations */
+            invitations: string | null;
+            /** Responses */
+            responses: string | null;
+            /** Interviews */
+            interviews: string | null;
+            /** Offers */
+            offers: string | null;
         };
         /**
          * CatalogCategoryOut
@@ -2170,7 +2230,16 @@ export interface components {
             roles: components["schemas"]["OptionOut"][];
             /** Soft Skills */
             soft_skills: components["schemas"]["OptionOut"][];
+            /** Education */
+            education: components["schemas"]["OptionOut"][];
+            /** Cities */
+            cities: string[];
         };
+        /**
+         * Education
+         * @enum {string}
+         */
+        Education: "secondary" | "vocational" | "incomplete_higher" | "bachelor" | "specialist" | "master" | "phd";
         /** EmailIn */
         EmailIn: {
             /**
@@ -2342,6 +2411,28 @@ export interface components {
             company_name: string;
             /** Inn */
             inn?: string | null;
+        };
+        /**
+         * EmployerUpdatesOut
+         * @description Время последнего события по разделам кабинета компании и вакансии, которые пора продлить.
+         */
+        EmployerUpdatesOut: {
+            /**
+             * Renew Due
+             * @description опубликованных вакансий, которые истекают в ближайшие дни
+             */
+            renew_due: number;
+            /** Applications */
+            applications: string | null;
+            /**
+             * Tasks
+             * @description последний ответ кандидата на задачу компании
+             */
+            tasks: string | null;
+            /** Interviews */
+            interviews: string | null;
+            /** Offers */
+            offers: string | null;
         };
         /** ErrorBody */
         ErrorBody: {
@@ -2757,38 +2848,6 @@ export interface components {
             reason: string;
         };
         /** MyTaskAnswerOut */
-        /**
-         * CandidateUpdatesOut
-         * @description Когда в разделе кабинета кандидата последний раз что-то менялось (null — событий нет).
-         */
-        CandidateUpdatesOut: {
-            /** Vacancies */
-            vacancies: string | null;
-            /** Invitations */
-            invitations: string | null;
-            /** Responses */
-            responses: string | null;
-            /** Interviews */
-            interviews: string | null;
-            /** Offers */
-            offers: string | null;
-        };
-        /**
-         * EmployerUpdatesOut
-         * @description Время последнего события по разделам кабинета компании и вакансии, которые пора продлить.
-         */
-        EmployerUpdatesOut: {
-            /** Renew Due */
-            renew_due: number;
-            /** Applications */
-            applications: string | null;
-            /** Tasks */
-            tasks: string | null;
-            /** Interviews */
-            interviews: string | null;
-            /** Offers */
-            offers: string | null;
-        };
         MyTaskAnswerOut: {
             /**
              * Id
@@ -3194,9 +3253,19 @@ export interface components {
             /** About */
             about: string | null;
             grade: components["schemas"]["Grade"] | null;
-            work_format: components["schemas"]["WorkFormat"] | null;
+            /**
+             * Work Formats
+             * @default []
+             */
+            work_formats: components["schemas"]["WorkFormat"][];
             /** City */
             city: string | null;
+            /**
+             * Relocation
+             * @default false
+             */
+            relocation: boolean;
+            education?: components["schemas"]["Education"] | null;
             /** Salary Min */
             salary_min: number | null;
             /** Salary Max */
@@ -3207,6 +3276,11 @@ export interface components {
             search_status: components["schemas"]["SearchStatus"];
             /** Skills */
             skills: components["schemas"]["SkillOut"][];
+            /**
+             * Custom Skills
+             * @default []
+             */
+            custom_skills: string[];
             /**
              * Show Fsp
              * @default true
@@ -3258,9 +3332,19 @@ export interface components {
             /** About */
             about?: string | null;
             grade?: components["schemas"]["Grade"] | null;
-            work_format?: components["schemas"]["WorkFormat"] | null;
+            /**
+             * Work Formats
+             * @description можно несколько: удалённо и гибрид
+             */
+            work_formats?: components["schemas"]["WorkFormat"][] | null;
             /** City */
             city?: string | null;
+            /**
+             * Relocation
+             * @description готов к переезду
+             */
+            relocation?: boolean | null;
+            education?: components["schemas"]["Education"] | null;
             /** Is Hidden */
             is_hidden?: boolean | null;
             search_status?: components["schemas"]["SearchStatus"] | null;
@@ -3275,6 +3359,11 @@ export interface components {
              * @description slug навыков
              */
             skills?: string[] | null;
+            /**
+             * Custom Skills
+             * @description навыки, которых нет в справочнике
+             */
+            custom_skills?: string[] | null;
             /** Experience Years */
             experience_years?: number | null;
             /**
@@ -3282,7 +3371,10 @@ export interface components {
              * @description см. /public/dictionaries
              */
             roles?: string[] | null;
-            /** Soft Skills */
+            /**
+             * Soft Skills
+             * @description ключи справочника или свой текст
+             */
             soft_skills?: string[] | null;
         };
         /**
@@ -9412,6 +9504,8 @@ export interface operations {
                 specialization?: components["schemas"]["Specialization"] | null;
                 grade?: components["schemas"]["Grade"] | null;
                 work_format?: components["schemas"]["WorkFormat"] | null;
+                /** @description живёт в городе или готов к переезду */
+                city?: string | null;
                 /** @description все выбранные навыки */
                 skill?: string[];
                 search_status?: components["schemas"]["SearchStatus"] | null;
@@ -10813,6 +10907,172 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SalaryRadarOut"];
+                };
+            };
+            /** @description Некорректный запрос (bad_request, invalid_link) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Нет сессии или она истекла (unauthorized, mfa_expired) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Нет прав на действие (forbidden, wrong_password, email_not_verified) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Объект не найден или недоступен этой роли (not_found) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Конфликт состояния (conflict, invalid_state) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Ошибка валидации полей (validation_error, details — по полям) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Превышен лимит запросов (rate_limited) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    candidate_updates_api_v1_candidate_updates_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CandidateUpdatesOut"];
+                };
+            };
+            /** @description Некорректный запрос (bad_request, invalid_link) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Нет сессии или она истекла (unauthorized, mfa_expired) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Нет прав на действие (forbidden, wrong_password, email_not_verified) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Объект не найден или недоступен этой роли (not_found) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Конфликт состояния (conflict, invalid_state) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Ошибка валидации полей (validation_error, details — по полям) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Превышен лимит запросов (rate_limited) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    employer_updates_api_v1_employer_updates_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployerUpdatesOut"];
                 };
             };
             /** @description Некорректный запрос (bad_request, invalid_link) */

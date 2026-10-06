@@ -17,6 +17,16 @@ class Grade(StrEnum):
     LEAD = "lead"
 
 
+class Education(StrEnum):
+    SECONDARY = "secondary"  # среднее общее
+    VOCATIONAL = "vocational"  # среднее профессиональное
+    INCOMPLETE_HIGHER = "incomplete_higher"
+    BACHELOR = "bachelor"
+    SPECIALIST = "specialist"
+    MASTER = "master"
+    PHD = "phd"  # кандидат или доктор наук
+
+
 class WorkFormat(StrEnum):
     OFFICE = "office"
     HYBRID = "hybrid"

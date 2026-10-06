@@ -5,6 +5,7 @@ import { labels, options } from "../../lib/format";
 import { applyServerErrors } from "../../lib/forms";
 import { Button } from "../../ui/Button";
 import { Field, FieldGroup, Input, MoneyInput, Select, Textarea } from "../../ui/form";
+import { CitySelect } from "../../ui/CitySelect";
 import { SkillPicker } from "../../ui/SkillPicker";
 import { useToast } from "../../ui/Toast";
 import { useCreateVacancy, useUpdateVacancy } from "./hooks";
@@ -59,9 +60,15 @@ export function VacancyForm({ vacancy, skills, onDone }: Props) {
         <MoneyInput {...register("salary_max")} />
       </Field>
       <MarketHint control={control} />
-      <Field label="Город" error={errors.city?.message} className="sm:col-span-2">
-        <Input placeholder="Можно оставить пустым для удалёнки" {...register("city")} />
-      </Field>
+      <Controller
+        control={control}
+        name="city"
+        render={({ field }) => (
+          <Field label="Город" error={errors.city?.message} hint="Для удалёнки можно не указывать" className="sm:col-span-2">
+            <CitySelect value={field.value} onChange={field.onChange} onBlur={field.onBlur} name={field.name} placeholder="Не указан" />
+          </Field>
+        )}
+      />
       <FieldGroup label="Навыки" error={errors.skills?.message} className="sm:col-span-2">
         <Controller
           control={control}
