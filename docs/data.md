@@ -85,7 +85,7 @@ AES-256-GCM, ключ `FIELD_ENCRYPTION_KEY` (32 байта hex). Каждый �
 | `ai_providers.api_key_enc` | `ai_key_context(provider_id)` |
 | `outbox_messages.payload_enc` | `outbox_payload_context(message_id)` |
 
-Смена ключа требует перешифровки этих полей (скрипта ротации пока нет — см. бэклог в `AGENTS.md`).
+Смена ключа требует перешифровки этих полей (скрипта ротации пока нет — см. бэклог в [development.md](development.md)).
 
 ## Миграции
 

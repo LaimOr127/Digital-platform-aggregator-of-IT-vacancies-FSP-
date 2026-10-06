@@ -13,8 +13,8 @@
 > автораспознавание резюме, стандартизированный PDF-профиль, приватность и согласие, интеграция с ФСП
 > (мок API, схема перехода на ФСП ID / Keycloak), процедура оценки качества (`make evaluate`).
 > Документация по ТЗ (архитектура, механики, валидация, API, версии библиотек, запуск):
-> [`docs/README.md`](docs/README.md), единый DOCX — `make docs-docx`. Для ИИ-агентов —
-> [`AGENTS.md`](AGENTS.md).
+> [`docs/README.md`](docs/README.md), единый DOCX — `make docs-docx`. Правила разработки,
+> состояние и бэклог — [`docs/development.md`](docs/development.md).
 
 ## Быстрый старт (локально)
 Нужны только Docker (Docker Desktop / colima) и `make`. Python и Node на ПК ставить не нужно.
