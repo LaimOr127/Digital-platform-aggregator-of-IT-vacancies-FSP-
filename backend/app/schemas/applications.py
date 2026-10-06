@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 from app.models.enums import (
     ApplicationDirection,
     ApplicationStatus,
+    ComplaintReason,
     Grade,
     Specialization,
     WorkFormat,
@@ -109,3 +110,10 @@ class BoardVacancyOut(BaseModel):
     application_status: ApplicationStatus | None = Field(
         description="статус отклика или приглашения по этой вакансии"
     )
+
+
+class ComplaintIn(BaseModel):
+    """Жалоба на вакансию: причина и, по желанию, подробности для модератора."""
+
+    reason: ComplaintReason
+    comment: str = Field(default="", max_length=500)

@@ -307,3 +307,29 @@ async def test_tasks_and_answers_visible_only_to_parties(client: AsyncClient, db
     assert await _scalar(db, owner_id, "employer", answers) == 1
     assert await _scalar(db, other_id, "candidate", answers) == 0
     assert await _scalar(db, rival_id, "employer", answers) == 0
+
+
+async def test_vacancy_complaints_visible_only_to_author_and_moderator(
+    client: AsyncClient, db, app
+):
+    """Жалобу видят автор и модератор; компания, на которую жалуются, и другие кандидаты — нет."""
+    from tests.flows import approved_employer
+
+    owner = await approved_employer(client, db, app, name="Компания A")
+    author = await register_candidate(client)
+    await register_candidate(client)
+    r = await client.post(
+        f"/api/v1/candidate/vacancies/{owner['vacancy']['id']}/complaint",
+        json={"reason": "salary"},
+        headers=bearer(author),
+    )
+    assert r.status_code == 204, r.text
+
+    (owner_id,) = await _user_ids(db, "employer")
+    author_id, other_id = await _user_ids(db, "candidate")
+    (admin_id, *_) = await _user_ids(db, "admin")
+    sql = "SELECT count(*) FROM vacancy_complaints"
+    assert await _scalar(db, author_id, "candidate", sql) == 1
+    assert await _scalar(db, admin_id, "admin", sql) == 1
+    assert await _scalar(db, other_id, "candidate", sql) == 0
+    assert await _scalar(db, owner_id, "employer", sql) == 0

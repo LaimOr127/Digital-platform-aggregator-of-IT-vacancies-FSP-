@@ -15,8 +15,10 @@ const KEYS = {
 export const useCompanies = (status: CompanyStatus) =>
   useCursorList([...KEYS.companies, status], (cursor) => adminApi.companies(status, cursor));
 
-export const useAdminVacancies = (status: VacancyStatus | undefined) =>
-  useCursorList([...KEYS.vacancies, status ?? "all"], (cursor) => adminApi.vacancies(status, cursor));
+export const useAdminVacancies = (status: VacancyStatus | undefined, withComplaints = false) =>
+  useCursorList([...KEYS.vacancies, status ?? "all", withComplaints], (cursor) =>
+    adminApi.vacancies(status, withComplaints, cursor),
+  );
 
 export const useAdminUsers = (filters: { role?: UserRole; q?: string }) =>
   useCursorList([...KEYS.users, filters], (cursor) => adminApi.users(filters, cursor), { keepPrevious: true });

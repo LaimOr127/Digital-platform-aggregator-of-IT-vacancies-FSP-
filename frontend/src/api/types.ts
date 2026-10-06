@@ -131,5 +131,7 @@ export type CurrentTask = Schemas["CurrentTaskOut"];
 export type TaskAnswer = Schemas["TaskAnswerOut"];
 export type MyTaskAnswer = Schemas["MyTaskAnswerOut"];
 export type CandidateUpdates = Schemas["CandidateUpdatesOut"];
+export type ComplaintInput = Schemas["ComplaintIn"];
+export type ComplaintReason = Schemas["ComplaintReason"];
 export type EmployerUpdates = Schemas["EmployerUpdatesOut"];
 export type OfferedTask = Schemas["OfferedTaskOut"];

@@ -105,10 +105,13 @@ REST поверх HTTPS, JSON, префикс `/api/v1`. Живая схема �
 
 | Метод и путь | Что делает |
 |---|---|
-| `GET/PATCH profile` | свой профиль: стек, грейд, стаж, роли, софт-скиллы, формат, город, вилка, контакты, статус поиска, приватность (`show_fsp`, `show_salary`, `show_about`), скрытие |
+| `GET/PATCH profile` | свой профиль: стек и свои навыки (`custom_skills`), грейд, стаж, образование, роли, софт-скиллы (из справочника или свои), форматы работы (`work_formats`, можно несколько), город из справочника и готовность к переезду, вилка, контакты, статус поиска, приватность (`show_fsp`, `show_salary`, `show_about`), скрытие |
 | `GET assessment`, `PUT assessment/survey`, `POST assessment/attempts {grade}`, `POST assessment/attempts/{id}/submit` | опрос, тест на грейд, категория, история, доступные грейды |
+| `POST assessment/attempts/{id}/violation`, `POST tasks/{id}/violation` | снимок экрана: тест не засчитан (как неудача), задача закрыта для кандидата |
+| `GET updates` | время последнего события по разделам — для точек «есть новое» |
 | `GET applications`, `POST applications/{id}/accept`, `POST applications/{id}/decline {reason}`, `POST applications/{id}/withdraw` | приглашения компаний и свои отклики; принятие передаёт компании имя и контакты |
 | `GET vacancies`, `GET vacancies/{id}`, `POST vacancies/{id}/respond {message}` | опубликованные вакансии по соответствию профилю, отклик |
+| `POST vacancies/{id}/complaint {reason, comment}` | жалоба на вакансию (одна от кандидата) — её видит модератор |
 | `GET tasks/current`, `POST tasks/{id}/answers {answer}`, `GET tasks/answers` | задача недели от работодателя, ответ, свои ответы и оценки |
 | `POST account/delete {password}` | удалить аккаунт и все данные (152-ФЗ) |
 | `GET import/capabilities`, `GET import/fsp`, `POST import/resume` | черновик профиля из анкеты ФСП или резюме (multipart, `use_ai`) |
@@ -126,14 +129,16 @@ REST поверх HTTPS, JSON, префикс `/api/v1`. Живая схема �
 | `GET/POST vacancies`, `GET/PATCH/DELETE vacancies/{id}`, `POST vacancies/{id}/publish`, `POST vacancies/{id}/close` | вакансии; публикация — на 14 дней |
 | `GET vacancies/{id}/assessment-preview` | пример теста, который система соберёт по специализации, грейду и навыкам вакансии |
 | `GET insights/salary?grade=&skills=` | рынок зарплат для формы вакансии |
-| `GET catalog/categories`, `GET catalog/candidates`, `GET catalog/candidates/{anon_id}` | анонимный каталог; `vacancy_id` — сортировка по соответствию с процентом и факторами |
+| `GET catalog/categories`, `GET catalog/candidates`, `GET catalog/candidates/{anon_id}` | анонимный каталог; `vacancy_id` — сортировка по соответствию с процентом и факторами; `city` — живёт в городе или готов к переезду |
+| `GET updates` | новое по разделам и число вакансий, которые пора продлить |
 | `GET/POST applications`, `POST applications/{id}/accept {contact_method}`, `POST applications/{id}/decline`, `POST applications/{id}/withdraw`, `GET applications/{id}/contacts` | приглашения на контакт (вакансия не обязательна) и отклики; контакты — после согласия кандидата |
 | `GET/POST tasks`, `POST tasks/{id}/close`, `GET tasks/{id}/answers`, `POST tasks/{id}/answers/{answer_id}/rate {rating}` | регулярные короткие задачи и анонимные ответы |
 | `GET/POST interviews`, `POST interviews/{id}/cancel`, `POST interviews/{id}/complete` | собеседования по принятому приглашению или отклику |
 | `GET/POST offers`, `POST offers/{id}/withdraw`, `GET offers/{id}/contacts` | офферы и контакты принявшего кандидата |
 
 **admin** (администратор; управление моделями ИИ — только суперадмин): `GET companies`,
-`POST companies/{id}/status`, `GET vacancies`, `POST vacancies/{id}/moderation`, `GET users`,
+`POST companies/{id}/status`, `GET vacancies` (`with_complaints=true` — только с жалобами; в ответе
+число жалоб и последние из них), `POST vacancies/{id}/moderation`, `GET users`,
 `POST users/{id}/moderation`, `GET audit`, `GET/POST ai-providers`, `PATCH/DELETE ai-providers/{id}`,
 `POST ai-providers/{id}/activate`, `POST ai-providers/deactivate`, `POST ai-providers/{id}/test`.
 Каждое действие модератора требует причину и пишется в аудит.

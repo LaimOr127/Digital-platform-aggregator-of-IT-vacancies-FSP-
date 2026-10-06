@@ -20,6 +20,8 @@ class AdminVacancyOut(BaseModel):
     status: VacancyStatus
     expires_at: datetime | None
     created_at: datetime
+    complaints: int = Field(default=0, description="жалоб кандидатов")
+    complaint_notes: list[str] = Field(default=[], description="последние жалобы: причина и текст")
 
 
 class ModerationIn(BaseModel):

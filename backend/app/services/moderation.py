@@ -8,10 +8,11 @@
 
 import uuid
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import ForbiddenError, InvalidStateError
-from app.models import AuditLog, User, Vacancy
+from app.models import AuditLog, User, Vacancy, VacancyComplaint
 from app.models.enums import UserRole, VacancyStatus
 from app.repositories.admin import (
     AllUsersRepository,
@@ -30,6 +31,16 @@ from app.services.access import Action, Principal, policy
 Paged = tuple[list, str | None]
 
 
+NOTES_SHOWN = 5
+COMPLAINT_LABELS = {
+    "fake": "Фиктивная вакансия или компания",
+    "salary": "Вилка не соответствует",
+    "discrimination": "Дискриминация",
+    "spam": "Спам или сбор данных",
+    "other": "Другое",
+}
+
+
 class ModerationService:
     def __init__(self, session: AsyncSession, principal: Principal) -> None:
         policy.ensure(principal, Action.ADMIN_MODERATE)
@@ -41,9 +52,15 @@ class ModerationService:
 
     # --- вакансии -----------------------------------------------------------------------
     async def list_vacancies(
-        self, status: VacancyStatus | None, cursor: str | None, limit: int
+        self,
+        status: VacancyStatus | None,
+        cursor: str | None,
+        limit: int,
+        with_complaints: bool = False,
     ) -> Paged:
         conditions = [Vacancy.status == status] if status else []
+        if with_complaints:
+            conditions.append(Vacancy.id.in_(select(VacancyComplaint.vacancy_id)))
         page = await self.vacancies.list_page(*conditions, cursor=cursor, limit=limit)
         return await self._vacancies_out(page.items), page.next_cursor
 
@@ -75,13 +92,30 @@ class ModerationService:
 
     async def _vacancies_out(self, items: list[Vacancy]) -> list[AdminVacancyOut]:
         names = await company_names(self.session, list({v.company_id for v in items}))
+        notes = await self._complaints([v.id for v in items])
+        own = set(AdminVacancyOut.model_fields) - {"company_name", "complaints", "complaint_notes"}
         return [
             AdminVacancyOut(
-                **{f: getattr(v, f) for f in AdminVacancyOut.model_fields if f != "company_name"},
+                **{f: getattr(v, f) for f in own},
                 company_name=names.get(v.company_id, "—"),
+                complaints=len(notes.get(v.id, [])),
+                complaint_notes=notes.get(v.id, [])[:NOTES_SHOWN],
             )
             for v in items
         ]
+
+    async def _complaints(self, vacancy_ids: list[uuid.UUID]) -> dict[uuid.UUID, list[str]]:
+        """Жалобы по вакансиям, новые первыми: «причина: текст»."""
+        rows = await self.session.execute(
+            select(VacancyComplaint.vacancy_id, VacancyComplaint.reason, VacancyComplaint.comment)
+            .where(VacancyComplaint.vacancy_id.in_(vacancy_ids))
+            .order_by(VacancyComplaint.created_at.desc())
+        )
+        notes: dict[uuid.UUID, list[str]] = {}
+        for vacancy_id, reason, comment in rows:
+            label = COMPLAINT_LABELS.get(reason, reason)
+            notes.setdefault(vacancy_id, []).append(f"{label}: {comment}" if comment else label)
+        return notes
 
     # --- пользователи -------------------------------------------------------------------
     async def list_users(

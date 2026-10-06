@@ -52,10 +52,11 @@ Limit = Annotated[int, Query(ge=1, le=100)]
 async def list_vacancies(
     service: ModerationDep,
     status: VacancyStatus | None = None,
+    with_complaints: Annotated[bool, Query(description="только вакансии с жалобами")] = False,
     cursor: str | None = None,
     limit: Limit = 20,
 ) -> PageOut[AdminVacancyOut]:
-    items, next_cursor = await service.list_vacancies(status, cursor, limit)
+    items, next_cursor = await service.list_vacancies(status, cursor, limit, with_complaints)
     return PageOut(items=items, next_cursor=next_cursor)
 
 

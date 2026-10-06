@@ -19,6 +19,7 @@ from app.schemas.applications import (
     AcceptResponseIn,
     ApplicationOut,
     BoardVacancyOut,
+    ComplaintIn,
     DeclineIn,
     EmployerApplicationOut,
     InvitationIn,
@@ -205,6 +206,16 @@ async def board(
 @router.get("/candidate/vacancies/{vacancy_id}", dependencies=Candidate, summary="Вакансия")
 async def board_vacancy(vacancy_id: uuid.UUID, service: BoardDep) -> BoardVacancyOut:
     return await service.vacancy(vacancy_id)
+
+
+@router.post(
+    "/candidate/vacancies/{vacancy_id}/complaint",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[*Candidate, Depends(_respond_limit)],
+    summary="Пожаловаться на вакансию: жалобу увидит модератор",
+)
+async def complain(vacancy_id: uuid.UUID, data: ComplaintIn, service: BoardDep) -> None:
+    await service.complain(vacancy_id, data)
 
 
 @router.post(

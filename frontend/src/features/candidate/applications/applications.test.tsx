@@ -86,4 +86,19 @@ describe("candidate contact flow", () => {
     expect(await screen.findByText("Отклик отправлен")).toBeInTheDocument();
     expect(bodyOf(fetchMock, "/candidate/vacancies/v1/respond")).toEqual({ message: "Готова" });
   });
+
+  it("reports a suspicious vacancy to the moderator", async () => {
+    const fetchMock = serveRoutes({
+      "/candidate/vacancies": () => json({ items: [vacancy], next_cursor: null }),
+      "/candidate/vacancies/v1/complaint": () => new Response(null, { status: 204 }),
+    });
+    renderWithApp(<VacancyBoard />);
+    await userEvent.click(await screen.findByRole("button", { name: "Пожаловаться" }));
+    const dialog = screen.getByRole("dialog");
+    await userEvent.selectOptions(within(dialog).getByLabelText("Причина"), "salary");
+    await userEvent.type(within(dialog).getByLabelText(/Подробности/), "В тексте другая сумма");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Отправить жалобу" }));
+    expect(await screen.findByText("Жалоба отправлена модератору")).toBeInTheDocument();
+    expect(bodyOf(fetchMock, "/candidate/vacancies/v1/complaint")).toEqual({ reason: "salary", comment: "В тексте другая сумма" });
+  });
 });

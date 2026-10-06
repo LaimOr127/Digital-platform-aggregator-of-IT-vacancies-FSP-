@@ -17,6 +17,16 @@ class Grade(StrEnum):
     LEAD = "lead"
 
 
+class ComplaintReason(StrEnum):
+    """Почему вакансия вызывает сомнения: основа для модерации и защиты от фиктивных вакансий."""
+
+    FAKE = "fake"  # компании или вакансии не существует
+    SALARY = "salary"  # вилка не соответствует действительности
+    DISCRIMINATION = "discrimination"
+    SPAM = "spam"  # реклама, сбор данных, платные «курсы»
+    OTHER = "other"
+
+
 class Education(StrEnum):
     SECONDARY = "secondary"  # среднее общее
     VOCATIONAL = "vocational"  # среднее профессиональное

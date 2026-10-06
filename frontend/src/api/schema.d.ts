@@ -706,6 +706,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/candidate/vacancies/{vacancy_id}/complaint": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Пожаловаться на вакансию: жалобу увидит модератор */
+        post: operations["complain_api_v1_candidate_vacancies__vacancy_id__complaint_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/candidate/vacancies/{vacancy_id}/respond": {
         parameters: {
             query?: never;
@@ -1690,6 +1707,18 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /**
+             * Complaints
+             * @description жалоб кандидатов
+             * @default 0
+             */
+            complaints: number;
+            /**
+             * Complaint Notes
+             * @description последние жалобы: причина и текст
+             * @default []
+             */
+            complaint_notes: string[];
         };
         /** AiProviderIn */
         AiProviderIn: {
@@ -2228,6 +2257,24 @@ export interface components {
             /** Contact Telegram */
             contact_telegram?: string | null;
         };
+        /**
+         * ComplaintIn
+         * @description Жалоба на вакансию: причина и, по желанию, подробности для модератора.
+         */
+        ComplaintIn: {
+            reason: components["schemas"]["ComplaintReason"];
+            /**
+             * Comment
+             * @default
+             */
+            comment: string;
+        };
+        /**
+         * ComplaintReason
+         * @description Почему вакансия вызывает сомнения: основа для модерации и защиты от фиктивных вакансий.
+         * @enum {string}
+         */
+        ComplaintReason: "fake" | "salary" | "discrimination" | "spam" | "other";
         /** Contacts */
         Contacts: {
             /** Phone */
@@ -7732,6 +7779,93 @@ export interface operations {
             };
         };
     };
+    complain_api_v1_candidate_vacancies__vacancy_id__complaint_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vacancy_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ComplaintIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Некорректный запрос (bad_request, invalid_link) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Нет сессии или она истекла (unauthorized, mfa_expired) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Нет прав на действие (forbidden, wrong_password, email_not_verified) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Объект не найден или недоступен этой роли (not_found) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Конфликт состояния (conflict, invalid_state) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Ошибка валидации полей (validation_error, details — по полям) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Превышен лимит запросов (rate_limited) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
     respond_api_v1_candidate_vacancies__vacancy_id__respond_post: {
         parameters: {
             query?: never;
@@ -11543,6 +11677,8 @@ export interface operations {
         parameters: {
             query?: {
                 status?: components["schemas"]["VacancyStatus"] | null;
+                /** @description только вакансии с жалобами */
+                with_complaints?: boolean;
                 cursor?: string | null;
                 limit?: number;
             };

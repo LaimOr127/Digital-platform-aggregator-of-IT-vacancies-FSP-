@@ -4,17 +4,18 @@
 import uuid
 from dataclasses import asdict
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.cache import TtlCache
-from app.core.errors import NotFoundError
+from app.core.errors import ConflictError, NotFoundError
 from app.core.timeutil import as_aware
-from app.models import Application, CandidateProfile, EmployerCompany, Vacancy
+from app.models import Application, CandidateProfile, EmployerCompany, Vacancy, VacancyComplaint
 from app.repositories.applications import CandidateApplicationRepository
 from app.repositories.candidates import CandidateProfileRepository
 from app.repositories.catalog import CatalogRepository
 from app.repositories.vacancies import BoardFilters, PublishedVacancyRepository
-from app.schemas.applications import BoardVacancyOut
+from app.schemas.applications import BoardVacancyOut, ComplaintIn
 from app.schemas.catalog import MatchFactorOut, MatchOut
 from app.services.access import Action, Principal, policy
 from app.services.applications.common import brief, companies, effective_status
@@ -78,6 +79,25 @@ class VacancyBoardService:
         )
         found = await companies(self.session, {vacancy.company_id})
         return _out(vacancy, result, found.get(vacancy.company_id), applied.get(vacancy.id))
+
+    async def complain(self, vacancy_id: uuid.UUID, data: ComplaintIn) -> None:
+        """Жалоба на опубликованную вакансию: одна от кандидата, видна модератору."""
+        profile = await self.profiles.own_or_404()
+        if await self.vacancies.get(vacancy_id) is None:
+            raise NotFoundError("вакансия не найдена или снята с публикации")
+        self.session.add(
+            VacancyComplaint(
+                vacancy_id=vacancy_id,
+                profile_id=profile.id,
+                reason=data.reason,
+                comment=data.comment.strip(),
+            )
+        )
+        try:
+            await self.session.commit()
+        except IntegrityError as exc:
+            await self.session.rollback()
+            raise ConflictError("вы уже пожаловались на эту вакансию") from exc
 
 
 def _out(

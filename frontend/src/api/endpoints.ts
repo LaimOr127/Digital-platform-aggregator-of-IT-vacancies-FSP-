@@ -25,6 +25,7 @@ import type {
   Company,
   CompanyStatus,
   CompanyUpdate,
+  ComplaintInput,
   CurrentTask,
   Dictionaries,
   EmployerApplication,
@@ -156,6 +157,11 @@ export const assessmentApi = {
     api<AttemptResult>("POST", `/candidate/assessment/attempts/${encodeURIComponent(id)}/submit`, {
       body: { responses },
     }),
+  /** снимок экрана во время теста: попытка не засчитывается */
+  violation: (id: string) =>
+    api<AttemptResult>("POST", `/candidate/assessment/attempts/${encodeURIComponent(id)}/violation`, {
+      body: { reason: "screenshot" },
+    }),
 };
 
 export const catalogApi = {
@@ -191,8 +197,10 @@ export const adminApi = {
     api<Page<Company>>("GET", "/admin/companies", { query: { status, cursor, limit: 20 } }),
   setCompanyStatus: (id: string, status: CompanyStatus, reason: string) =>
     api<Company>("POST", `/admin/companies/${encodeURIComponent(id)}/status`, { body: { status, reason } }),
-  vacancies: (status: VacancyStatus | undefined, cursor: string | undefined) =>
-    api<Page<AdminVacancy>>("GET", "/admin/vacancies", { query: { status, cursor, limit: 20 } }),
+  vacancies: (status: VacancyStatus | undefined, withComplaints: boolean, cursor: string | undefined) =>
+    api<Page<AdminVacancy>>("GET", "/admin/vacancies", {
+      query: { status, with_complaints: withComplaints || undefined, cursor, limit: 20 },
+    }),
   moderateVacancy: (id: string, action: ModerationAction, reason: string) =>
     api<AdminVacancy>("POST", `/admin/vacancies/${encodeURIComponent(id)}/moderation`, { body: { action, reason } }),
   users: (filters: { role?: UserRole; q?: string }, cursor: string | undefined) =>
@@ -245,6 +253,9 @@ export const myApplicationsApi = {
     api<Page<BoardVacancy>>("GET", "/candidate/vacancies", { query: { ...filters, cursor, limit: 20 } }),
   respond: (vacancyId: string, message: string) =>
     api<Application>("POST", interviewUrl("/candidate/vacancies", vacancyId, "/respond"), { body: { message } }),
+  /** жалоба на вакансию — её увидит модератор */
+  complain: (vacancyId: string, body: ComplaintInput) =>
+    api<void>("POST", interviewUrl("/candidate/vacancies", vacancyId, "/complaint"), { body }),
 };
 
 export const tasksApi = {
@@ -265,6 +276,8 @@ export const myTasksApi = {
     api<MyTaskAnswer>("POST", interviewUrl("/candidate/tasks", taskId, "/answers"), { body: { answer } }),
   answers: (cursor: string | undefined) =>
     api<Page<MyTaskAnswer>>("GET", "/candidate/tasks/answers", { query: { cursor, limit: 20 } }),
+  /** снимок экрана во время решения: задача закрывается */
+  violation: (taskId: string) => api<void>("POST", interviewUrl("/candidate/tasks", taskId, "/violation")),
 };
 
 export const interviewsApi = {
