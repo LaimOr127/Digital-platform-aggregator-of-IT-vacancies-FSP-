@@ -28,7 +28,11 @@ _CLIENTS: dict[AiProviderKind, type[AiClient]] = {
     AiProviderKind.OPENAI: OpenAiCompatibleClient,
     AiProviderKind.ANTHROPIC: AnthropicClient,
 }
-_PING_SCHEMA = {"type": "object", "properties": {"ok": {"type": "boolean"}}, "required": ["ok"]}
+_PING_SCHEMA = {
+    "type": "object",
+    "properties": {"ok": {"type": "boolean"}},
+    "required": ["ok"],
+}
 
 
 def build_client(
@@ -186,6 +190,7 @@ def _failure(exc: AiUnavailableError) -> str:
     if isinstance(cause, httpx.HTTPStatusError):
         code = cause.response.status_code
         hints = {
+            400: "сервис отклонил запрос — проверьте название модели",
             401: "неверный ключ",
             # OpenAI, Anthropic и OpenRouter отвечают 403 на любые запросы с российских адресов
             403: "нет доступа — у ключа нет прав или сервис закрыт для страны сервера",

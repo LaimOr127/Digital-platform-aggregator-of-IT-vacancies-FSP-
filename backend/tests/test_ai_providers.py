@@ -87,7 +87,10 @@ async def test_single_active_model_and_key_update(client: AsyncClient, db, app):
     ).json()
     await client.post(f"{URL}/{first['id']}/activate", headers=headers)
     listed = (await client.post(f"{URL}/{second['id']}/activate", headers=headers)).json()
-    assert {p["name"]: p["is_active"] for p in listed} == {"OpenAI GPT": False, "Claude": True}
+    assert {p["name"]: p["is_active"] for p in listed} == {
+        "OpenAI GPT": False,
+        "Claude": True,
+    }
     kept = await client.patch(f"{URL}/{second['id']}", json={"model": "claude-x"}, headers=headers)
     assert kept.json()["has_key"] is True and kept.json()["model"] == "claude-x"
     cleared = await client.patch(f"{URL}/{second['id']}", json={"clear_key": True}, headers=headers)
@@ -116,6 +119,13 @@ async def test_connection_check(client: AsyncClient, db, app):
     app.state.ai_transport = httpx.MockTransport(lambda _: httpx.Response(403, json={}))
     blocked = (await client.post(f"{URL}/{created['id']}/test", headers=bearer(admin))).json()
     assert "закрыт для страны сервера" in blocked["message"]
+
+
+async def test_template_placeholder_in_model_is_rejected(client: AsyncClient, db, app):
+    admin = await create_admin(db, app, superadmin=True)
+    model = "gpt://<folder_id>/yandexgpt/latest"
+    r = await client.post(URL, json=provider(model=model), headers=bearer(admin))
+    assert r.status_code == 422
 
 
 async def test_address_resolving_to_loopback_is_blocked_before_request(

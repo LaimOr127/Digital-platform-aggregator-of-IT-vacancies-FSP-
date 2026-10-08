@@ -12,7 +12,7 @@ export const PRESETS: Preset[] = [
     kind: "openai",
     base_url: "https://llm.api.cloud.yandex.net/v1",
     model: "gpt://<folder_id>/yandexgpt/latest",
-    hint: "Модель — с идентификатором каталога Yandex Cloud; ключ — API-ключ сервисного аккаунта",
+    hint: "В модели замените <folder_id> на ID каталога Yandex Cloud (b1g…); ключ — API-ключ сервисного аккаунта с ролью ai.languageModels.user",
   },
   { id: "openai", label: "OpenAI", kind: "openai", base_url: "https://api.openai.com/v1", model: "gpt-4o-mini" },
   { id: "anthropic", label: "Anthropic Claude", kind: "anthropic", base_url: "https://api.anthropic.com", model: "claude-sonnet-5-5" },
