@@ -3,7 +3,7 @@
 import { CalendarPlus, Check, Inbox, Undo2, X } from "lucide-react";
 import { useState } from "react";
 import type { ApplicationDirection, EmployerApplication } from "../../../api/types";
-import { daysLeft, formatDate, formatSalaryRange, labels } from "../../../lib/format";
+import { daysLeft, formatDate, labels } from "../../../lib/format";
 import { applicationTone } from "../../../lib/tones";
 import { PageHeader } from "../../../ui/AppShell";
 import { Badge } from "../../../ui/Badge";
@@ -23,6 +23,7 @@ import {
   useEmployerApplications,
   useWithdrawInvitation,
 } from "./hooks";
+import { Salary } from "../../../ui/Salary";
 
 const TABS: { value: ApplicationDirection; label: string }[] = [
   { value: "invitation", label: "Приглашения" },
@@ -111,7 +112,7 @@ function Row({ item, onWithdraw, onAccept, onDecline, onSchedule }: RowProps) {
         <Badge tone={applicationTone[item.status]}>{labels.applicationStatus[item.status]}</Badge>
       </div>
       <p className="mt-3 text-sm">
-        <span className="font-medium tabular">{formatSalaryRange(item.salary_min, item.salary_max)}</span>
+        <span className="font-medium tabular"><Salary min={item.salary_min} max={item.salary_max} /></span>
         <span className="text-muted"> · {formatDate(item.created_at)}</span>
         {left !== null && <span className="text-muted"> · на ответ осталось дней: {left}</span>}
       </p>

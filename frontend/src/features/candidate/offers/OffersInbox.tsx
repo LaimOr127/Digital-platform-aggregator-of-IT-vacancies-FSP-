@@ -1,7 +1,7 @@
 import { Building2, Check, Inbox, X } from "lucide-react";
 import { useState } from "react";
 import type { Offer, OfferStatus } from "../../../api/types";
-import { daysLeft, formatDate, formatSalaryRange, labels } from "../../../lib/format";
+import { daysLeft, formatDate, labels } from "../../../lib/format";
 import { offerTone } from "../../../lib/tones";
 import { PageHeader } from "../../../ui/AppShell";
 import { Badge } from "../../../ui/Badge";
@@ -13,6 +13,7 @@ import { Field, Textarea } from "../../../ui/form";
 import { Segmented } from "../../../ui/Segmented";
 import { useAction } from "../../../ui/useAction";
 import { useAcceptOffer, useDeclineOffer, useInbox } from "./hooks";
+import { Salary } from "../../../ui/Salary";
 
 type Filter = OfferStatus | "all";
 
@@ -86,7 +87,7 @@ function OfferCard({ offer, onAccept, onDecline }: { offer: Offer; onAccept: () 
         </div>
         <Badge tone={offerTone[offer.status]}>{labels.offerStatus[offer.status]}</Badge>
       </div>
-      <p className="mt-4 text-xl font-semibold tabular">{formatSalaryRange(offer.salary_min, offer.salary_max)}</p>
+      <p className="mt-4 text-xl font-semibold tabular"><Salary min={offer.salary_min} max={offer.salary_max} /></p>
       {offer.message && <p className="mt-3 whitespace-pre-line text-sm leading-relaxed">{offer.message}</p>}
       <p className="mt-3 text-xs text-muted">
         Получен {formatDate(offer.created_at)}

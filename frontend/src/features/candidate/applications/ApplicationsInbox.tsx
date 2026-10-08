@@ -2,7 +2,7 @@
 import { Building2, Check, Inbox, Undo2, X } from "lucide-react";
 import { useState } from "react";
 import type { Application, ApplicationDirection } from "../../../api/types";
-import { daysLeft, formatDate, formatSalaryRange, labels } from "../../../lib/format";
+import { daysLeft, formatDate, labels } from "../../../lib/format";
 import { applicationTone } from "../../../lib/tones";
 import { PageHeader } from "../../../ui/AppShell";
 import { Badge } from "../../../ui/Badge";
@@ -12,6 +12,7 @@ import { CursorListView } from "../../../ui/CursorListView";
 import { useAction } from "../../../ui/useAction";
 import { useAcceptInvitation, useDeclineInvitation, useMyApplications, useWithdrawResponse } from "./hooks";
 import { ExpandableText } from "../../../ui/ExpandableText";
+import { Salary } from "../../../ui/Salary";
 
 const HEADERS: Record<ApplicationDirection, { title: string; text: string }> = {
   invitation: {
@@ -90,7 +91,7 @@ function Row({ item, onAccept, onDecline, onWithdraw }: RowProps) {
         </div>
         <Badge tone={applicationTone[item.status]}>{labels.applicationStatus[item.status]}</Badge>
       </div>
-      <p className="mt-3 text-lg font-semibold tabular">{formatSalaryRange(item.salary_min, item.salary_max)}</p>
+      <p className="mt-3 text-lg font-semibold tabular"><Salary min={item.salary_min} max={item.salary_max} /></p>
       <p className="mt-1 text-sm text-muted">
         {labels.grade[item.grade]} · {labels.workFormat[item.work_format]}
         {item.city && ` · ${item.city}`} · {formatDate(item.created_at)}

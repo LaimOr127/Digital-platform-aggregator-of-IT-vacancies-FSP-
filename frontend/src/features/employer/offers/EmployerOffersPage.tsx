@@ -1,7 +1,7 @@
 import { Inbox, Undo2 } from "lucide-react";
 import { useState } from "react";
 import type { EmployerOffer, OfferStatus } from "../../../api/types";
-import { daysLeft, formatDate, formatSalaryRange, labels } from "../../../lib/format";
+import { daysLeft, formatDate, labels } from "../../../lib/format";
 import { offerTone } from "../../../lib/tones";
 import { PageHeader } from "../../../ui/AppShell";
 import { Badge } from "../../../ui/Badge";
@@ -12,6 +12,7 @@ import { Segmented } from "../../../ui/Segmented";
 import { useAction } from "../../../ui/useAction";
 import { useEmployerOffers, useOfferContacts, useWithdrawOffer } from "../catalog/hooks";
 import { ContactsReveal } from "../ContactsReveal";
+import { Salary } from "../../../ui/Salary";
 
 type Filter = OfferStatus | "all";
 
@@ -80,7 +81,7 @@ function OfferRow({ offer, onWithdraw }: { offer: EmployerOffer; onWithdraw: () 
         <Badge tone={offerTone[offer.status]}>{labels.offerStatus[offer.status]}</Badge>
       </div>
       <p className="mt-3 text-sm">
-        <span className="font-medium tabular">{formatSalaryRange(offer.salary_min, offer.salary_max)}</span>
+        <span className="font-medium tabular"><Salary min={offer.salary_min} max={offer.salary_max} /></span>
         <span className="text-muted"> · отправлен {formatDate(offer.created_at)}</span>
         {left !== null && <span className="text-muted"> · на ответ осталось дней: {left}</span>}
       </p>

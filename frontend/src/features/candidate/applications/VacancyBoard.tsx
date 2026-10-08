@@ -2,7 +2,7 @@
 import { Briefcase, Building2, Flag, Send } from "lucide-react";
 import { useState } from "react";
 import type { BoardFilters, BoardVacancy, Grade, Specialization } from "../../../api/types";
-import { formatSalaryRange, labels, options } from "../../../lib/format";
+import { labels, options } from "../../../lib/format";
 import { applicationTone } from "../../../lib/tones";
 import { useDebounced } from "../../../lib/useDebounced";
 import { PageHeader } from "../../../ui/AppShell";
@@ -15,6 +15,7 @@ import { useAction } from "../../../ui/useAction";
 import { MatchPanel } from "../../employer/catalog/MatchPanel";
 import { ComplaintDialog } from "./ComplaintDialog";
 import { useRespond, useVacancyBoard } from "./hooks";
+import { Salary } from "../../../ui/Salary";
 
 export function VacancyBoard() {
   const [filters, setFilters] = useState<BoardFilters>({});
@@ -82,7 +83,7 @@ function VacancyRow({ vacancy: v, onRespond, onComplain }: RowProps) {
           <Badge tone={applicationTone[v.application_status]}>{labels.applicationStatus[v.application_status]}</Badge>
         )}
       </div>
-      <p className="text-lg font-semibold tabular">{formatSalaryRange(v.salary_min, v.salary_max)}</p>
+      <p className="text-lg font-semibold tabular"><Salary min={v.salary_min} max={v.salary_max} /></p>
       <p className="text-sm text-muted">
         {v.specialization && `${labels.specialization[v.specialization]} · `}
         {labels.grade[v.grade]} · {labels.workFormat[v.work_format]}
