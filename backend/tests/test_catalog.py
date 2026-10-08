@@ -58,3 +58,16 @@ async def test_catalog_filters_and_hidden_profiles(client: AsyncClient, db, app)
     assert (
         await client.get(f"{CATALOG}/candidates/{candidate['anon_id']}", headers=token)
     ).status_code == 404
+
+
+async def test_unconfirmed_candidates_rank_below_confirmed(client: AsyncClient, db, app):
+    """Без подтверждённого тестом грейда кандидат виден, но ниже подтверждённых — даже с ФСП."""
+    employer = await approved_employer(client, db, app)
+    unconfirmed = await verified_candidate(client, "FSP-2")  # ФСП есть, теста нет
+    confirmed = await verified_candidate(client, "FSP-3")
+    await confirm(client, db, confirmed["token"])
+    page = (await client.get(f"{CATALOG}/candidates", headers=bearer(employer["token"]))).json()
+    order = [card["anon_id"] for card in page["items"]]
+    assert order.index(confirmed["anon_id"]) < order.index(unconfirmed["anon_id"])
+    card = next(c for c in page["items"] if c["anon_id"] == unconfirmed["anon_id"])
+    assert card["category"] is None and card["confirmed_grade"] is None
