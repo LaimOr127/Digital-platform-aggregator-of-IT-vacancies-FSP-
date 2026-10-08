@@ -12,7 +12,15 @@ from app.db.demo import (
     seed_market,
 )
 from app.db.session import set_rls_context
-from app.models import CandidateProfile, EmployerTask, Vacancy
+from app.models import (
+    CandidateProfile,
+    EmployerCompany,
+    EmployerTask,
+    User,
+    Vacancy,
+    VacancyComplaint,
+)
+from app.models.enums import CompanyStatus, VacancyStatus
 from tests.helpers import bearer, login
 
 
@@ -50,3 +58,19 @@ async def test_demo_password_can_be_set_for_the_jury_memo(db):
     async with db.sessionmaker() as session:
         logins = await seed_logins(session, FieldCipher("11" * 32), password="Jury-2026-memo")
     assert set(logins.values()) == {"Jury-2026-memo"}
+
+
+async def test_demo_has_every_moderation_state(db):
+    """Стенд показывает модерацию: компании на проверке и заблокированные, вакансии во всех
+    статусах и с жалобами, заблокированные кандидаты."""
+    async with db.sessionmaker() as session:
+        await seed_candidates(session, FieldCipher("11" * 32), 60)
+        await seed_market(session, companies=8, vacancies_each=8)
+        await set_rls_context(session, None, "system")
+        companies = set((await session.execute(select(EmployerCompany.status))).scalars())
+        vacancies = set((await session.execute(select(Vacancy.status))).scalars())
+        complaints = await session.scalar(select(func.count()).select_from(VacancyComplaint))
+        blocked = await session.scalar(select(func.count()).where(User.is_active.is_(False)))
+    assert companies == set(CompanyStatus)
+    assert vacancies == set(VacancyStatus)
+    assert complaints and blocked
