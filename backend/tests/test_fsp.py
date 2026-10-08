@@ -36,7 +36,7 @@ async def test_link_flow_creates_achievements_and_categories(client: AsyncClient
     body = (await client.post(f"{FSP}/confirm", json={"code": CODE}, headers=bearer(token))).json()
     assert body["linked"] and body["athlete_id"] == "FSP-1" and body["rank"] == "КМС"
     assert body["verification_tier"] == "verified_fsp"
-    assert [c["slug"] for c in body["categories"]] == ["product-elite"]
+    assert [c["slug"] for c in body["categories"]] == ["product-advanced"]  # один приз + КМС
     assert body["achievements"][0]["discipline_title"] == "Продуктовое программирование"
     profile = (await client.get("/api/v1/candidate/profile", headers=bearer(token))).json()
     assert profile["verification_tier"] == "verified_fsp"
@@ -95,7 +95,7 @@ async def test_sync_picks_up_new_results(client: AsyncClient, fsp):
     athlete, results = fsp.athletes["FSP-2"]
     fsp.athletes["FSP-2"] = (athlete, [*results, result("r9", "security", "international", 1)])
     body = (await client.post(f"{FSP}/sync", headers=bearer(token))).json()
-    assert [c["slug"] for c in body["categories"]] == ["security-elite"]
+    assert [c["slug"] for c in body["categories"]] == ["security-advanced"]  # один приз
     assert len(body["achievements"]) == 2
 
 

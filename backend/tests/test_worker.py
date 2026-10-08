@@ -50,7 +50,7 @@ async def test_sync_job_follows_schedule(client: AsyncClient, db, fsp):
     await make_due(db)
     assert await job.run() == 1
     body = (await client.get(FSP, headers=bearer(token))).json()
-    assert [c["slug"] for c in body["categories"]] == ["security-elite"]
+    assert [c["slug"] for c in body["categories"]] == ["security-advanced"]  # новый приз
 
 
 async def test_account_removed_in_fsp_is_detached(client: AsyncClient, db, fsp):
