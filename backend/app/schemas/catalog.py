@@ -71,7 +71,7 @@ class CandidateCardOut(BaseModel):
     grade: Grade | None = Field(description="заявленный кандидатом")
     confirmed_grade: Grade | None = Field(description="подтверждённый тестом")
     assessment_score: int | None
-    experience_years: int | None
+    experience_years: float | None
     work_formats: list[WorkFormat]
     city: str | None
     relocation: bool = False

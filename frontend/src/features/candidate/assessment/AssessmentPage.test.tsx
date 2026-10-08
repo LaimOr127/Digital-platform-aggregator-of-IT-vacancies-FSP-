@@ -63,6 +63,7 @@ describe("AssessmentPage", () => {
   it("starts with the survey and saves the answers", async () => {
     const fetchMock = serveRoutes({
       "/candidate/assessment": () => json(base),
+      "/candidate/profile": () => json({ specialization: null, grade: null, experience_years: null, roles: [], skills: [] }),
       "/candidate/assessment/survey": () => json({ ...base, survey, options: [option("middle")] }),
       "/public/dictionaries": () => json(dictionaries),
       "/public/skills": () => json(skills),

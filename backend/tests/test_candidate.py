@@ -128,3 +128,23 @@ async def test_contact_email_validated(client: AsyncClient):
     )
     assert r.status_code == 422
     assert r.json()["error"]["details"][0]["loc"] == ["body", "contacts", "email"]
+
+
+async def test_resume_cannot_change_confirmed_category(client: AsyncClient, db):
+    """Специализация из резюме — подсказка; подтверждённую тестом категорию меняет только опрос."""
+    from tests.assessment_flow import confirm
+
+    fresh = await register_candidate(client)
+    r = await client.patch(PROFILE, json={"specialization": "data"}, headers=bearer(fresh))
+    assert r.status_code == 200 and r.json()["specialization"] == "data"
+    assert r.json()["category_change_at"] is None
+
+    token = await register_candidate(client)
+    await confirm(client, db, token)
+    profile = (await client.get(PROFILE, headers=bearer(token))).json()
+    assert profile["category_change_at"]  # дата, с которой можно сменить через опрос
+    blocked = await client.patch(PROFILE, json={"specialization": "data"}, headers=bearer(token))
+    assert blocked.status_code == 409
+    # заявленный грейд меняется, подтверждённый — нет
+    r = await client.patch(PROFILE, json={"grade": "lead"}, headers=bearer(token))
+    assert r.json()["grade"] == "lead" and r.json()["confirmed_grade"] == profile["confirmed_grade"]

@@ -3427,15 +3427,25 @@ export interface components {
             title?: string | null;
             /** About */
             about?: string | null;
+            /** @description заявленный — подсказка для опроса */
             grade?: components["schemas"]["Grade"] | null;
-            work_format?: components["schemas"]["WorkFormat"] | null;
+            /** @description по стеку — подсказка для опроса; категорию определяет тест */
+            specialization?: components["schemas"]["Specialization"] | null;
+            /** Work Formats */
+            work_formats?: components["schemas"]["WorkFormat"][];
+            /** Relocation */
+            relocation?: boolean | null;
+            education?: components["schemas"]["Education"] | null;
             /** City */
             city?: string | null;
             /** Salary Min */
             salary_min?: number | null;
             /** Salary Max */
             salary_max?: number | null;
-            /** Experience Years */
+            /**
+             * Experience Years
+             * @description лет, с одной десятой
+             */
             experience_years?: number | null;
             /**
              * Roles
@@ -3444,7 +3454,7 @@ export interface components {
             roles?: string[];
             /**
              * Soft Skills
-             * @description ключи справочника софт-скиллов
+             * @description ключи справочника софт-скиллов или свой текст
              */
             soft_skills?: string[];
             contacts?: components["schemas"]["Contacts"];
@@ -3524,6 +3534,11 @@ export interface components {
             show_about: boolean;
             specialization?: components["schemas"]["Specialization"] | null;
             confirmed_grade?: components["schemas"]["Grade"] | null;
+            /**
+             * Category Change At
+             * @description с какого дня подтверждённую категорию можно сменить через опрос
+             */
+            category_change_at?: string | null;
             /** Assessment Score */
             assessment_score?: number | null;
             /** Experience Years */
@@ -3570,6 +3585,8 @@ export interface components {
              * @description готов к переезду
              */
             relocation?: boolean | null;
+            /** @description заявленная, подсказка для опроса; подтверждённая меняется только в опросе */
+            specialization?: components["schemas"]["Specialization"] | null;
             education?: components["schemas"]["Education"] | null;
             /** Is Hidden */
             is_hidden?: boolean | null;

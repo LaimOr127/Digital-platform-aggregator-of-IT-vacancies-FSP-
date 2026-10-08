@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { AssessmentState, Specialization, SurveyInput } from "../../../api/types";
+import type { AssessmentState, Profile, Specialization, SurveyInput } from "../../../api/types";
 import { GRADES, SPECIALIZATIONS, requiredYears } from "../../../lib/fields";
 
 export const surveySchema = z.object({
@@ -14,14 +14,15 @@ export const surveySchema = z.object({
 export type SurveyFormInput = z.input<typeof surveySchema>;
 export type SurveyFormOutput = z.output<typeof surveySchema> & SurveyInput;
 
-export function surveyToForm(state: AssessmentState | undefined): SurveyFormInput {
+/** Опрос ещё не пройден — подставляем заявленное в профиле (в т. ч. перенесённое из резюме). */
+export function surveyToForm(state: AssessmentState | undefined, profile?: Profile): SurveyFormInput {
   const survey = state?.survey;
   return {
-    specialization: (survey?.specialization ?? "") as Specialization,
-    grade: survey?.grade ?? "middle",
-    experience_years: survey?.experience_years ?? "",
+    specialization: (survey?.specialization ?? profile?.specialization ?? "") as Specialization,
+    grade: survey?.grade ?? profile?.grade ?? "middle",
+    experience_years: survey?.experience_years ?? profile?.experience_years ?? "",
     industries: survey?.industries ?? [],
-    roles: survey?.roles ?? [],
-    skills: survey?.skills.map((s) => s.slug) ?? [],
+    roles: survey?.roles ?? profile?.roles ?? [],
+    skills: survey?.skills.map((s) => s.slug) ?? profile?.skills.map((s) => s.slug) ?? [],
   };
 }

@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field, field_validator
 
 from app.models.enums import AssessmentResult, AssessmentStatus, Grade, Specialization
 from app.schemas.candidate import SkillSlug
-from app.schemas.common import SkillOut
+from app.schemas.common import SkillOut, Years
 from app.services.specializations import INDUSTRIES, ROLES, known_keys
 
 
@@ -15,7 +15,7 @@ class SurveyIn(BaseModel):
 
     specialization: Specialization
     grade: Grade = Field(description="грейд, который кандидат заявляет и подтверждает тестом")
-    experience_years: int = Field(ge=0, le=50)
+    experience_years: Years
     industries: list[str] = Field(default_factory=list, max_length=5)
     roles: list[str] = Field(default_factory=list, max_length=5)
     skills: list[SkillSlug] = Field(min_length=1, max_length=30)
@@ -34,7 +34,7 @@ class SurveyIn(BaseModel):
 class SurveyOut(BaseModel):
     specialization: Specialization
     grade: Grade | None
-    experience_years: int | None
+    experience_years: float | None
     industries: list[str]
     roles: list[str]
     skills: list[SkillOut]

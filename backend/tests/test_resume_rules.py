@@ -36,7 +36,7 @@ def test_rules_extract_profile_fields():
     assert parsed.full_name == "Анна Смирнова"
     assert parsed.title == "Senior Backend-разработчик"
     assert parsed.grade == "senior" and parsed.experience_years == 6
-    assert parsed.city == "Казань" and parsed.work_format == "remote"
+    assert parsed.city == "Казань" and parsed.work_formats == ["remote"]
     assert parsed.salary_min == 350_000
     assert parsed.email == "anna.dev@example.org"
     assert parsed.phone == "+79001234567" and parsed.telegram == "@anna_backend"
@@ -97,3 +97,49 @@ def test_docx_zip_bomb_guard(monkeypatch):
     monkeypatch.setattr("app.services.resume.extract._MAX_DOCX_XML", 10)
     with pytest.raises(UnsupportedResumeError, match="слишком большой"):
         extract_text(docx())
+
+
+HH_RESUME = """Senior системный аналитик
+стек: MariaDB, Redis, PHP
+роли: Работа в команде, архитектор
+софт-скиллы: Коммуникабельная, отзывчивая
+Вертаева Виктория
+Женщина
+Проживает: Москва
+Готова к переезду, готова к командировкам
+Желаемая должность и зарплата
+Системный аналитик
+Формат работы: гибрид, удалённо, на месте работодателя
+Опыт работы — 3 года 5 месяцев
+Разработка программного обеспечения
+Образование
+Магистр
+"""
+
+
+def test_hh_resume_with_header_notes():
+    """Резюме с hh.ru и дописанной шапкой (стек, роли, софт-скиллы): поля из ТЗ распознаются."""
+    parsed = rules.parse(HH_RESUME)
+    assert parsed.full_name == "Вертаева Виктория" and parsed.title == "Системный аналитик"
+    assert parsed.grade == "senior"
+    assert parsed.work_formats == ["office", "hybrid", "remote"]  # все три формата
+    assert parsed.experience_years == 3.4  # 3 года 5 месяцев: в году 12 месяцев
+    assert parsed.city == "Москва" and parsed.relocation is True and parsed.education == "master"
+    assert parsed.stack == ["MariaDB", "Redis", "PHP"]
+    assert parsed.roles == ["architect"]  # «Разработка ПО» в тексте — не роль кандидата
+    assert {"teamwork", "communication"} <= set(parsed.soft_skills)
+    assert parsed.extra_soft_skills == ["Отзывчивая"]
+
+
+@pytest.mark.parametrize(
+    ("text", "years"),
+    [
+        ("Опыт работы 3,4 года", 3.4),
+        ("Опыт работы — 8 месяцев", 0.7),
+        ("Experience: 5 years 6 months", 5.5),
+        ("Опыт работы 6 лет", 6.0),
+        ("Опыт работы — 3 года 3 месяца", 3.3),
+    ],
+)
+def test_experience_keeps_tenths(text: str, years: float):
+    assert rules.experience(text) == years

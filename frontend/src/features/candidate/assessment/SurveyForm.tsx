@@ -13,6 +13,7 @@ import { Segmented } from "../../../ui/Segmented";
 import { SkillPicker } from "../../../ui/SkillPicker";
 import { LoadingBlock } from "../../../ui/Spinner";
 import { useToast } from "../../../ui/Toast";
+import { useProfile } from "../hooks";
 import { useSaveSurvey } from "./hooks";
 import { SuggestionHint } from "./SuggestionHint";
 import { surveySchema, surveyToForm, type SurveyFormInput, type SurveyFormOutput } from "./schemas";
@@ -22,19 +23,22 @@ const FIELDS = ["specialization", "grade", "experience_years", "industries", "ro
 export function SurveyForm({ state, onDone }: { state: AssessmentState | undefined; onDone?: () => void }) {
   const dictionaries = useDictionaries();
   const skills = useSkills();
+  const profile = useProfile();
   if (dictionaries.error || skills.error) return <Alert>Не удалось загрузить справочники</Alert>;
-  if (!dictionaries.data || !skills.data) return <LoadingBlock />;
+  // профиль нужен для подстановки заявленного (из резюме); без него опрос тоже работает
+  if (!dictionaries.data || !skills.data || profile.isPending) return <LoadingBlock />;
   return <Form state={state} onDone={onDone} />;
 }
 
 function Form({ state, onDone }: { state: AssessmentState | undefined; onDone?: () => void }) {
   const dictionaries = useDictionaries().data!;
+  const profile = useProfile().data;
   const skills = useSkills().data!;
   const notify = useToast();
   const save = useSaveSurvey();
   const form = useForm<SurveyFormInput, unknown, SurveyFormOutput>({
     resolver: zodResolver(surveySchema),
-    defaultValues: surveyToForm(state),
+    defaultValues: surveyToForm(state, profile),
   });
   const { control, formState, register } = form;
   const { errors, isSubmitting } = formState;
@@ -92,8 +96,8 @@ function Form({ state, onDone }: { state: AssessmentState | undefined; onDone?: 
           )}
         />
       </FieldGroup>
-      <Field label="Опыт в профессии, лет" error={errors.experience_years?.message} className="max-w-48">
-        <Input type="number" inputMode="numeric" min={0} max={50} {...register("experience_years")} />
+      <Field label="Опыт в профессии, лет" hint="Можно с десятыми: 3 года 5 месяцев — 3,4" error={errors.experience_years?.message} className="max-w-48">
+        <Input type="number" inputMode="decimal" min={0} max={50} step={0.1} {...register("experience_years")} />
       </Field>
       <FieldGroup label="Стек" hint={typicalHint(typical, skills)} error={errors.skills?.message}>
         <Controller

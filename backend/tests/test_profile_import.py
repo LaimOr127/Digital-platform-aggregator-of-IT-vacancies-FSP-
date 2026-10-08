@@ -102,7 +102,8 @@ async def test_resume_draft_by_rules(client: AsyncClient):
     draft = r.json()
     assert r.status_code == 200 and draft["source"] == "resume"
     assert draft["title"] == "Senior Backend-разработчик" and draft["grade"] == "senior"
-    assert draft["salary_min"] == 350_000 and draft["work_format"] == "remote"
+    assert draft["salary_min"] == 350_000 and draft["work_formats"] == ["remote"]
+    assert draft["specialization"] == "backend"  # по стеку — подсказка для опроса
     assert {"python", "go", "postgresql", "react"} <= {s["slug"] for s in draft["skills"]}
     assert draft["contacts"]["email"] == "anna.dev@example.org"
     # стаж, роли и софт-скиллы (ТЗ: автораспознавание резюме)

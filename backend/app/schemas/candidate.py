@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 from typing import Annotated
 
 from pydantic import BaseModel, EmailStr, Field, StringConstraints, field_validator
@@ -11,7 +12,7 @@ from app.models.enums import (
     VerificationTier,
     WorkFormat,
 )
-from app.schemas.common import SalaryRangeMixin, SkillOut
+from app.schemas.common import SalaryRangeMixin, SkillOut, Years
 from app.services.cities import City
 from app.services.specializations import ROLES, known_keys
 
@@ -37,6 +38,10 @@ class ProfileUpdateIn(SalaryRangeMixin):
     )
     city: City | None = None
     relocation: bool | None = Field(default=None, description="готов к переезду")
+    specialization: Specialization | None = Field(
+        default=None,
+        description="заявленная, подсказка для опроса; подтверждённая меняется только в опросе",
+    )
     education: Education | None = None
     is_hidden: bool | None = None
     search_status: SearchStatus | None = None
@@ -47,7 +52,7 @@ class ProfileUpdateIn(SalaryRangeMixin):
     custom_skills: list[FreeText] | None = Field(
         default=None, max_length=20, description="навыки, которых нет в справочнике"
     )
-    experience_years: int | None = Field(default=None, ge=0, le=50)
+    experience_years: Years | None = None
     roles: list[str] | None = Field(
         default=None, max_length=5, description="см. /public/dictionaries"
     )
@@ -93,8 +98,11 @@ class ProfileOut(BaseModel):
     # из опроса и теста (меняются через /candidate/assessment)
     specialization: Specialization | None = None
     confirmed_grade: Grade | None = None
+    category_change_at: datetime | None = Field(
+        default=None, description="с какого дня подтверждённую категорию можно сменить через опрос"
+    )
     assessment_score: int | None = None
-    experience_years: int | None = None
+    experience_years: float | None = None
     industries: list[str] = []
     roles: list[str] = []
     soft_skills: list[str] = []
