@@ -10,6 +10,7 @@
 import argparse
 import asyncio
 import getpass
+import os
 import sys
 
 from pydantic import EmailStr, TypeAdapter, ValidationError
@@ -79,10 +80,10 @@ def _print_enrollment(code: str) -> None:
     )
 
 
-async def seed_demo(count: int, companies: int, vacancies_each: int) -> None:
+async def seed_demo(count: int, companies: int, vacancies_each: int, stand: bool = False) -> None:
     settings = get_settings()
-    if settings.is_prod:
-        sys.exit("демо-данные не создаются в prod")
+    if settings.is_prod and not stand:
+        sys.exit("в prod демо-данные заливаются только явно: --stand (make seed-demo STAND=1)")
     if not 0 <= count <= 20_000 or not 0 <= companies <= 200 or not 0 <= vacancies_each <= 50:
         sys.exit("лимиты: --candidates до 20000, --companies до 200, --vacancies до 50")
     db = get_database()
@@ -91,7 +92,8 @@ async def seed_demo(count: int, companies: int, vacancies_each: int) -> None:
             cipher = FieldCipher(settings.secret("field_encryption_key"))
             created = await seed_candidates(session, cipher, count) if count else 0
             vacancies = await seed_market(session, companies, vacancies_each) if companies else 0
-            logins = await seed_logins(session, cipher)
+            # пароль демо-входов: DEMO_PASSWORD (чтобы вписать в памятку жюри) или случайный
+            logins = await seed_logins(session, cipher, os.environ.get("DEMO_PASSWORD") or None)
     finally:
         await db.dispose()
     sys.stdout.write(f"demo candidates: {created}, demo vacancies: {vacancies}\n")
@@ -128,13 +130,14 @@ def main() -> None:
     reset.add_argument("--email", required=True)
     confirm = sub.add_parser("confirm-email", help="подтвердить почту пользователя вручную")
     confirm.add_argument("--email", required=True)
-    demo = sub.add_parser("seed-demo", help="демо-кандидаты для каталога (только dev)")
+    demo = sub.add_parser("seed-demo", help="демо-данные: dev; на стенде жюри — с --stand")
     demo.add_argument("--candidates", type=int, default=500)
     demo.add_argument("--companies", type=int, default=6)
     demo.add_argument("--vacancies", type=int, default=8, help="вакансий у каждой компании")
+    demo.add_argument("--stand", action="store_true", help="разрешить на prod-стенде для жюри")
     args = parser.parse_args()
     if args.command == "seed-demo":
-        asyncio.run(seed_demo(args.candidates, args.companies, args.vacancies))
+        asyncio.run(seed_demo(args.candidates, args.companies, args.vacancies, args.stand))
         return
     email = _validate_email(args.email)
     if args.command == "create-admin":

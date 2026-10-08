@@ -217,17 +217,22 @@ async def seed_market(session: AsyncSession, companies: int, vacancies_each: int
 
 DEMO_CANDIDATE = "demo-candidate@example.org"  # .local не проходит проверку адреса при входе
 DEMO_EMPLOYER = "demo-hr@example.org"
+# кандидаты без опроса и теста: жюри проходит путь кандидата само, если почта на стенде не работает
+DEMO_NEW_CANDIDATES = tuple(f"demo-new-{i}@example.org" for i in range(1, 4))
 
 
-async def seed_logins(session: AsyncSession, cipher: FieldCipher) -> dict[str, str]:
-    """Аккаунты для показа: кандидат с заполненным профилем и категорией и компания с вакансиями
-    и задачами. Пароль случайный и возвращается один раз; существующие аккаунты не меняются."""
+async def seed_logins(
+    session: AsyncSession, cipher: FieldCipher, password: str | None = None
+) -> dict[str, str]:
+    """Аккаунты для показа: кандидат с заполненным профилем и категорией, три новых кандидата без
+    теста и компания с вакансиями и задачами. Пароль — заданный (DEMO_PASSWORD) или случайный,
+    возвращается один раз; существующие аккаунты не меняются."""
     await set_rls_context(session, None, SYSTEM_ROLE)
-    emails = (DEMO_CANDIDATE, DEMO_EMPLOYER)
+    emails = (DEMO_CANDIDATE, DEMO_EMPLOYER, *DEMO_NEW_CANDIDATES)
     existing = set(
         (await session.execute(select(User.email).where(User.email.in_(emails)))).scalars()
     )
-    password = secrets.token_urlsafe(12)
+    password = password or secrets.token_urlsafe(12)
     password_hash = hash_password(password)
     rng = random.Random(7)  # noqa: S311 - демо-данные
     created: dict[str, str] = {}
@@ -241,6 +246,18 @@ async def seed_logins(session: AsyncSession, cipher: FieldCipher) -> dict[str, s
         )
         session.add(profile)
         created[DEMO_CANDIDATE] = password
+    for i, email in enumerate(DEMO_NEW_CANDIDATES, start=1):
+        if email in existing:
+            continue
+        user = _user(email, password_hash, UserRole.CANDIDATE)
+        session.add(user)
+        await session.flush()
+        profile = CandidateProfile(id=uuid.uuid4(), user_id=user.id)
+        profile.full_name_enc = cipher.encrypt(
+            f"Новый Кандидат {i}", profile_field_context("full_name", user.id)
+        )
+        session.add(profile)
+        created[email] = password
     if DEMO_EMPLOYER not in existing:
         skills = {s.slug: s.id for s in (await session.execute(select(Skill))).scalars()}
         await _add_company(session, rng, skills, _user(DEMO_EMPLOYER, password_hash), 0, 4)
