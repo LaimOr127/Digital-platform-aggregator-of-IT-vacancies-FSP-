@@ -4,7 +4,7 @@ from httpx import AsyncClient
 
 from tests.assessment_flow import confirm
 from tests.flows import CATALOG, approved_employer, verified_candidate
-from tests.helpers import bearer, register_employer
+from tests.helpers import bearer, create_admin, register_employer
 
 
 async def test_catalog_requires_approved_company(client: AsyncClient, premoderation):
@@ -71,3 +71,20 @@ async def test_unconfirmed_candidates_rank_below_confirmed(client: AsyncClient, 
     assert order.index(confirmed["anon_id"]) < order.index(unconfirmed["anon_id"])
     card = next(c for c in page["items"] if c["anon_id"] == unconfirmed["anon_id"])
     assert card["category"] is None and card["confirmed_grade"] is None
+
+
+async def test_blocked_candidate_leaves_the_catalog(client: AsyncClient, db, app):
+    """Заблокированного модератором кандидата не видно и пригласить нельзя."""
+    employer = await approved_employer(client, db, app)
+    candidate = await verified_candidate(client)
+    admin = await create_admin(db, app)
+    me = (await client.get("/api/v1/auth/me", headers=bearer(candidate["token"]))).json()
+    await client.post(
+        f"/api/v1/admin/users/{me['id']}/moderation",
+        json={"action": "block", "reason": "фиктивный профиль"},
+        headers=bearer(admin),
+    )
+    token = bearer(employer["token"])
+    assert (await client.get(f"{CATALOG}/candidates", headers=token)).json()["items"] == []
+    card = await client.get(f"{CATALOG}/candidates/{candidate['anon_id']}", headers=token)
+    assert card.status_code == 404
