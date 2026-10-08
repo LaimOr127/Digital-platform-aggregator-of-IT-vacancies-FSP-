@@ -2073,9 +2073,15 @@ export interface components {
             finished_at: string | null;
             /**
              * Violation
-             * @description screenshot — снимок экрана во время теста, попытка не засчитана
+             * @description screenshot — PrintScreen во время теста, попытка не засчитана
              */
             violation?: string | null;
+            /**
+             * Focus Losses
+             * @description уходов со вкладки во время теста — сигнал, на результат не влияет
+             * @default 0
+             */
+            focus_losses: number;
         };
         /** AuditEntryOut */
         AuditEntryOut: {
@@ -2131,6 +2137,11 @@ export interface components {
             expires_at: string | null;
             company: components["schemas"]["CompanyBriefOut"];
             match: components["schemas"]["MatchOut"];
+            /**
+             * Respond Blocked
+             * @description почему откликнуться сейчас нельзя (кнопка неактивна)
+             */
+            respond_blocked?: string | null;
             /** @description статус отклика или приглашения по этой вакансии */
             application_status: components["schemas"]["ApplicationStatus"] | null;
         };
@@ -3759,6 +3770,12 @@ export interface components {
         SubmitIn: {
             /** Responses */
             responses: (string | null)[];
+            /**
+             * Focus Losses
+             * @description уходов со вкладки
+             * @default 0
+             */
+            focus_losses: number;
         };
         /** SuggestionOut */
         SuggestionOut: {

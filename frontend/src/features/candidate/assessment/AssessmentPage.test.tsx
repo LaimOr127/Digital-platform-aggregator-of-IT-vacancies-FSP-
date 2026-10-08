@@ -129,7 +129,7 @@ describe("AssessmentPage", () => {
     await userEvent.click(screen.getByRole("button", { name: "Завершить тест" }));
     expect(await screen.findByText("Грейд Middle подтверждён")).toBeInTheDocument();
     expect(screen.getByText("3.4 из 5")).toBeInTheDocument();
-    expect(bodyOf(fetchMock, "/candidate/assessment/attempts/a1/submit")).toEqual({ responses: ["1", "60"] });
+    expect(bodyOf(fetchMock, "/candidate/assessment/attempts/a1/submit")).toEqual({ responses: ["1", "60"], focus_losses: 0 });
   });
 
   it("asks before submitting with unanswered tasks", async () => {

@@ -1,10 +1,11 @@
-// Защита текста теста и задач: копирование, контекстное меню и перетаскивание внутри блока
-// запрещены, сочетания клавиш снимка экрана считаются нарушением.
+// Сдерживание утечки заданий теста и задач: копирование, контекстное меню и перетаскивание внутри
+// блока запрещены, PrintScreen считается нарушением, задания скрываются, когда окно неактивно, а
+// поверх них — водяной знак с идентификатором кандидата (утечку можно отследить).
 //
-// ponytail: браузер видит только сочетания клавиш (PrintScreen, Win+Shift+S, Cmd+Shift+3/4/5);
-// снимок системной утилитой, телефоном или второй камерой страница не заметит. Это сдерживание,
-// а не гарантия: устойчивость к утечке держится на банке параметрических заданий (docs/assessment.md).
-import { useEffect, useRef } from "react";
+// Это сдерживание, а не блокировка: системные снимки macOS (Cmd+Shift+3/4/5), сторонние программы
+// и фото экрана телефоном страница заметить не может. Основная защита — у каждого кандидата свой
+// вариант заданий (docs/assessment.md).
+import { useEffect, useRef, useState } from "react";
 
 /** Сочетание клавиш снимка экрана: Windows, macOS и утилита «Ножницы». */
 export function isScreenshotKey(e: Pick<KeyboardEvent, "key" | "metaKey" | "shiftKey">): boolean {
@@ -46,4 +47,38 @@ export function useContentGuard<T extends HTMLElement>(onScreenshot: () => void,
   }, [enabled]);
 
   return ref;
+}
+
+/**
+ * Окно потеряло фокус или вкладка скрыта: задания нужно спрятать. Уходы считаются и уходят в
+ * результат как сигнал — без автоматического провала (случайное переключение не наказывается).
+ */
+export function useFocusGuard(enabled = true) {
+  const [hidden, setHidden] = useState(false);
+  const [leaves, setLeaves] = useState(0);
+  useEffect(() => {
+    if (!enabled) return;
+    let away = false;
+    const leave = () => {
+      if (away) return; // blur и visibilitychange одного ухода — один раз
+      away = true;
+      setHidden(true);
+      setLeaves((n) => n + 1);
+    };
+    const back = () => {
+      if (document.visibilityState !== "visible") return;
+      away = false;
+      setHidden(false);
+    };
+    const onVisibility = () => (document.visibilityState === "hidden" ? leave() : back());
+    window.addEventListener("blur", leave);
+    window.addEventListener("focus", back);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.removeEventListener("blur", leave);
+      window.removeEventListener("focus", back);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [enabled]);
+  return { hidden, leaves };
 }

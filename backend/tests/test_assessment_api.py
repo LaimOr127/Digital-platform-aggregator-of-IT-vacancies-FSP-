@@ -199,3 +199,16 @@ async def test_employer_sees_how_tasks_follow_the_vacancy(client: AsyncClient, d
 async def test_dictionaries_are_public(client: AsyncClient):
     body = (await client.get("/api/v1/public/dictionaries")).json()
     assert len(body["specializations"]) == 7 and body["industries"] and body["roles"]
+
+
+async def test_focus_losses_are_a_signal_not_a_failure(client: AsyncClient, db):
+    token = await register_candidate(client)
+    await survey(client, token)
+    attempt = (
+        await client.post(f"{ASSESSMENT}/attempts", json={"grade": "middle"}, headers=bearer(token))
+    ).json()
+    body = {"responses": await responses(db, attempt["id"]), "focus_losses": 3}
+    r = await client.post(
+        f"{ASSESSMENT}/attempts/{attempt['id']}/submit", json=body, headers=bearer(token)
+    )
+    assert r.json()["focus_losses"] == 3 and r.json()["result"] == "passed"

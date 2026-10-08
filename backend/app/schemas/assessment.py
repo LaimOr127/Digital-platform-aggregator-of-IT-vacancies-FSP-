@@ -91,7 +91,10 @@ class AttemptResultOut(BaseModel):
     started_at: datetime
     finished_at: datetime | None
     violation: str | None = Field(
-        default=None, description="screenshot — снимок экрана во время теста, попытка не засчитана"
+        default=None, description="screenshot — PrintScreen во время теста, попытка не засчитана"
+    )
+    focus_losses: int = Field(
+        default=0, description="уходов со вкладки во время теста — сигнал, на результат не влияет"
     )
 
 
@@ -105,6 +108,7 @@ class SubmitIn(BaseModel):
     """Ответы по порядку заданий: номер варианта для выбора, число — для числового ответа."""
 
     responses: list[str | None] = Field(max_length=50)
+    focus_losses: int = Field(default=0, ge=0, le=1000, description="уходов со вкладки")
 
     @field_validator("responses")
     @classmethod

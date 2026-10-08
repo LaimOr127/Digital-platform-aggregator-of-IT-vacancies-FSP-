@@ -130,6 +130,7 @@ class AssessmentService:
             raise AnswersMismatchError("число ответов не совпадает с числом заданий")
         outcome = evaluate(items, data.responses, level(attempt.grade))
         attempt.responses = data.responses
+        attempt.focus_losses = data.focus_losses
         attempt.status = AssessmentStatus.COMPLETED
         attempt.finished_at = now
         attempt.result = AssessmentResult.PASSED if outcome.passed else AssessmentResult.FAILED
