@@ -3,13 +3,14 @@
 from sqlalchemy import func, select
 
 from app.core.crypto import FieldCipher
-from app.db.demo import (
+from app.db.demo import seed_candidates, seed_market
+from app.db.demo_logins import (
+    DEMO_BLOCKED_CANDIDATE,
     DEMO_CANDIDATE,
     DEMO_EMPLOYER,
+    DEMO_EMPLOYERS,
     DEMO_NEW_CANDIDATES,
-    seed_candidates,
     seed_logins,
-    seed_market,
 )
 from app.db.session import set_rls_context
 from app.models import (
@@ -44,7 +45,12 @@ async def test_demo_logins_are_created_once(client, db):
         first = await seed_logins(session, cipher)
     async with db.sessionmaker() as session:
         assert await seed_logins(session, cipher) == {}  # повтор не меняет пароль
-    assert set(first) == {DEMO_CANDIDATE, DEMO_EMPLOYER, *DEMO_NEW_CANDIDATES}
+    assert set(first) == {
+        DEMO_CANDIDATE,
+        DEMO_BLOCKED_CANDIDATE,
+        *DEMO_NEW_CANDIDATES,
+        *DEMO_EMPLOYERS,
+    }
     # вход работает: почта подтверждена, пароль — напечатанный один раз
     assert await login(client, DEMO_EMPLOYER, first[DEMO_EMPLOYER])
     assert await login(client, DEMO_CANDIDATE, first[DEMO_CANDIDATE])
@@ -74,3 +80,20 @@ async def test_demo_has_every_moderation_state(db):
     assert companies == set(CompanyStatus)
     assert vacancies == set(VacancyStatus)
     assert complaints and blocked
+
+
+async def test_demo_logins_cover_every_moderation_state(client, db):
+    """Вход в компанию на модерации и заблокированную; заблокированный кандидат не входит."""
+    async with db.sessionmaker() as session:
+        logins = await seed_logins(session, FieldCipher("11" * 32), password="Jury-2026-memo")
+    async with db.sessionmaker() as session:
+        await set_rls_context(session, None, "system")
+        statuses = set((await session.execute(select(EmployerCompany.status))).scalars())
+    assert statuses == set(CompanyStatus) == set(DEMO_EMPLOYERS.values())
+    pending = next(e for e, s in DEMO_EMPLOYERS.items() if s == CompanyStatus.PENDING)
+    assert await login(client, pending, logins[pending])
+    blocked = await client.post(
+        "/api/v1/auth/login",
+        json={"email": DEMO_BLOCKED_CANDIDATE, "password": logins[DEMO_BLOCKED_CANDIDATE]},
+    )
+    assert blocked.status_code == 401

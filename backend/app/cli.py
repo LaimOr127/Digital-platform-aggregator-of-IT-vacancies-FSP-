@@ -19,7 +19,8 @@ from app.core.config import get_settings
 from app.core.crypto import FieldCipher
 from app.core.errors import NotFoundError
 from app.core.security import TokenService
-from app.db.demo import seed_candidates, seed_logins, seed_market
+from app.db.demo import seed_candidates, seed_market
+from app.db.demo_logins import seed_logins
 from app.db.session import get_database
 from app.schemas.auth import PasswordMixin
 from app.services.account import AccountService

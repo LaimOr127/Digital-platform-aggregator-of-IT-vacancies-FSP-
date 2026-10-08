@@ -3,9 +3,8 @@
 и короткими задачами для кандидатов. Для модерации — все состояния: компании на проверке и
 заблокированные, черновики, закрытые и заблокированные вакансии, жалобы, блокировки кандидатов.
 
-Только для dev: в prod команда отказывается работать. Вход в массовые демо-аккаунты невозможен
-(случайный пароль никому не известен); для показа создаются два аккаунта с входом — кандидат и
-компания, их пароль печатается один раз (seed_logins).
+Только для dev (на стенде жюри — явно, --stand). Вход в массовые демо-аккаунты невозможен
+(случайный пароль никому не известен); именные аккаунты с входом — demo_logins.seed_logins.
 Генерация детерминирована (seed), повторный запуск добавляет новые профили.
 """
 
@@ -239,57 +238,6 @@ async def seed_market(session: AsyncSession, companies: int, vacancies_each: int
     await seed_complaints(session, rng, vacancies=max(1, companies))
     await session.commit()
     return companies * vacancies_each
-
-
-DEMO_CANDIDATE = "demo-candidate@example.org"  # .local не проходит проверку адреса при входе
-DEMO_EMPLOYER = "demo-hr@example.org"
-# кандидаты без опроса и теста: жюри проходит путь кандидата само, если почта на стенде не работает
-DEMO_NEW_CANDIDATES = tuple(f"demo-new-{i}@example.org" for i in range(1, 4))
-
-
-async def seed_logins(
-    session: AsyncSession, cipher: FieldCipher, password: str | None = None
-) -> dict[str, str]:
-    """Аккаунты для показа: кандидат с заполненным профилем и категорией, три новых кандидата без
-    теста и компания с вакансиями и задачами. Пароль — заданный (DEMO_PASSWORD) или случайный,
-    возвращается один раз; существующие аккаунты не меняются."""
-    await set_rls_context(session, None, SYSTEM_ROLE)
-    emails = (DEMO_CANDIDATE, DEMO_EMPLOYER, *DEMO_NEW_CANDIDATES)
-    existing = set(
-        (await session.execute(select(User.email).where(User.email.in_(emails)))).scalars()
-    )
-    password = password or secrets.token_urlsafe(12)
-    password_hash = hash_password(password)
-    rng = random.Random(7)  # noqa: S311 - демо-данные
-    created: dict[str, str] = {}
-    if DEMO_CANDIDATE not in existing:
-        user = _user(DEMO_CANDIDATE, password_hash, UserRole.CANDIDATE)
-        session.add(user)
-        await session.flush()
-        profile = _profile(rng, user.id, cipher)
-        profile.full_name_enc = cipher.encrypt(
-            "Анна Демо", profile_field_context("full_name", user.id)
-        )
-        session.add(profile)
-        created[DEMO_CANDIDATE] = password
-    for i, email in enumerate(DEMO_NEW_CANDIDATES, start=1):
-        if email in existing:
-            continue
-        user = _user(email, password_hash, UserRole.CANDIDATE)
-        session.add(user)
-        await session.flush()
-        profile = CandidateProfile(id=uuid.uuid4(), user_id=user.id)
-        profile.full_name_enc = cipher.encrypt(
-            f"Новый Кандидат {i}", profile_field_context("full_name", user.id)
-        )
-        session.add(profile)
-        created[email] = password
-    if DEMO_EMPLOYER not in existing:
-        skills = {s.slug: s.id for s in (await session.execute(select(Skill))).scalars()}
-        await _add_company(session, rng, skills, _user(DEMO_EMPLOYER, password_hash), 0, 4)
-        created[DEMO_EMPLOYER] = password
-    await session.commit()
-    return created
 
 
 def _user(email: str, password_hash: str, role: UserRole = UserRole.EMPLOYER) -> User:
