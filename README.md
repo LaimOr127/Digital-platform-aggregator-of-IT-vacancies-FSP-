@@ -116,7 +116,9 @@ Vite + React + TypeScript, TanStack Query, React Router, Tailwind CSS 4, Motion,
 Три портала (`/app`, `/company`, `/admin`) грузятся лениво. Access-токен хранится только в памяти,
 сессия восстанавливается по refresh-cookie. Типы API генерируются из OpenAPI бэка:
 `npm run gen:api` (при запущенном стеке). Тесты: `npm test` (Vitest), покрытие — `npm run coverage`.
-Цвета — палитра ФСП (фиолетовый фон, малиновый акцент) токенами в `frontend/src/styles.css`.
+Оформление — по брендбуку ФСП: тёмный фон и градации серого, синий акцент #402FFF, знак ФСП в шапке,
+шрифты JetBrains Mono (заголовки, кнопки, навигация) и TDAText (логотип); основной текст — Inter.
+Токены — в `frontend/src/styles.css`.
 
 ## Структура
 ```

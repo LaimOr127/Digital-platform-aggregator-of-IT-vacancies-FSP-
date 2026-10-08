@@ -99,7 +99,8 @@ PostgreSQL (`UNLOGGED`-таблица, `FOR UPDATE SKIP LOCKED`). Меньше �
 | lucide-react | 1.49.0 | ISC |
 | qrcode | 1.5.4 | MIT |
 | Inter (шрифт, @fontsource-variable) | 5.3 | OFL-1.1 |
-| Montserrat (шрифт заголовков, кнопок и навигации, @fontsource-variable) | 5.3 | OFL-1.1 |
+| JetBrains Mono (основной шрифт брендбука ФСП: заголовки, кнопки, навигация; @fontsource-variable) | 5.3 | OFL-1.1 |
+| TDAText (акцентный шрифт брендбука ФСП, логотип; `frontend/src/assets/fonts`) | 2025 | OFL-1.1 |
 | openapi-typescript / swagger-ui-dist | 7.13.0 / 5.33.0 | MIT / Apache-2.0 |
 | Vitest / Testing Library React / jsdom | 5.0.3 / 16.3.3 / 30.1.1 | MIT |
 | k6 (нагрузочный тест) | 2.3.0 | AGPL-3.0, отдельный инструмент, не входит в продукт |

@@ -1,52 +1,37 @@
 @import "tailwindcss";
 @import "@fontsource-variable/inter";
-@import "@fontsource-variable/montserrat";
+@import "@fontsource-variable/jetbrains-mono";
 
-/* Дизайн-токены: единственное место, где заданы цвета. Палитра шаблона презентации ФСП:
-   фиолетовый фон (#310F53 -> #520978), белые карточки, малиновый акцент (#FF0053, наведение #FC3777),
-   дополнительные #8A83D1 и #FFD6E4, базовые #FFFFFF и #1C1D22.
-   Два контекста: на фиолетовом фоне текст белый, внутри белых поверхностей (карточки, панели,
-   диалоги) токены текста и статусов переопределены на тёмные — контраст не ниже 4.5:1.
-   Малиновый — для кнопок и плашек; мелкий малиновый текст на фиолетовом не используется
-   (text-accent там светло-розовый). */
-:root {
-  color-scheme: dark;
-  --bg: #310f53;
-  --bg-end: #520978;
-  --surface: #ffffff;
-  --surface-2: #431570;
-  --border: #6b3f96;
-  --text: #ffffff;
-  --muted: #dccdee;
-  --accent: #ff0053;
-  --accent-strong: #fc3777;
-  --accent-text: #ffd6e4;
-  --on-accent: #1a0010;
-  --pill: #ffd6e4;
-  --on-pill: #520978;
-  --success: #6ee7b0;
-  --warn: #ffd27a;
-  --danger: #ffa98a;
-  --info: #c9c4ff;
+/* Акцентный шрифт брендбука ФСП (SIL OFL 1.1, assets/fonts/TDAText-OFL.txt): только логотип и
+   крупные акценты — пиксельный шрифт плохо читается в мелком тексте. */
+@font-face {
+  font-family: "TDAText";
+  src: url("./assets/fonts/TDAText.ttf") format("truetype");
+  font-display: swap;
 }
 
-/* Белые поверхности: всё внутри них читается тёмным по белому. В слое base — чтобы явные
-   text-* утилиты на самих поверхностях имели приоритет. */
-@layer base {
-  .bg-surface,
-  [class*="bg-surface/"],
-  dialog {
-    --surface-2: #f5f0fa;
-    --border: #e4d9f0;
-    --text: #1c1d22;
-    --muted: #5c5470;
-    --accent-text: #d1004a;
-    --success: #0f7a4a;
-    --warn: #8a5a00;
-    --danger: #c2410c;
-    --info: #4b3fb5;
-    color: var(--text);
-  }
+/* Дизайн-токены по брендбуку ФСП: единственное место, где заданы цвета.
+   Фон и градации серого — #1B1C21 (Black), #2D2E37 (Gray/bright), #3A3C46 (Gray/middle),
+   #9B9C9E (Gray/lighte_2), #EDEDED (White). Акцент главный — синий #402FFF, акцент логотипа —
+   красный #EC1D35. Мелкий текст акцентных цветов на тёмном фоне не проходит контраст 4.5:1,
+   поэтому для него — осветлённые оттенки тех же цветов (#A49DFF, #FF6B7A). */
+:root {
+  color-scheme: dark;
+  --bg: #1b1c21;
+  --surface: #2d2e37;
+  --surface-2: #3a3c46;
+  --border: #3a3c46;
+  --text: #ededed;
+  --muted: #9b9c9e;
+  --accent: #402fff;
+  --accent-strong: #2f20e0;
+  --accent-text: #a49dff;
+  --on-accent: #ffffff;
+  --brand-red: #ec1d35;
+  --success: #3ddc97;
+  --warn: #f5c044;
+  --danger: #ff6b7a;
+  --info: #a49dff;
 }
 
 @theme inline {
@@ -59,41 +44,43 @@
   --color-accent: var(--accent);
   --color-accent-strong: var(--accent-strong);
   --color-on-accent: var(--on-accent);
+  --color-brand-red: var(--brand-red);
   --color-success: var(--success);
   --color-warn: var(--warn);
   --color-danger: var(--danger);
   --color-info: var(--info);
-  --color-pill: var(--pill);
-  --color-on-pill: var(--on-pill);
   --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Montserrat Variable", "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "JetBrains Mono Variable", ui-monospace, monospace;
+  --font-accent: "TDAText", "JetBrains Mono Variable", ui-monospace, monospace;
 }
 
 html,
 body {
-  background: linear-gradient(160deg, var(--bg) 0%, var(--bg-end) 100%) fixed var(--bg);
+  background: var(--bg);
   color: var(--text);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
 }
 
-/* Montserrat — заголовки, кнопки и навигация; основной текст, таблицы и формы — Inter */
+/* Основной шрифт брендбука — JetBrains Mono: заголовки, кнопки, навигация, подписи полей.
+   Длинные тексты, таблицы и поля ввода — Inter (моноширинный в абзацах читается хуже). */
 h1,
 h2,
 h3,
 button,
 nav a,
+label,
 .font-display {
   font-family: var(--font-display);
 }
 
-/* мелкий малиновый текст: на фиолетовом — светло-розовый, на белом — тёмно-малиновый */
+/* мелкий акцентный текст — осветлённый синий: синий #402FFF на тёмном фоне не читается */
 .text-accent {
   color: var(--accent-text);
 }
 
 :focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--accent-text);
   outline-offset: 2px;
 }
 
@@ -106,14 +93,13 @@ nav a,
   :root {
     color-scheme: light;
     --bg: #ffffff;
-    --bg-end: #ffffff;
-    --accent-text: #c2004a;
+    --accent-text: #2f20e0;
     --surface: #ffffff;
     --surface-2: #f4f5f7;
     --border: #d5d9df;
     --text: #111418;
     --muted: #4b5563;
-    --accent: #c2004a;
+    --accent: #402fff;
     --success: #0f7a4a;
   }
   .no-print {

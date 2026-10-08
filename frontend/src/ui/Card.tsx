@@ -5,14 +5,11 @@ export function Card({ className, ...rest }: HTMLAttributes<HTMLDivElement>) {
   return <div className={cn("rounded-2xl border border-line bg-surface p-6", className)} {...rest} />;
 }
 
-/** Заголовок раздела — плашка со скруглением, как на слайдах шаблона ФСП. */
+/** Заголовок раздела — как в брендбуке ФСП: JetBrains Mono, прописными, с разрядкой. */
 export function CardTitle({ className, ...rest }: HTMLAttributes<HTMLHeadingElement>) {
   return (
     <h2
-      className={cn(
-        "inline-flex w-fit items-center gap-2 rounded-full bg-pill px-3.5 py-1 text-sm font-semibold tracking-tight text-on-pill",
-        className,
-      )}
+      className={cn("flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.08em] text-fg", className)}
       {...rest}
     />
   );
