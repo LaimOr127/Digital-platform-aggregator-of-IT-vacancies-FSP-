@@ -113,6 +113,9 @@ async def test_connection_check(client: AsyncClient, db, app):
         "latency_ms": bad["latency_ms"],
         "message": "Ошибка 401: неверный ключ",
     }
+    app.state.ai_transport = httpx.MockTransport(lambda _: httpx.Response(403, json={}))
+    blocked = (await client.post(f"{URL}/{created['id']}/test", headers=bearer(admin))).json()
+    assert "закрыт для страны сервера" in blocked["message"]
 
 
 async def test_address_resolving_to_loopback_is_blocked_before_request(
