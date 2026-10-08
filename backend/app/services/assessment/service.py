@@ -233,7 +233,7 @@ async def _records(profile: CandidateProfile, repo: AssessmentRepository) -> lis
             confident=a.confident,
             finished_at=as_aware(a.finished_at) if a.finished_at else None,
         )
-        for a in await repo.finished_for(profile.specialization)
+        for a in await repo.finished()
     ]
 
 
@@ -245,7 +245,10 @@ def _reset_category(profile: CandidateProfile) -> None:
 
 
 def _expire(attempt: Assessment) -> None:
+    """Брошенный тест (время вышло без ответов) — как проваленный: иначе грейд можно было бы
+    «перебирать», закрывая вкладку до конца теста. Путь на грейд ниже открыт сразу."""
     attempt.status = AssessmentStatus.EXPIRED
+    attempt.result = AssessmentResult.FAILED
     attempt.finished_at = attempt.deadline_at
 
 
