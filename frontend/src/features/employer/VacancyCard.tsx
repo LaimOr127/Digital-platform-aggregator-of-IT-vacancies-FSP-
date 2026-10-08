@@ -42,8 +42,8 @@ export function VacancyCard({ vacancy: v, canPublish, onEdit, onDelete, onPrevie
       animate={{ opacity: 1, y: 0 }}
       className="rounded-2xl border border-line bg-surface p-5 transition-colors hover:border-muted/40"
     >
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
           <h3 className="flex items-center gap-2 text-lg font-semibold">
             {renew && (
               <span

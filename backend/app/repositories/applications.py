@@ -78,6 +78,20 @@ class CandidateApplicationRepository(_ScopedRepository):
             a.vacancy_id: a for a in (await self.session.execute(stmt)).scalars() if a.vacancy_id
         }
 
+    async def open_by_companies(
+        self, company_ids: list[uuid.UUID], now: datetime
+    ) -> dict[uuid.UUID, Application]:
+        """Открытое (не просроченное) обращение с каждой компанией: пока оно есть, второй отклик
+        в эту компанию невозможен — кнопка в ленте неактивна."""
+        if not company_ids:
+            return {}
+        stmt = self._select().where(
+            Application.company_id.in_(company_ids),
+            Application.status.in_(OPEN),
+            Application.expires_at > now,
+        )
+        return {a.company_id: a for a in (await self.session.execute(stmt)).scalars()}
+
 
 async def expire_pair(
     session: AsyncSession, company_id: uuid.UUID, profile_id: uuid.UUID, now: datetime

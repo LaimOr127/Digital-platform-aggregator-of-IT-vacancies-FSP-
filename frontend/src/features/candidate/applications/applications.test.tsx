@@ -101,4 +101,12 @@ describe("candidate contact flow", () => {
     expect(await screen.findByText("Жалоба отправлена модератору")).toBeInTheDocument();
     expect(bodyOf(fetchMock, "/candidate/vacancies/v1/complaint")).toEqual({ reason: "salary", comment: "В тексте другая сумма" });
   });
+
+  it("disables the response button and explains why when the company already has one", async () => {
+    const blocked = { ...vacancy, respond_blocked: "Вы уже откликнулись в эту компанию — дождитесь ответа" };
+    serveRoutes({ "/candidate/vacancies": () => json({ items: [blocked], next_cursor: null }) });
+    renderWithApp(<VacancyBoard />);
+    expect(await screen.findByRole("button", { name: "Откликнуться" })).toBeDisabled();
+    expect(screen.getByText("Вы уже откликнулись в эту компанию — дождитесь ответа")).toBeInTheDocument();
+  });
 });

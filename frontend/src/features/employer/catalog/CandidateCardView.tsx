@@ -29,8 +29,8 @@ export function CandidateCardView({ card, action, className, aiReview }: Props) 
 
   return (
     <article className={cn("flex flex-col gap-4 rounded-2xl border border-line bg-surface p-5", className)}>
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
           <p className="text-xs text-muted">Кандидат #{card.anon_id.slice(0, 6).toUpperCase()}</p>
           <h3 className="mt-0.5 text-lg font-semibold">{card.title ?? "Должность не указана"}</h3>
           <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">

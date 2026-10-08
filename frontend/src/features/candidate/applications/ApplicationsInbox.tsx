@@ -80,16 +80,18 @@ function Row({ item, onAccept, onDecline, onWithdraw }: RowProps) {
   const left = open ? daysLeft(item.expires_at) : null;
   return (
     <article className="rounded-2xl border border-line bg-surface p-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h3 className="font-semibold">{item.title}</h3>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <h3 className="break-words font-semibold">{item.title}</h3>
           <p className="mt-1 flex items-center gap-1.5 text-sm text-muted">
             <Building2 className="size-3.5" aria-hidden />
             {item.company.name}
             {item.company.industry && ` · ${item.company.industry}`}
           </p>
         </div>
-        <Badge tone={applicationTone[item.status]}>{labels.applicationStatus[item.status]}</Badge>
+        <span className="shrink-0">
+          <Badge tone={applicationTone[item.status]}>{labels.applicationStatus[item.status]}</Badge>
+        </span>
       </div>
       <p className="mt-3 text-lg font-semibold tabular"><Salary min={item.salary_min} max={item.salary_max} /></p>
       <p className="mt-1 text-sm text-muted">

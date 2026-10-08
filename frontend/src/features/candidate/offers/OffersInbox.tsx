@@ -76,8 +76,8 @@ function OfferCard({ offer, onAccept, onDecline }: { offer: Offer; onAccept: () 
   const meta = [labels.grade[offer.grade], labels.workFormat[offer.work_format], offer.city].filter(Boolean).join(" · ");
   return (
     <article className="rounded-2xl border border-line bg-surface p-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
           <p className="flex items-center gap-2 text-sm text-muted">
             <Building2 className="size-4" aria-hidden />
             {offer.company_name}
