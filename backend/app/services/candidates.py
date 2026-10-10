@@ -6,12 +6,15 @@ from datetime import UTC, datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.crypto import FieldCipher, profile_field_context
+from app.core.errors import InvalidStateError
 from app.core.logging import get_logger
+from app.core.timeutil import as_aware
 from app.models import CandidateProfile
 from app.repositories.candidates import CandidateProfileRepository, SkillRepository
 from app.schemas.candidate import Contacts, ProfileOut, ProfileUpdateIn
 from app.schemas.common import SkillOut
 from app.services.access import Action, Principal, policy
+from app.services.assessment.policy import CHANGE_COOLDOWN
 from app.services.common import apply_fields, apply_salary, resolve_skills
 
 log = get_logger(__name__)
@@ -58,6 +61,12 @@ class CandidateService:
             profile.contacts_enc = self._encrypt(profile, "contacts", contacts.model_dump_json())
         if data.skills is not None:
             profile.skills = await resolve_skills(self.skills, data.skills)
+        if data.specialization is not None and data.specialization != profile.specialization:
+            # заявленная специализация — подсказка для опроса; подтверждённую категорию из профиля
+            # (резюме, анкета ФСП) не сменить — только через опрос с ограничением по сроку
+            if profile.confirmed_grade is not None:
+                raise InvalidStateError("категория подтверждена тестом — сменить её можно в опросе")
+            profile.specialization = data.specialization
         profile.last_activity_at = datetime.now(UTC)  # обновлённый профиль — актуальный
         await self.session.commit()
         return self._to_out(profile)
@@ -99,6 +108,9 @@ class CandidateService:
             skills=[SkillOut.model_validate(s) for s in p.skills],
             specialization=p.specialization,
             confirmed_grade=p.confirmed_grade,
+            category_change_at=as_aware(p.grade_confirmed_at) + CHANGE_COOLDOWN
+            if p.confirmed_grade and p.grade_confirmed_at
+            else None,
             assessment_score=p.assessment_score,
             experience_years=p.experience_years,
             industries=p.industries or [],

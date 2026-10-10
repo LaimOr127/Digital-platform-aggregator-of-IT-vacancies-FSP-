@@ -5,7 +5,7 @@ import type { AttemptResult, Grade } from "../../../api/types";
 import { errorMessage } from "../../../api/errors";
 import { useDictionaries } from "../../../api/queries";
 import { cn } from "../../../lib/cn";
-import { formatDate, labels } from "../../../lib/format";
+import { formatDate, formatYears, labels } from "../../../lib/format";
 import { Alert } from "../../../ui/Alert";
 import { PageHeader } from "../../../ui/AppShell";
 import { Button } from "../../../ui/Button";
@@ -83,7 +83,7 @@ export function AssessmentPage() {
                     <p className="mt-0.5 font-medium">{labels.specialization[data.survey.specialization]}</p>
                     <p className="text-sm text-muted">
                       Заявлен грейд {data.survey.grade ? labels.grade[data.survey.grade] : "—"} · стаж{" "}
-                      {data.survey.experience_years ?? 0} лет
+                      {formatYears(data.survey.experience_years ?? 0)}
                     </p>
                     {data.survey.industries.length > 0 && (
                       <p className="mt-1 text-sm text-muted">Отрасли: {industryNames(data.survey.industries)}</p>

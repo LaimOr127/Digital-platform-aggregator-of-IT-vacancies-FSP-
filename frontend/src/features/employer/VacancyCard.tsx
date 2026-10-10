@@ -1,12 +1,13 @@
 import { CalendarClock, ClipboardList, MapPin, Pencil, Send, Trash2, XCircle } from "lucide-react";
 import { motion } from "motion/react";
 import type { Vacancy } from "../../api/types";
-import { daysLeft, formatSalaryRange, labels } from "../../lib/format";
+import { daysLeft, labels } from "../../lib/format";
 import { vacancyTone } from "../../lib/tones";
 import { Badge } from "../../ui/Badge";
 import { Button } from "../../ui/Button";
 import { useAction } from "../../ui/useAction";
 import { RENEW_SOON_DAYS, useCloseVacancy, usePublishVacancy } from "./hooks";
+import { Salary } from "../../ui/Salary";
 
 type Props = {
   vacancy: Vacancy;
@@ -41,8 +42,8 @@ export function VacancyCard({ vacancy: v, canPublish, onEdit, onDelete, onPrevie
       animate={{ opacity: 1, y: 0 }}
       className="rounded-2xl border border-line bg-surface p-5 transition-colors hover:border-muted/40"
     >
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
           <h3 className="flex items-center gap-2 text-lg font-semibold">
             {renew && (
               <span
@@ -69,7 +70,7 @@ export function VacancyCard({ vacancy: v, canPublish, onEdit, onDelete, onPrevie
         <Badge tone={vacancyTone[v.status]}>{labels.vacancyStatus[v.status]}</Badge>
       </div>
 
-      <p className="mt-4 text-xl font-semibold tabular">{formatSalaryRange(v.salary_min, v.salary_max)}</p>
+      <p className="mt-4 text-xl font-semibold tabular"><Salary min={v.salary_min} max={v.salary_max} /></p>
 
       {v.skills.length > 0 && (
         <ul className="mt-4 flex flex-wrap gap-2" aria-label="Навыки">

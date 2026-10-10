@@ -2,6 +2,7 @@
 import { AnimatePresence } from "motion/react";
 import type { ComponentProps, ReactNode } from "react";
 import { errorMessage } from "../api/errors";
+import { cn } from "../lib/cn";
 import type { useCursorList } from "../api/queries";
 import { Alert } from "./Alert";
 import { Button } from "./Button";
@@ -22,7 +23,11 @@ export function CursorListView<T>({ query, empty, children, className = "flex fl
   if (query.items.length === 0) return <EmptyState {...empty} />;
   return (
     <>
-      <div className={className}>
+      {/* при смене фильтра старый список виден до ответа — приглушаем, чтобы его не приняли за новый */}
+      <div
+        className={cn(className, "transition-opacity", query.isPlaceholderData && "opacity-40")}
+        aria-busy={query.isPlaceholderData}
+      >
         <AnimatePresence initial={false}>{query.items.map(children)}</AnimatePresence>
       </div>
       {query.error && (

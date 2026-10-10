@@ -1,13 +1,30 @@
 // Черновик профиля (из ФСП или резюме) -> список предлагаемых изменений формы.
-// Кандидат сам выбирает, что перенести: по умолчанию отмечены только пустые поля.
+// Кандидат сам выбирает, что перенести; по умолчанию отмечено всё найденное.
 import type { ProfileDraft } from "../../../api/types";
-import { labels } from "../../../lib/format";
+import { formatYears, labels } from "../../../lib/format";
 import type { ProfileFormInput } from "../schemas";
 
-type TextField = "full_name" | "title" | "about" | "city" | "phone" | "telegram" | "contact_email";
-type ChoiceField = "grade" | "work_format";
-type MoneyField = "salary_min" | "salary_max" | "experience_years";
-export type DraftField = TextField | ChoiceField | MoneyField;
+export type DraftField =
+  | "full_name"
+  | "title"
+  | "grade"
+  | "specialization"
+  | "work_formats"
+  | "city"
+  | "relocation"
+  | "education"
+  | "salary_min"
+  | "salary_max"
+  | "experience_years"
+  | "about"
+  | "telegram"
+  | "phone"
+  | "contact_email";
+
+/** Заявленные значения: только подсказка для опроса — грейд и категорию подтверждает тест. */
+export const CLAIMED_FIELDS: readonly DraftField[] = ["grade", "specialization"];
+
+type DraftValue = string | number | boolean | string[];
 
 export type FieldChange = {
   field: DraftField;
@@ -15,60 +32,67 @@ export type FieldChange = {
   current: string;
   suggested: string;
   /** значение для формы */
-  value: string | number;
-  /** поле пустое — переносим по умолчанию; заполненное — только если кандидат отметит */
-  preselected: boolean;
+  value: DraftValue;
 };
 
-const TEXT_LABELS: Record<DraftField, string> = {
+const LABELS: Record<DraftField, string> = {
   full_name: "Имя и фамилия",
   title: "Должность",
   grade: "Грейд",
-  work_format: "Формат работы",
+  specialization: "Специализация",
+  work_formats: "Формат работы",
   city: "Город",
+  relocation: "Готовность к переезду",
+  education: "Образование",
   salary_min: "Зарплата от",
   salary_max: "Зарплата до",
-  experience_years: "Опыт, лет",
+  experience_years: "Стаж",
   about: "О себе",
   telegram: "Telegram",
   phone: "Телефон",
   contact_email: "Email для связи",
 };
 
-function suggestedValues(draft: ProfileDraft): Partial<Record<DraftField, string | number>> {
+function suggestedValues(draft: ProfileDraft): Partial<Record<DraftField, DraftValue | null | undefined>> {
   return {
-    full_name: draft.full_name ?? undefined,
-    title: draft.title ?? undefined,
-    grade: draft.grade ?? undefined,
-    work_format: draft.work_format ?? undefined,
-    city: draft.city ?? undefined,
-    salary_min: draft.salary_min ?? undefined,
-    salary_max: draft.salary_max ?? undefined,
-    experience_years: draft.experience_years ?? undefined,
-    about: draft.about ?? undefined,
-    telegram: draft.contacts.telegram ?? undefined,
-    phone: draft.contacts.phone ?? undefined,
-    contact_email: draft.contacts.email ?? undefined,
+    full_name: draft.full_name,
+    title: draft.title,
+    grade: draft.grade,
+    specialization: draft.specialization,
+    work_formats: draft.work_formats.length ? draft.work_formats : undefined,
+    city: draft.city,
+    relocation: draft.relocation ?? undefined,
+    education: draft.education,
+    salary_min: draft.salary_min,
+    salary_max: draft.salary_max,
+    experience_years: draft.experience_years,
+    about: draft.about,
+    telegram: draft.contacts.telegram,
+    phone: draft.contacts.phone,
+    contact_email: draft.contacts.email,
   };
 }
 
 function display(field: DraftField, value: unknown): string {
-  if (value === "" || value === null || value === undefined) return "";
-  // в форме форматов может быть несколько, в черновике — один
-  if (Array.isArray(value)) return value.map((v) => display(field, v)).join(", ");
-  if (field === "grade") return labels.grade[value as keyof typeof labels.grade] ?? String(value);
-  if (field === "work_format") return labels.workFormat[value as keyof typeof labels.workFormat] ?? String(value);
-  return String(value);
+  if (value === "" || value === null || value === undefined || (Array.isArray(value) && !value.length)) return "";
+  if (field === "work_formats" && Array.isArray(value))
+    return value.map((v) => labels.workFormat[v as keyof typeof labels.workFormat] ?? v).join(", ");
+  if (field === "relocation") return value ? "готов(а) к переезду" : "";
+  if (field === "experience_years") return formatYears(Number(value));
+  const dictionary = { grade: labels.grade, specialization: labels.specialization, education: labels.education }[
+    field as "grade" | "specialization" | "education"
+  ] as Record<string, string> | undefined;
+  return dictionary?.[String(value)] ?? String(value);
 }
 
 export function fieldChanges(draft: ProfileDraft, form: ProfileFormInput): FieldChange[] {
   const changes: FieldChange[] = [];
-  for (const [field, value] of Object.entries(suggestedValues(draft)) as [DraftField, string | number | undefined][]) {
-    if (value === undefined || value === "") continue;
-    const current = display(field, field === "work_format" ? form.work_formats : form[field]);
+  for (const [field, value] of Object.entries(suggestedValues(draft)) as [DraftField, DraftValue | null | undefined][]) {
+    if (value === undefined || value === null || value === "") continue;
+    const current = display(field, form[field]);
     const suggested = display(field, value);
     if (current === suggested) continue;
-    changes.push({ field, label: TEXT_LABELS[field], current, suggested, value, preselected: current === "" });
+    changes.push({ field, label: LABELS[field], current, suggested, value });
   }
   return changes;
 }

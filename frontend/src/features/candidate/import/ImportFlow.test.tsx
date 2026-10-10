@@ -42,7 +42,10 @@ const draft: ProfileDraft = {
   title: "Backend-разработчик",
   about: null,
   grade: "senior",
-  work_format: null,
+  specialization: null,
+  work_formats: [],
+  relocation: null,
+  education: null,
   city: "Казань",
   salary_min: null,
   salary_max: null,
@@ -73,11 +76,11 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllGlobals());
 
-function renderForm() {
+function renderForm(p: typeof profile = profile) {
   render(
     <QueryClientProvider client={new QueryClient()}>
       <ToastProvider>
-        <ProfileForm profile={profile} skills={skills} fspLinked={false} />
+        <ProfileForm profile={p} skills={skills} fspLinked={false} />
       </ToastProvider>
     </QueryClientProvider>,
   );
@@ -94,15 +97,19 @@ describe("profile autofill", () => {
     const dialog = await screen.findByRole("dialog");
     const [, init] = fetchMock.mock.calls.find(([url]) => String(url).endsWith("/import/resume"))!;
     expect((init.body as FormData).get("use_ai")).toBe("true");
-    // пустые поля отмечены, заполненные (город, имя) — нет
+    // по умолчанию отмечено всё найденное, в том числе заполненные поля (город)
     expect(within(dialog).getByRole("checkbox", { name: /Должность/ })).toBeChecked();
-    expect(within(dialog).getByRole("checkbox", { name: /Город/ })).not.toBeChecked();
+    expect(within(dialog).getByRole("checkbox", { name: /Город/ })).toBeChecked();
+    expect(within(dialog).getByText("Категорию и грейд определяет тест. Данные из резюме их не меняют.")).toBeInTheDocument();
+    expect(within(dialog).getByRole("checkbox", { name: /Грейд.*Заявленное значение/ })).toBeChecked();
     expect(within(dialog).getByText(/Нет в справочнике — добавятся как свои навыки: Rust/)).toBeInTheDocument();
-    expect(await within(dialog).findByText("Наставничество, Работа в команде")).toBeInTheDocument();
+    // роли и софт-скиллы — отдельными галочками
+    expect(await within(dialog).findByText("Наставничество")).toBeInTheDocument();
+    expect(within(dialog).getByRole("checkbox", { name: /Софт-скиллы/ })).toBeChecked();
     await userEvent.click(within(dialog).getByRole("button", { name: "Перенести в профиль" }));
 
     expect(screen.getByPlaceholderText("Backend-разработчик")).toHaveValue("Backend-разработчик");
-    expect(screen.getByDisplayValue("Москва")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Казань")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Убрать Go" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Убрать свой навык Rust" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Наставничество", pressed: true })).toBeInTheDocument();
@@ -116,6 +123,23 @@ describe("profile autofill", () => {
     await userEvent.upload(screen.getByLabelText("Файл резюме"), big);
     expect(await screen.findByText("Файл больше 5 МБ")).toBeInTheDocument();
     expect(fetchMock.mock.calls.some(([url]) => String(url).endsWith("/import/resume"))).toBe(false);
+  });
+
+  it("does not let a resume change a category confirmed by the test", async () => {
+    renderForm({
+      ...profile,
+      specialization: "backend",
+      confirmed_grade: "middle",
+      category_change_at: "2027-01-12T00:00:00Z",
+    } as typeof profile);
+    const file = new File(["%PDF-1.4"], "cv.pdf", { type: "application/pdf" });
+    await userEvent.upload(screen.getByLabelText("Файл резюме"), file);
+    const dialog = await screen.findByRole("dialog");
+    // грейд из резюме показан без галочки, с замком и датой, с которой можно сменить категорию
+    expect(within(dialog).queryByRole("checkbox", { name: /Грейд/ })).not.toBeInTheDocument();
+    expect(
+      within(dialog).getByText(/Категория «Бэкенд-разработка, Middle» подтверждена тестом.*с 12 янв\.? 2027/),
+    ).toBeInTheDocument();
   });
 
   it("treats the saved profile as the new baseline", async () => {

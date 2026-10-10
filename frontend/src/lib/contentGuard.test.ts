@@ -1,5 +1,6 @@
+import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { isScreenshotKey } from "./contentGuard";
+import { isScreenshotKey, useFocusGuard } from "./contentGuard";
 
 const key = (k: string, mods: { metaKey?: boolean; shiftKey?: boolean } = {}) => ({
   key: k,
@@ -20,5 +21,20 @@ describe("isScreenshotKey", () => {
     expect(isScreenshotKey(key("s"))).toBe(false);
     expect(isScreenshotKey(key("4", { shiftKey: true }))).toBe(false);
     expect(isScreenshotKey(key("c", { metaKey: true }))).toBe(false);
+  });
+});
+
+describe("useFocusGuard", () => {
+  it("hides the tasks while the window is inactive and counts each leave once", () => {
+    const { result } = renderHook(() => useFocusGuard());
+    act(() => {
+      window.dispatchEvent(new Event("blur"));
+      window.dispatchEvent(new Event("blur")); // один уход — одно событие, даже если пришло дважды
+    });
+    expect(result.current).toEqual({ hidden: true, leaves: 1 });
+    act(() => window.dispatchEvent(new Event("focus")));
+    expect(result.current.hidden).toBe(false);
+    act(() => window.dispatchEvent(new Event("blur")));
+    expect(result.current.leaves).toBe(2);
   });
 });

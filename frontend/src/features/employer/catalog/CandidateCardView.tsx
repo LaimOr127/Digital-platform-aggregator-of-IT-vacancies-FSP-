@@ -1,13 +1,14 @@
 import { Award, BadgeCheck, MapPin } from "lucide-react";
 import type { ReactNode } from "react";
 import type { AiReview, CandidateCard } from "../../../api/types";
-import { formatSalaryRange, labels, tierLabels } from "../../../lib/format";
+import { formatYears, labels, tierLabels } from "../../../lib/format";
 import { cn } from "../../../lib/cn";
 import { searchTone, tierTone } from "../../../lib/tones";
 import { Badge } from "../../../ui/Badge";
 import { AiReviewNote } from "./AiReviewBar";
 import { MatchPanel } from "./MatchPanel";
 import { ExpandableText } from "../../../ui/ExpandableText";
+import { Salary } from "../../../ui/Salary";
 
 const MAX_ACHIEVEMENTS = 3;
 
@@ -18,7 +19,7 @@ type Props = { card: CandidateCard; action?: ReactNode; className?: string; aiRe
 export function CandidateCardView({ card, action, className, aiReview }: Props) {
   const meta = [
     card.specialization ? labels.specialization[card.specialization] : null,
-    card.experience_years !== null ? `стаж ${card.experience_years} лет` : null,
+    card.experience_years !== null ? `стаж ${formatYears(card.experience_years)}` : null,
     card.work_formats.length ? card.work_formats.map((f) => labels.workFormat[f]).join(" / ") : null,
     card.education ? labels.education[card.education] : null,
     card.relocation ? "готов к переезду" : null,
@@ -29,7 +30,7 @@ export function CandidateCardView({ card, action, className, aiReview }: Props) 
   return (
     <article className={cn("flex flex-col gap-4 rounded-2xl border border-line bg-surface p-5", className)}>
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1 basis-40">
           <p className="text-xs text-muted">Кандидат #{card.anon_id.slice(0, 6).toUpperCase()}</p>
           <h3 className="mt-0.5 text-lg font-semibold">{card.title ?? "Должность не указана"}</h3>
           <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
@@ -44,7 +45,9 @@ export function CandidateCardView({ card, action, className, aiReview }: Props) 
             )}
           </p>
         </div>
-        <Badge tone={searchTone[card.search_status]}>{labels.searchStatus[card.search_status]}</Badge>
+        <span className="ml-auto">
+          <Badge tone={searchTone[card.search_status]}>{labels.searchStatus[card.search_status]}</Badge>
+        </span>
       </div>
 
       <CategoryLine card={card} />
@@ -54,7 +57,7 @@ export function CandidateCardView({ card, action, className, aiReview }: Props) 
 
       <p className="text-sm">
         <span className="text-muted">Ожидания: </span>
-        <span className="font-medium tabular">{formatSalaryRange(card.salary_min, card.salary_max)}</span>
+        <span className="font-medium tabular"><Salary min={card.salary_min} max={card.salary_max} /></span>
       </p>
 
       {(card.fsp_categories.length > 0 || card.achievements.length > 0) && (
@@ -115,7 +118,7 @@ function CategoryLine({ card }: { card: CandidateCard }) {
   }
   return (
     <p className="flex flex-wrap items-center gap-2 text-sm text-muted">
-      <Badge tone="neutral">Грейд не подтверждён тестом</Badge>
+      <Badge tone="warn">Грейд не подтверждён тестом</Badge>
       {card.grade && <span>заявлен: {labels.grade[card.grade]}</span>}
     </p>
   );

@@ -6,6 +6,7 @@ from sqlalchemy import (
     Boolean,
     Column,
     DateTime,
+    Float,
     ForeignKey,
     Integer,
     String,
@@ -78,7 +79,7 @@ class CandidateProfile(IdMixin, TimestampMixin, Base):
     specialization: Mapped[Specialization | None] = mapped_column(
         str_enum(Specialization, "specialization"), default=None, index=True
     )
-    experience_years: Mapped[int | None] = mapped_column(Integer, default=None)
+    experience_years: Mapped[float | None] = mapped_column(Float, default=None)  # лет, 3.4
     industries: Mapped[list[str]] = mapped_column(JSON, default=list)
     roles: Mapped[list[str]] = mapped_column(JSON, default=list)
     soft_skills: Mapped[list[str]] = mapped_column(JSON, default=list)  # ключи справочника и свои

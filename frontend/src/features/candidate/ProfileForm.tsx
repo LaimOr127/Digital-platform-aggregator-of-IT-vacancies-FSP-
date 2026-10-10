@@ -23,7 +23,7 @@ import { formToUpdate, profileSchema, profileToForm, type ProfileFormInput, type
 const FIELDS = [
   "full_name", "title", "about", "grade", "work_formats", "city", "relocation", "education", "salary_min",
   "salary_max", "skills", "custom_skills", "is_hidden", "search_status", "phone", "telegram", "contact_email",
-  "experience_years", "roles", "soft_skills",
+  "experience_years", "roles", "soft_skills", "specialization",
 ];
 const FORMAT_OPTIONS = options(labels.workFormat);
 const EDUCATION_OPTIONS = options(labels.education);
@@ -80,11 +80,7 @@ export function ProfileForm({ profile, skills, fspLinked, autoFsp }: Props) {
 
   const applyDraft = (changes: FieldChange[], added: DraftLists) => {
     const options = { shouldDirty: true, shouldValidate: true } as const;
-    for (const change of changes) {
-      // в черновике один формат работы, в форме — список
-      if (change.field === "work_format") form.setValue("work_formats", [change.value] as never, options);
-      else form.setValue(change.field, change.value as never, options);
-    }
+    for (const change of changes) form.setValue(change.field, change.value as never, options);
     for (const name of ["skills", "custom_skills", "roles", "soft_skills"] as const) {
       if (added[name].length) form.setValue(name, [...form.getValues(name), ...added[name]], options);
     }
@@ -99,6 +95,7 @@ export function ProfileForm({ profile, skills, fspLinked, autoFsp }: Props) {
         <DraftDialog
           draft={draft}
           form={form.getValues()}
+          profile={profile}
           skillNames={skillNames}
           onApply={applyDraft}
           onClose={() => setDraft(null)}
@@ -129,6 +126,22 @@ export function ProfileForm({ profile, skills, fspLinked, autoFsp }: Props) {
         <Field label="Грейд" error={errors.grade?.message}>
           <Select placeholder="Не выбран" options={options(labels.grade)} {...register("grade")} />
         </Field>
+        <Field
+          label="Специализация"
+          error={errors.specialization?.message}
+          hint={
+            profile.confirmed_grade
+              ? "Подтверждена тестом — сменить можно через опрос"
+              : "Заявленная: подсказка для опроса, категорию подтверждает тест"
+          }
+        >
+          <Select
+            placeholder="Не выбрана"
+            options={options(labels.specialization)}
+            disabled={Boolean(profile.confirmed_grade)}
+            {...register("specialization")}
+          />
+        </Field>
         <Field label="Образование" error={errors.education?.message}>
           <Select placeholder="Не указано" options={EDUCATION_OPTIONS} {...register("education")} />
         </Field>
@@ -158,8 +171,8 @@ export function ProfileForm({ profile, skills, fspLinked, autoFsp }: Props) {
       </Section>
 
       <Section title="Опыт, роли и софт-скиллы" text="Заполняются из резюме автоматически — проверьте и поправьте.">
-        <Field label="Опыт в профессии, лет" error={errors.experience_years?.message}>
-          <Input type="number" inputMode="numeric" min={0} max={50} {...register("experience_years")} />
+        <Field label="Опыт в профессии, лет" hint="Можно с десятыми: 3 года 5 месяцев — 3,4" error={errors.experience_years?.message}>
+          <Input type="number" inputMode="decimal" min={0} max={50} step={0.1} {...register("experience_years")} />
         </Field>
         {dictionaries && (
           <>

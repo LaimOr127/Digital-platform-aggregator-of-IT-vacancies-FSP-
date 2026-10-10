@@ -163,11 +163,12 @@ export const assessmentApi = {
   suggest: () => api<Suggestion>("POST", "/candidate/assessment/suggestion"),
   start: (grade: Grade) => api<Attempt>("POST", "/candidate/assessment/attempts", { body: { grade } }),
   /** ответы по порядку: номер варианта или число; null — без ответа */
-  submit: (id: string, responses: (string | null)[]) =>
+  /** focusLosses — уходы со вкладки: сигнал в результате, на оценку не влияют */
+  submit: (id: string, responses: (string | null)[], focusLosses = 0) =>
     api<AttemptResult>("POST", `/candidate/assessment/attempts/${encodeURIComponent(id)}/submit`, {
-      body: { responses },
+      body: { responses, focus_losses: focusLosses },
     }),
-  /** снимок экрана во время теста: попытка не засчитывается */
+  /** PrintScreen во время теста: попытка не засчитывается */
   violation: (id: string) =>
     api<AttemptResult>("POST", `/candidate/assessment/attempts/${encodeURIComponent(id)}/violation`, {
       body: { reason: "screenshot" },

@@ -107,6 +107,9 @@ class BoardVacancyOut(BaseModel):
     expires_at: datetime | None
     company: CompanyBriefOut
     match: MatchOut
+    respond_blocked: str | None = Field(
+        default=None, description="почему откликнуться сейчас нельзя (кнопка неактивна)"
+    )
     application_status: ApplicationStatus | None = Field(
         description="статус отклика или приглашения по этой вакансии"
     )

@@ -35,8 +35,8 @@ export function useStartAttempt() {
 export function useSubmitAttempt() {
   const invalidate = useInvalidateCandidate();
   return useMutation({
-    mutationFn: ({ id, responses }: { id: string; responses: (string | null)[] }) =>
-      assessmentApi.submit(id, responses),
+    mutationFn: ({ id, responses, focusLosses }: { id: string; responses: (string | null)[]; focusLosses?: number }) =>
+      assessmentApi.submit(id, responses, focusLosses),
     onSuccess: invalidate,
   });
 }

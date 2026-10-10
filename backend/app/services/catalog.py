@@ -127,13 +127,15 @@ class CatalogService:
         profiles = await self.catalog.search_all(filters, MAX_SCORED)
         categories = await self.catalog.categories_for([p.id for p in profiles])
         context = VacancyContext.of(vacancy) if vacancy else None
-        ranking = []
+        scored = []
         for p in profiles:
             candidate = Candidate(p, categories.get(p.id, []))
             result = match(vacancy, candidate, context=context) if vacancy else strength(candidate)
-            ranking.append((p.id, result))
-        ranking.sort(key=lambda pair: pair[1].score, reverse=True)  # устойчиво: порядок SQL
-        return ranking
+            scored.append((p.confirmed_grade is not None, p.id, result))
+        # без подтверждённого тестом грейда — ниже всех подтверждённых (рекомендация организаторов):
+        # выдача строится на категориях по итогам теста, а не на самоописании
+        scored.sort(key=lambda row: (row[0], row[2].score), reverse=True)  # устойчиво: порядок SQL
+        return [(pid, result) for _, pid, result in scored]
 
     async def candidate(self, anon_id: uuid.UUID) -> CandidateCardOut:
         profile = await self.catalog.by_anon_id(anon_id)

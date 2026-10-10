@@ -5,12 +5,15 @@ from pydantic import BaseModel, Field, SecretStr
 
 from app.models.enums import AiProviderKind
 
+# без «<» и «>»: незаменённая заглушка шаблона (gpt://<folder_id>/...) — сервис ответит 400
+_MODEL_PATTERN = r"^[^<>]+$"
+
 
 class AiProviderIn(BaseModel):
     name: str = Field(min_length=2, max_length=80)
     kind: AiProviderKind
     base_url: str = Field(min_length=8, max_length=300)
-    model: str = Field(min_length=1, max_length=120)
+    model: str = Field(min_length=1, max_length=120, pattern=_MODEL_PATTERN)
     api_key: SecretStr | None = Field(
         default=None, description="пусто — без ключа (локальная модель)"
     )
@@ -22,7 +25,7 @@ class AiProviderUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=2, max_length=80)
     kind: AiProviderKind | None = None
     base_url: str | None = Field(default=None, min_length=8, max_length=300)
-    model: str | None = Field(default=None, min_length=1, max_length=120)
+    model: str | None = Field(default=None, min_length=1, max_length=120, pattern=_MODEL_PATTERN)
     api_key: SecretStr | None = None
     clear_key: bool = False
 

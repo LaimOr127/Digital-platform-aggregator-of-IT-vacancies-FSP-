@@ -73,8 +73,8 @@ function InterviewCard({ interview, onDecline }: { interview: Interview; onDecli
   const canAnswer = interview.status === "invited" || interview.status === "scheduled";
   return (
     <article className="flex flex-col gap-4 rounded-2xl border border-line bg-surface p-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
           <h3 className="font-semibold">{interview.company_name}</h3>
           <p className="mt-0.5 text-sm text-muted">{interview.vacancy_title}</p>
         </div>

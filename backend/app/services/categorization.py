@@ -1,7 +1,10 @@
 """Автокатегоризация кандидатов по данным ФСП (детерминированно, без БД).
 
-Категория = дисциплина ФСП x уровень: elite > advanced > base. Правила — стратегии
-CategoryRule: новое правило — новый класс в RULES, остальной код не меняется.
+Категория = дисциплина ФСП x уровень: elite > advanced > base. Уровень считается по результатам,
+а не по статусу соревнования (совет организаторов): одни соревнования не ставятся выше других,
+учитываются число призовых мест и финалов, а простое участие уровень не поднимает — профиль нельзя
+«набить» явками. Дисциплины между собой не ранжируются. Правила — стратегии CategoryRule: новое
+правило — новый класс в RULES, остальной код не меняется.
 """
 
 from abc import ABC, abstractmethod
@@ -17,17 +20,18 @@ DISCIPLINES = {
 }
 TIERS = ("base", "advanced", "elite")  # по возрастанию
 TIER_TITLES = {
-    "elite": "призёры всероссийского и международного уровня",
-    "advanced": "финалисты и призёры регионального уровня",
+    "elite": "призёры нескольких соревнований",
+    "advanced": "призёры и неоднократные финалисты",
     "base": "участники соревнований",
 }
+_ELITE_PRIZES = 2  # два призовых места — устойчивый результат, а не удачный старт
+_ADVANCED_FINALS = 2  # без призов — минимум два выхода в финал
 LEVEL_TITLES = {
     "regional": "региональный",
     "national": "всероссийский",
     "international": "международный",
 }
 _RANK_TIERS = {"МСМК": "elite", "МС": "elite", "КМС": "advanced", "1": "advanced"}
-_TOP_LEVELS = ("national", "international")
 _PRIZE = 3
 
 
@@ -50,17 +54,27 @@ class CategoryMatch:
     reasons: tuple[str, ...]
 
 
+def is_prize(e: Evidence) -> bool:
+    return e.place is not None and e.place <= _PRIZE
+
+
 def result_tier(e: Evidence) -> str:
-    prize = e.place is not None and e.place <= _PRIZE
-    if prize and e.level in _TOP_LEVELS:
+    """Сила отдельного результата (для порядка достижений): приз > финал > участие, при любом
+    уровне соревнования."""
+    if is_prize(e):
         return "elite"
-    if (e.level in _TOP_LEVELS and e.stage == "final") or (prize and e.level == "regional"):
+    return "advanced" if e.stage == "final" else "base"
+
+
+def discipline_tier(items: list["Evidence"]) -> str:
+    """Уровень в дисциплине: число призовых мест и финалов; участие без финала не считается."""
+    prizes = sum(is_prize(e) for e in items)
+    finals = sum(e.stage == "final" and not is_prize(e) for e in items)
+    if prizes >= _ELITE_PRIZES:
+        return "elite"
+    if prizes or finals >= _ADVANCED_FINALS:
         return "advanced"
     return "base"
-
-
-def _stronger(a: str, b: str) -> str:
-    return a if TIERS.index(a) >= TIERS.index(b) else b
 
 
 def describe(e: Evidence) -> str:
@@ -89,8 +103,8 @@ class CategoryRule(ABC):
 
 
 class DisciplineTierRule(CategoryRule):
-    """Лучший результат в дисциплине задаёт уровень; разряд повышает уровень там,
-    где у спортсмена есть результаты (разряд без результатов категорию не даёт)."""
+    """Уровень в дисциплине — по числу призов и финалов (discipline_tier); разряд повышает уровень
+    там, где у спортсмена есть результаты (разряд без результатов категорию не даёт)."""
 
     def evaluate(self, evidence: list[Evidence], rank: str | None) -> list[CategoryMatch]:
         by_discipline: dict[str, list[Evidence]] = defaultdict(list)
@@ -98,10 +112,10 @@ class DisciplineTierRule(CategoryRule):
             by_discipline[item.discipline].append(item)
         matches = []
         for discipline, items in by_discipline.items():
-            tier = "base"
-            for item in items:
-                tier = _stronger(tier, result_tier(item))
-            reasons = [describe(item) for item in items if result_tier(item) == tier]
+            tier = discipline_tier(items)
+            # обоснование — результаты, которые дали уровень (призы и финалы), или участие
+            counted = [i for i in items if result_tier(i) != "base"] or items
+            reasons = [describe(item) for item in counted]
             rank_tier = _RANK_TIERS.get(rank or "", "base")
             if TIERS.index(rank_tier) > TIERS.index(tier):
                 tier, reasons = rank_tier, [f"Спортивный разряд: {rank}"]

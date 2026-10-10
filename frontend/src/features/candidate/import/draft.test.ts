@@ -20,6 +20,7 @@ const form: ProfileFormInput = {
   skills: ["python"],
   custom_skills: [],
   experience_years: "",
+  specialization: "",
   roles: [],
   soft_skills: ["teamwork"],
   is_hidden: false,
@@ -32,7 +33,10 @@ const draft: ProfileDraft = {
   title: "Backend-разработчик",
   about: null,
   grade: "senior",
-  work_format: "remote",
+  specialization: null,
+  work_formats: ["remote", "hybrid"],
+  relocation: true,
+  education: null,
   city: "Казань",
   salary_min: 350000,
   salary_max: null,
@@ -49,14 +53,27 @@ const draft: ProfileDraft = {
 };
 
 describe("profile draft", () => {
-  it("lists only real changes and preselects empty fields", () => {
-    const changes = fieldChanges(draft, form);
-    expect(changes.map((c) => c.field)).toEqual(["title", "grade", "work_format", "city", "salary_min", "experience_years", "telegram"]);
-    // в форме форматов несколько, в черновике — один: сравниваются подписи
-    expect(changes.find((c) => c.field === "work_format")).toMatchObject({ current: "Офис", suggested: "Удалённо" });
-    const city = changes.find((c) => c.field === "city");
-    expect(city).toMatchObject({ current: "Москва", suggested: "Казань", preselected: false });
-    expect(changes.find((c) => c.field === "grade")).toMatchObject({ suggested: "Senior", value: "senior", preselected: true });
+  it("lists only real changes, all of them as separate fields", () => {
+    const changes = fieldChanges({ ...draft, experience_years: 3.4 }, form);
+    expect(changes.map((c) => c.field)).toEqual([
+      "title",
+      "grade",
+      "work_formats",
+      "city",
+      "relocation",
+      "salary_min",
+      "experience_years",
+      "telegram",
+    ]);
+    // все найденные форматы переносятся списком
+    expect(changes.find((c) => c.field === "work_formats")).toMatchObject({
+      current: "Офис",
+      suggested: "Удалённо, Гибрид",
+      value: ["remote", "hybrid"],
+    });
+    expect(changes.find((c) => c.field === "city")).toMatchObject({ current: "Москва", suggested: "Казань" });
+    expect(changes.find((c) => c.field === "experience_years")).toMatchObject({ suggested: "3,4 года", value: 3.4 });
+    expect(changes.find((c) => c.field === "grade")).toMatchObject({ suggested: "Senior", value: "senior" });
   });
 
   it("adds only missing skills, roles and soft skills", () => {
