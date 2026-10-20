@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { assessmentApi } from "../../../api/endpoints";
 import type { AssessmentState, Grade, SurveyInput } from "../../../api/types";
 
-export const ASSESSMENT = ["assessment"] as const;
+const ASSESSMENT = ["assessment"] as const;
 
 export const useAssessment = () => useQuery({ queryKey: ASSESSMENT, queryFn: assessmentApi.state });
 

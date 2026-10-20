@@ -1,5 +1,5 @@
 // Единый формат ошибок API: {"error": {"code", "message", "details"?}}.
-export type ErrorDetail = { loc: (string | number)[]; msg: string };
+type ErrorDetail = { loc: (string | number)[]; msg: string };
 
 export class ApiError extends Error {
   constructor(

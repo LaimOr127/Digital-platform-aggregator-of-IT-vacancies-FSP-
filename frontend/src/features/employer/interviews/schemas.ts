@@ -6,7 +6,7 @@ const HOUR_MS = 3_600_000;
 const MAX_AHEAD_MS = 30 * 24 * HOUR_MS;
 
 /** Значение <input type="datetime-local"> (местное время) -> ISO с часовым поясом. */
-export function localToIso(value: string): string {
+function localToIso(value: string): string {
   return new Date(value).toISOString();
 }
 

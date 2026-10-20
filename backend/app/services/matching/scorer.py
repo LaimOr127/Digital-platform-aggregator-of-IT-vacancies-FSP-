@@ -9,7 +9,6 @@ from app.services.matching.factors import (
     NEED_FACTORS,
     STRENGTH_FACTORS,
     Candidate,
-    Factor,
     FactorScore,
     VacancyContext,
 )
@@ -23,16 +22,10 @@ class MatchResult:
     fit: float = 1.0  # под потребность: насколько категория кандидата подходит (группа выдачи)
 
 
-def match(
-    vacancy: Vacancy,
-    candidate: Candidate,
-    factors: tuple[Factor, ...] = FACTORS,
-    context: VacancyContext | None = None,
-) -> MatchResult:
-    """Соответствие вакансии для ленты кандидата. context — подготовленная вакансия: передаётся
-    при оценке многих кандидатов подряд."""
-    context = context or VacancyContext.of(vacancy)
-    return _total([factor.score(context, candidate) for factor in factors])
+def match(vacancy: Vacancy, candidate: Candidate) -> MatchResult:
+    """Соответствие вакансии для ленты кандидата."""
+    context = VacancyContext.of(vacancy)
+    return _total([factor.score(context, candidate) for factor in FACTORS])
 
 
 def strength(candidate: Candidate) -> MatchResult:

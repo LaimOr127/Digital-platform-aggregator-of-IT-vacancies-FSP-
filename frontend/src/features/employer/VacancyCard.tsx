@@ -18,7 +18,7 @@ type Props = {
 };
 
 /** Опубликованная вакансия, которую пора продлить (или уже истёкшая). */
-export const needsRenewal = (v: Vacancy): boolean => {
+const needsRenewal = (v: Vacancy): boolean => {
   const left = v.status === "active" ? daysLeft(v.expires_at) : null;
   return left !== null && left <= RENEW_SOON_DAYS;
 };

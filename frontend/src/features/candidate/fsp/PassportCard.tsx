@@ -12,7 +12,7 @@ import { useToast } from "../../../ui/Toast";
 import { useAction } from "../../../ui/useAction";
 import { useIssuePassport, useRevokePassport } from "./hooks";
 
-export const passportUrl = (id: string) => `${window.location.origin}/passport/${id}`;
+const passportUrl = (id: string) => `${window.location.origin}/passport/${id}`;
 
 type Props = { passport: Passport | null; tier: VerificationTier };
 

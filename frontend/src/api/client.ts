@@ -41,7 +41,7 @@ function send(method: Method, url: string, body: unknown, token: string | null, 
 }
 
 /** ok — новый токен получен; invalid — сессии нет (401/403, нет cookie); transient — сбой сети/сервера. */
-export type RefreshResult = "ok" | "invalid" | "transient";
+type RefreshResult = "ok" | "invalid" | "transient";
 
 let refreshing: Promise<RefreshResult> | null = null;
 

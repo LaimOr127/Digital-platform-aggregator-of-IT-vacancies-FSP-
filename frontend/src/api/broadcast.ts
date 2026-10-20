@@ -1,5 +1,5 @@
 // События входа/выхода между вкладками одного браузера (BroadcastChannel).
-export type AuthEvent = "login" | "logout";
+type AuthEvent = "login" | "logout";
 
 const channel = typeof BroadcastChannel !== "undefined" ? new BroadcastChannel("itmatch-auth") : null;
 

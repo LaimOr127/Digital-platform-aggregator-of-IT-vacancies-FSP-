@@ -7,7 +7,7 @@ import { INTERVIEWS } from "../interviews/hooks";
 
 const OFFERS = ["employer-offers"] as const;
 
-export const DEFAULT_FILTERS: CatalogFilters = { confirmed_only: true };
+const DEFAULT_FILTERS: CatalogFilters = { confirmed_only: true };
 const FILTER_KEYS = [
   "category", "specialization", "grade", "work_format", "city", "skill", "search_status", "confirmed_only", "fsp_only",
   "fsp_category",
