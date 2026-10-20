@@ -1,6 +1,6 @@
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Annotated, Any
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, model_validator
 
 if TYPE_CHECKING:
     from app.repositories.base import Page
@@ -26,6 +26,10 @@ class PageOut[T](BaseModel):
             items=[schema.model_validate(i) for i in page.items],  # type: ignore[attr-defined]
             next_cursor=page.next_cursor,
         )
+
+
+# стаж в годах с одной десятой: 3 года 5 месяцев = 3.4
+Years = Annotated[float, Field(ge=0, le=50), AfterValidator(lambda v: round(v, 1))]
 
 
 def check_salary_range(salary_min: int | None, salary_max: int | None) -> None:

@@ -42,3 +42,5 @@ class Assessment(IdMixin, TimestampMixin, Base):
     topics: Mapped[dict | None] = mapped_column(JSON, default=None)
     # нарушение во время теста (снимок экрана): попытка не засчитана
     violation: Mapped[str | None] = mapped_column(String(32), default=None)
+    # сколько раз кандидат уходил со вкладки или окна во время теста: сигнал, не провал
+    focus_losses: Mapped[int] = mapped_column(Integer, default=0, server_default="0")

@@ -6,13 +6,15 @@ import { useState } from "react";
 import { myTasksApi } from "../../../api/endpoints";
 import { useCursorList } from "../../../api/queries";
 import type { MyTaskAnswer, OfferedTask } from "../../../api/types";
-import { useContentGuard } from "../../../lib/contentGuard";
+import { useContentGuard, useFocusGuard } from "../../../lib/contentGuard";
 import { formatDate } from "../../../lib/format";
 import { Button } from "../../../ui/Button";
 import { Card, CardTitle } from "../../../ui/Card";
 import { Field, Textarea } from "../../../ui/form";
 import { useToast } from "../../../ui/Toast";
 import { useAction } from "../../../ui/useAction";
+import { Watermark } from "../../../ui/Watermark";
+import { useProfile } from "../hooks";
 
 const TASKS = ["candidate-tasks"] as const;
 const MIN_ANSWER = 20;
@@ -63,13 +65,21 @@ function TaskForm({ task }: { task: OfferedTask }) {
     },
   });
   const guard = useContentGuard<HTMLDivElement>(() => block.mutate());
+  const focus = useFocusGuard();
+  const anonId = useProfile().data?.anon_id;
   return (
     <div ref={guard}>
       <p className="text-xs text-muted">{task.company_name}</p>
       <h3 className="mt-0.5 font-medium">Задача «{task.title}»</h3>
-      <p className="no-print mt-2 select-none whitespace-pre-line text-sm leading-relaxed">{task.body}</p>
+      <div className="relative mt-2">
+        {anonId && <Watermark text={`#${anonId.slice(0, 8).toUpperCase()}`} />}
+        <p className={`no-print select-none whitespace-pre-line text-sm leading-relaxed ${focus.hidden ? "invisible" : ""}`}>
+          {task.body}
+        </p>
+        {focus.hidden && <p className="absolute inset-0 text-sm text-muted">Текст скрыт, пока окно неактивно.</p>}
+      </div>
       <p className="mt-2 text-xs text-muted">
-        Копирование текста задачи отключено. Снимок экрана закрывает задачу — решить её будет нельзя.
+        Копирование отключено, на тексте — ваш идентификатор. PrintScreen закрывает задачу.
       </p>
       <Field label="Ваш ответ" hint={`Решение или подход, от ${MIN_ANSWER} символов`} className="mt-4">
         <Textarea rows={5} maxLength={4000} value={answer} onChange={(e) => setAnswer(e.target.value)} />

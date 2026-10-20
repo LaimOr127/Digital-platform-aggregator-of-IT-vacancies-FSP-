@@ -60,9 +60,15 @@ async def claim_due_links(
         .limit(limit)
         .with_for_update(skip_locked=True)
     )
+    # сначала захват строк, потом обновление: в одном UPDATE ... IN (подзапрос с LIMIT
+    # и SKIP LOCKED) PostgreSQL может пересчитать подзапрос и забрать больше строк, чем limit
+    ids = list((await session.execute(due)).scalars())
+    if not ids:
+        await session.commit()
+        return []
     claimed = await session.execute(
         update(FspLink)
-        .where(FspLink.id.in_(due.scalar_subquery()))
+        .where(FspLink.id.in_(ids))
         .values(next_sync_at=now + lease)
         .returning(FspLink.id, FspLink.profile_id)
     )

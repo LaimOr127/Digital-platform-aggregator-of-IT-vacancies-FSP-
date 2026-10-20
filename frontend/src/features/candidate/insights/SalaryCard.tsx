@@ -1,6 +1,6 @@
 // Радар зарплат кандидата: рынок для его грейда и стека и лестница зарплат по грейдам.
 import type { Grade, SalaryRadar } from "../../../api/types";
-import { formatSalaryRange, labels } from "../../../lib/format";
+import { SALARY_NOTE, formatSalaryRange, labels } from "../../../lib/format";
 import { Badge } from "../../../ui/Badge";
 import { Card, CardTitle } from "../../../ui/Card";
 import { positionLabel, positionTone, type Position } from "../../insights/position";
@@ -67,7 +67,7 @@ function verdictText(radar: SalaryRadar): string {
   if (radar.position) return ADVICE[radar.position];
   const reference = radar.vacancies ?? radar.offers;
   if (!radar.expectation && reference) {
-    return `Обычно платят ${formatSalaryRange(reference.p25, reference.p75)}. Укажите ожидания в профиле — покажем, где вы относительно рынка.`;
+    return `Обычно платят ${formatSalaryRange(reference.p25, reference.p75)} ${SALARY_NOTE}. Укажите ожидания в профиле — покажем, где вы относительно рынка.`;
   }
   if (!reference) return "Вакансий с вашим стеком пока мало для сравнения — ориентируйтесь на ожидания коллег.";
   return "";

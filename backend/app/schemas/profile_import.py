@@ -5,7 +5,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from app.models.enums import Grade, WorkFormat
+from app.models.enums import Education, Grade, Specialization, WorkFormat
 from app.schemas.candidate import Contacts
 from app.schemas.common import SkillOut
 from app.services.cities import canonical_city
@@ -19,15 +19,20 @@ class ProfileDraftOut(BaseModel):
     full_name: str | None = None
     title: str | None = None
     about: str | None = None
-    grade: Grade | None = None
-    work_format: WorkFormat | None = None
+    grade: Grade | None = Field(default=None, description="заявленный — подсказка для опроса")
+    specialization: Specialization | None = Field(
+        default=None, description="по стеку — подсказка для опроса; категорию определяет тест"
+    )
+    work_formats: list[WorkFormat] = Field(default_factory=list)
+    relocation: bool | None = None
+    education: Education | None = None
     city: str | None = None
     salary_min: int | None = None
     salary_max: int | None = None
-    experience_years: int | None = None
+    experience_years: float | None = Field(default=None, description="лет, с одной десятой")
     roles: list[str] = Field(default_factory=list, description="ключи справочника ролей")
     soft_skills: list[str] = Field(
-        default_factory=list, description="ключи справочника софт-скиллов"
+        default_factory=list, description="ключи справочника софт-скиллов или свой текст"
     )
     contacts: Contacts = Field(default_factory=Contacts)
     skills: list[SkillOut] = Field(default_factory=list)

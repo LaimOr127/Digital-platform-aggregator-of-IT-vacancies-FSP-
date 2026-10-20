@@ -107,7 +107,7 @@ REST поверх HTTPS, JSON, префикс `/api/v1`. Живая схема �
 |---|---|
 | `GET/PATCH profile` | свой профиль: стек и свои навыки (`custom_skills`), грейд, стаж, образование, роли, софт-скиллы (из справочника или свои), форматы работы (`work_formats`, можно несколько), город из справочника и готовность к переезду, вилка, контакты, статус поиска, приватность (`show_fsp`, `show_salary`, `show_about`), скрытие |
 | `GET assessment`, `PUT assessment/survey`, `POST assessment/attempts {grade}`, `POST assessment/attempts/{id}/submit` | опрос, тест на грейд, категория, история, доступные грейды |
-| `POST assessment/attempts/{id}/violation`, `POST tasks/{id}/violation` | снимок экрана: тест не засчитан (как неудача), задача закрыта для кандидата |
+| `POST assessment/attempts/{id}/violation`, `POST tasks/{id}/violation` | нажат PrintScreen: тест не засчитан (как неудача), задача закрыта для кандидата; `submit` принимает `focus_losses` — уходы со вкладки как сигнал |
 | `GET updates` | время последнего события по разделам — для точек «есть новое» |
 | `GET applications`, `POST applications/{id}/accept`, `POST applications/{id}/decline {reason}`, `POST applications/{id}/withdraw` | приглашения компаний и свои отклики; принятие передаёт компании имя и контакты |
 | `GET vacancies`, `GET vacancies/{id}`, `POST vacancies/{id}/respond {message}` | опубликованные вакансии по соответствию профилю, отклик |

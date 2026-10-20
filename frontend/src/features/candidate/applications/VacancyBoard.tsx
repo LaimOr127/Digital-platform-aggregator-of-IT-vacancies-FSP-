@@ -2,7 +2,7 @@
 import { Briefcase, Building2, Flag, Send } from "lucide-react";
 import { useState } from "react";
 import type { BoardFilters, BoardVacancy, Grade, Specialization } from "../../../api/types";
-import { formatSalaryRange, labels, options } from "../../../lib/format";
+import { labels, options } from "../../../lib/format";
 import { applicationTone } from "../../../lib/tones";
 import { useDebounced } from "../../../lib/useDebounced";
 import { PageHeader } from "../../../ui/AppShell";
@@ -15,6 +15,7 @@ import { useAction } from "../../../ui/useAction";
 import { MatchPanel } from "../../employer/catalog/MatchPanel";
 import { ComplaintDialog } from "./ComplaintDialog";
 import { useRespond, useVacancyBoard } from "./hooks";
+import { Salary } from "../../../ui/Salary";
 
 export function VacancyBoard() {
   const [filters, setFilters] = useState<BoardFilters>({});
@@ -70,19 +71,21 @@ type RowProps = { vacancy: BoardVacancy; onRespond: () => void; onComplain: () =
 function VacancyRow({ vacancy: v, onRespond, onComplain }: RowProps) {
   return (
     <article className="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h3 className="font-semibold">{v.title}</h3>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <h3 className="break-words font-semibold">{v.title}</h3>
           <p className="mt-1 flex items-center gap-1.5 text-sm text-muted">
             <Building2 className="size-3.5" aria-hidden />
             {v.company.name}
           </p>
         </div>
         {v.application_status && (
-          <Badge tone={applicationTone[v.application_status]}>{labels.applicationStatus[v.application_status]}</Badge>
+          <span className="shrink-0">
+            <Badge tone={applicationTone[v.application_status]}>{labels.applicationStatus[v.application_status]}</Badge>
+          </span>
         )}
       </div>
-      <p className="text-lg font-semibold tabular">{formatSalaryRange(v.salary_min, v.salary_max)}</p>
+      <p className="text-lg font-semibold tabular"><Salary min={v.salary_min} max={v.salary_max} /></p>
       <p className="text-sm text-muted">
         {v.specialization && `${labels.specialization[v.specialization]} · `}
         {labels.grade[v.grade]} · {labels.workFormat[v.work_format]}
@@ -92,11 +95,12 @@ function VacancyRow({ vacancy: v, onRespond, onComplain }: RowProps) {
       {v.skills.length > 0 && <p className="text-xs text-muted">{v.skills.join(" · ")}</p>}
       <div className="flex flex-wrap items-center gap-2 border-t border-line pt-3">
         {!v.application_status && (
-          <Button size="sm" onClick={onRespond}>
+          <Button size="sm" onClick={onRespond} disabled={Boolean(v.respond_blocked)} title={v.respond_blocked ?? undefined}>
             <Send className="size-3.5" aria-hidden />
             Откликнуться
           </Button>
         )}
+        {!v.application_status && v.respond_blocked && <p className="basis-full text-xs text-muted">{v.respond_blocked}</p>}
         <Button variant="ghost" size="sm" className="ml-auto" onClick={onComplain}>
           <Flag className="size-3.5" aria-hidden />
           Пожаловаться

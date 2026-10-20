@@ -1,10 +1,10 @@
 """Демо-данные для показа и нагрузочного теста: кандидаты разных специализаций и грейдов
-с навыками, образованием и категориями; одобренные компании с описанием, вакансиями (часть —
-к продлению) и короткими задачами для кандидатов.
+с навыками, образованием и категориями; компании с описанием, вакансиями (часть — к продлению)
+и короткими задачами для кандидатов. Для модерации — все состояния: компании на проверке и
+заблокированные, черновики, закрытые и заблокированные вакансии, жалобы, блокировки кандидатов.
 
-Только для dev: в prod команда отказывается работать. Вход в массовые демо-аккаунты невозможен
-(случайный пароль никому не известен); для показа создаются два аккаунта с входом — кандидат и
-компания, их пароль печатается один раз (seed_logins).
+Только для dev (на стенде жюри — явно, --stand). Вход в массовые демо-аккаунты невозможен
+(случайный пароль никому не известен); именные аккаунты с входом — demo_logins.seed_logins.
 Генерация детерминирована (seed), повторный запуск добавляет новые профили.
 """
 
@@ -18,6 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.crypto import FieldCipher, profile_field_context
 from app.core.security import hash_password
+from app.db.demo_moderation import seed_complaints
 from app.db.session import SYSTEM_ROLE, set_rls_context
 from app.models import (
     CandidateProfile,
@@ -45,6 +46,20 @@ from app.models.enums import (
     WorkFormat,
 )
 from app.services.specializations import INDUSTRIES
+
+# статус вакансии по её номеру в компании: большинство опубликовано, по одной каждого другого вида
+_VACANCY_CYCLE = [
+    VacancyStatus.ACTIVE,
+    VacancyStatus.ACTIVE,
+    VacancyStatus.DRAFT,
+    VacancyStatus.ACTIVE,
+    VacancyStatus.ACTIVE,
+    VacancyStatus.CLOSED,
+    VacancyStatus.ACTIVE,
+    VacancyStatus.BLOCKED,
+]
+# каждый 30-й демо-кандидат заблокирован модератором (~3%)
+_BLOCKED_EVERY = 30
 
 _TITLES = [
     (
@@ -131,10 +146,11 @@ async def seed_candidates(session: AsyncSession, cipher: FieldCipher, count: int
     skill_links: list[dict] = []
     category_links: list[dict] = []
     profiles: list[CandidateProfile] = []
-    for _ in range(count):
+    for i in range(count):
         user = _user(
             f"demo-{uuid.uuid4().hex[:12]}@demo.itmatch.local", password_hash, UserRole.CANDIDATE
         )
+        user.is_active = i % _BLOCKED_EVERY != _BLOCKED_EVERY - 1
         profile = _profile(rng, user.id, cipher)
         session.add(user)
         profiles.append(profile)
@@ -203,50 +219,25 @@ def _profile(rng: random.Random, user_id: uuid.UUID, cipher: FieldCipher) -> Can
 
 
 async def seed_market(session: AsyncSession, companies: int, vacancies_each: int) -> int:
-    """Одобренные компании с опубликованными вакансиями по грейдам и направлениям."""
+    """Компании с вакансиями по грейдам и направлениям: каждая четвёртая ждёт модерации (её
+    вакансии — черновики), шестая заблокирована (вакансии тоже); на часть вакансий — жалобы."""
     await set_rls_context(session, None, SYSTEM_ROLE)
     rng = random.Random(companies * 1000 + vacancies_each)  # noqa: S311 - демо-данные
     skills = {s.slug: s.id for s in (await session.execute(select(Skill))).scalars()}
     password_hash = hash_password(secrets.token_urlsafe(24))
     for i in range(companies):
         owner = _user(f"demo-hr-{uuid.uuid4().hex[:10]}@demo.itmatch.local", password_hash)
-        await _add_company(session, rng, skills, owner, i, vacancies_each)
+        status = (
+            CompanyStatus.PENDING
+            if i % 4 == 3
+            else CompanyStatus.BLOCKED
+            if i % 8 == 5
+            else CompanyStatus.APPROVED
+        )
+        await _add_company(session, rng, skills, owner, i, vacancies_each, status)
+    await seed_complaints(session, rng, vacancies=max(1, companies))
     await session.commit()
     return companies * vacancies_each
-
-
-DEMO_CANDIDATE = "demo-candidate@example.org"  # .local не проходит проверку адреса при входе
-DEMO_EMPLOYER = "demo-hr@example.org"
-
-
-async def seed_logins(session: AsyncSession, cipher: FieldCipher) -> dict[str, str]:
-    """Аккаунты для показа: кандидат с заполненным профилем и категорией и компания с вакансиями
-    и задачами. Пароль случайный и возвращается один раз; существующие аккаунты не меняются."""
-    await set_rls_context(session, None, SYSTEM_ROLE)
-    emails = (DEMO_CANDIDATE, DEMO_EMPLOYER)
-    existing = set(
-        (await session.execute(select(User.email).where(User.email.in_(emails)))).scalars()
-    )
-    password = secrets.token_urlsafe(12)
-    password_hash = hash_password(password)
-    rng = random.Random(7)  # noqa: S311 - демо-данные
-    created: dict[str, str] = {}
-    if DEMO_CANDIDATE not in existing:
-        user = _user(DEMO_CANDIDATE, password_hash, UserRole.CANDIDATE)
-        session.add(user)
-        await session.flush()
-        profile = _profile(rng, user.id, cipher)
-        profile.full_name_enc = cipher.encrypt(
-            "Анна Демо", profile_field_context("full_name", user.id)
-        )
-        session.add(profile)
-        created[DEMO_CANDIDATE] = password
-    if DEMO_EMPLOYER not in existing:
-        skills = {s.slug: s.id for s in (await session.execute(select(Skill))).scalars()}
-        await _add_company(session, rng, skills, _user(DEMO_EMPLOYER, password_hash), 0, 4)
-        created[DEMO_EMPLOYER] = password
-    await session.commit()
-    return created
 
 
 def _user(email: str, password_hash: str, role: UserRole = UserRole.EMPLOYER) -> User:
@@ -267,12 +258,13 @@ async def _add_company(
     owner: User,
     index: int,
     vacancies: int,
+    status: CompanyStatus = CompanyStatus.APPROVED,
 ) -> None:
-    """Компания с описанием, двумя задачами для кандидатов и опубликованными вакансиями."""
+    """Компания с описанием, двумя задачами для кандидатов и вакансиями."""
     company = EmployerCompany(
         id=uuid.uuid4(),
         name=f"ООО «{_COMPANY_NAMES[index % len(_COMPANY_NAMES)]} {index + 1}»",
-        status=CompanyStatus.APPROVED,
+        status=status,
         industry=rng.choice(list(INDUSTRIES.values())),
         description="Продуктовая ИТ-команда: выпускаем релизы каждые две недели, "
         "ценим инженерную культуру и обучение внутри команды.",
@@ -294,8 +286,12 @@ async def _add_company(
             )
         )
     skill_links: list[dict] = []
-    for _ in range(vacancies):
+    for j in range(vacancies):
         vacancy, picked = _vacancy(rng, company.id)
+        vacancy.status = {
+            CompanyStatus.PENDING: VacancyStatus.DRAFT,  # опубликует после одобрения
+            CompanyStatus.BLOCKED: VacancyStatus.BLOCKED,  # блокировка компании закрывает вакансии
+        }.get(status, _VACANCY_CYCLE[j % len(_VACANCY_CYCLE)])
         session.add(vacancy)
         skill_links += [
             {"vacancy_id": vacancy.id, "skill_id": skills[s]} for s in picked if s in skills

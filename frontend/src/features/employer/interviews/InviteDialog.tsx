@@ -3,7 +3,7 @@ import { CalendarPlus } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import type { EmployerApplication } from "../../../api/types";
-import { formatSalaryRange, labels, options } from "../../../lib/format";
+import { SALARY_NOTE, formatSalaryRange, labels, options } from "../../../lib/format";
 import { applyServerErrors } from "../../../lib/forms";
 import { Alert } from "../../../ui/Alert";
 import { Button } from "../../../ui/Button";
@@ -62,7 +62,7 @@ function InviteForm({ application, onDone }: { application: EmployerApplication;
   return (
     <form onSubmit={onSubmit} noValidate className="grid gap-5 sm:grid-cols-2">
       <p className="text-sm text-muted sm:col-span-2">
-        «{application.title}» · {formatSalaryRange(application.salary_min, application.salary_max)}. Кандидат выберет
+        «{application.title}» · {formatSalaryRange(application.salary_min, application.salary_max)} {SALARY_NOTE}. Кандидат выберет
         одно из предложенных времён.
       </p>
       {formError && (

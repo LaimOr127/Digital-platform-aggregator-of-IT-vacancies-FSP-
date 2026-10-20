@@ -64,7 +64,7 @@ export function AppShell({ children, actions, nav }: { children: ReactNode; acti
           </div>
         </div>
         {nav && (
-          <nav aria-label="Разделы кабинета" className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-4 sm:px-6">
+          <nav aria-label="Разделы кабинета" className="mx-auto flex max-w-6xl gap-1 overflow-x-auto overflow-y-hidden px-4 sm:px-6">
             {nav.map((item) => (
               <TabLink key={item.to} item={item} active={isActive(item, pathname)} />
             ))}
@@ -73,7 +73,7 @@ export function AppShell({ children, actions, nav }: { children: ReactNode; acti
         {group?.children && (
           <nav
             aria-label={`Подразделы: ${group.label}`}
-            className="mx-auto flex max-w-6xl gap-2 overflow-x-auto px-4 py-2.5 sm:px-6"
+            className="mx-auto flex max-w-6xl gap-2 overflow-x-auto overflow-y-hidden px-4 py-2.5 sm:px-6"
           >
             {group.children.map((item) => (
               <SubTabLink key={item.to} item={item} active={isActive(item, pathname)} />
@@ -137,7 +137,7 @@ export function PageHeader({ title, text, children }: { title: string; text?: st
   return (
     <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{title}</h1>
+        <h1 className="text-2xl font-bold uppercase tracking-tight sm:text-3xl">{title}</h1>
         {text && <p className="mt-1.5 max-w-2xl text-sm text-muted">{text}</p>}
       </div>
       {children}

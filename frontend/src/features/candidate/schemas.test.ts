@@ -36,6 +36,7 @@ describe("profile form", () => {
       title: null,
       about: null,
       grade: "junior",
+      specialization: null,
       work_formats: [],
       city: null,
       relocation: false,

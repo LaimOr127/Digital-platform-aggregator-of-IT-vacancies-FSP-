@@ -83,7 +83,7 @@ function InvitationForm({ candidate, vacancies, vacancyId, company, onDone }: Fo
       <Field label="Формат работы" error={errors.work_format?.message}>
         <Select options={options(labels.workFormat)} {...form.register("work_format")} />
       </Field>
-      <Field label="Зарплата от, ₽" error={errors.salary_min?.message} hint="Вилка обязательна">
+      <Field label="Зарплата от, ₽" error={errors.salary_min?.message} hint="Вилка обязательна, до вычета налогов">
         <MoneyInput {...form.register("salary_min")} />
       </Field>
       <Field label="Зарплата до, ₽" error={errors.salary_max?.message}>

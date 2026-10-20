@@ -66,6 +66,7 @@ def result(row: Assessment) -> AttemptResultOut:
         started_at=as_aware(row.started_at),
         finished_at=as_aware(row.finished_at) if row.finished_at else None,
         violation=row.violation,
+        focus_losses=row.focus_losses,
     )
 
 

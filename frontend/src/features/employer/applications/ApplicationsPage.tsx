@@ -3,7 +3,7 @@
 import { CalendarPlus, Check, Inbox, Undo2, X } from "lucide-react";
 import { useState } from "react";
 import type { ApplicationDirection, EmployerApplication } from "../../../api/types";
-import { daysLeft, formatDate, formatSalaryRange, labels } from "../../../lib/format";
+import { daysLeft, formatDate, labels } from "../../../lib/format";
 import { applicationTone } from "../../../lib/tones";
 import { PageHeader } from "../../../ui/AppShell";
 import { Badge } from "../../../ui/Badge";
@@ -23,6 +23,7 @@ import {
   useEmployerApplications,
   useWithdrawInvitation,
 } from "./hooks";
+import { Salary } from "../../../ui/Salary";
 
 const TABS: { value: ApplicationDirection; label: string }[] = [
   { value: "invitation", label: "Приглашения" },
@@ -103,15 +104,15 @@ function Row({ item, onWithdraw, onAccept, onDecline, onSchedule }: RowProps) {
     : "Кандидат скрыл профиль из каталога";
   return (
     <article className="rounded-2xl border border-line bg-surface p-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
           <h3 className="font-semibold">{item.title}</h3>
           <p className="mt-1 text-sm text-muted">{who}</p>
         </div>
         <Badge tone={applicationTone[item.status]}>{labels.applicationStatus[item.status]}</Badge>
       </div>
       <p className="mt-3 text-sm">
-        <span className="font-medium tabular">{formatSalaryRange(item.salary_min, item.salary_max)}</span>
+        <span className="font-medium tabular"><Salary min={item.salary_min} max={item.salary_max} /></span>
         <span className="text-muted"> · {formatDate(item.created_at)}</span>
         {left !== null && <span className="text-muted"> · на ответ осталось дней: {left}</span>}
       </p>

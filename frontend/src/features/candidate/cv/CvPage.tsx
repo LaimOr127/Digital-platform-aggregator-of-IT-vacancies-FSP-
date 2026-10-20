@@ -7,7 +7,7 @@ import { Link } from "react-router";
 import { useDictionaries } from "../../../api/queries";
 import { errorMessage } from "../../../api/errors";
 import type { AssessmentState, FspStatus, Profile } from "../../../api/types";
-import { formatDate, formatSalaryRange, labels, outcomeLabel } from "../../../lib/format";
+import { SALARY_NOTE, formatDate, formatSalaryRange, formatYears, labels, outcomeLabel } from "../../../lib/format";
 import { Alert } from "../../../ui/Alert";
 import { Button } from "../../../ui/Button";
 import { Logo } from "../../../ui/Logo";
@@ -58,7 +58,7 @@ function Cv({ profile: p, assessment, fsp }: CvProps) {
     p.relocation && "готов к переезду",
     p.work_formats.map((f) => labels.workFormat[f]).join(" / "),
     p.education && labels.education[p.education],
-    p.experience_years !== null && p.experience_years !== undefined && `опыт ${p.experience_years} лет`,
+    p.experience_years !== null && p.experience_years !== undefined && `опыт ${formatYears(p.experience_years)}`,
   ].filter(Boolean);
 
   return (
@@ -134,7 +134,7 @@ function Cv({ profile: p, assessment, fsp }: CvProps) {
 
       {(p.salary_min || p.salary_max) && (
         <Block title="Ожидания по зарплате">
-          <p>{formatSalaryRange(p.salary_min, p.salary_max)} в месяц</p>
+          <p>{formatSalaryRange(p.salary_min, p.salary_max)} в месяц, {SALARY_NOTE}</p>
         </Block>
       )}
 

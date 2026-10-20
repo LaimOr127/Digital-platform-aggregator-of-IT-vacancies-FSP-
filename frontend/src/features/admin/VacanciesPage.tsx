@@ -1,7 +1,7 @@
 import { Ban, Briefcase, RotateCcw } from "lucide-react";
 import { useState } from "react";
 import type { AdminVacancy, ModerationAction, VacancyStatus } from "../../api/types";
-import { formatDate, formatSalaryRange, labels } from "../../lib/format";
+import { SALARY_NOTE, formatDate, formatSalaryRange, labels } from "../../lib/format";
 import { vacancyTone } from "../../lib/tones";
 import { PageHeader } from "../../ui/AppShell";
 import { Badge } from "../../ui/Badge";
@@ -77,7 +77,7 @@ function VacancyRow({ vacancy, onModerate }: { vacancy: AdminVacancy; onModerate
           {vacancy.complaints > 0 && <Badge tone="danger">Жалоб: {vacancy.complaints}</Badge>}
         </div>
         <p className="mt-1 text-sm text-muted">
-          {vacancy.company_name} · {labels.grade[vacancy.grade]} · {formatSalaryRange(vacancy.salary_min, vacancy.salary_max)} ·
+          {vacancy.company_name} · {labels.grade[vacancy.grade]} · {formatSalaryRange(vacancy.salary_min, vacancy.salary_max)} {SALARY_NOTE} ·
           создана {formatDate(vacancy.created_at)}
         </p>
         {vacancy.complaint_notes.length > 0 && (

@@ -155,10 +155,22 @@ async def test_response_rules(client: AsyncClient, db, app):
         f"{BOARD}/{vacancy_id}/respond", json={}, headers=bearer(candidate["token"])
     )
     assert twice.status_code == 409
+    # вторая вакансия той же компании: кнопка неактивна и объясняет почему
+    other = await create_vacancy(client, employer["token"], title="Python-разработчик")
+    await client.post(
+        f"/api/v1/employer/vacancies/{other['id']}/publish", headers=bearer(employer["token"])
+    )
+    board = (await client.get(BOARD, headers=bearer(candidate["token"]))).json()["items"]
+    assert all(
+        v["respond_blocked"] == "Вы уже откликнулись в эту компанию — дождитесь ответа"
+        for v in board
+    )
     withdrawn = await client.post(
         f"{MY_APPLICATIONS}/{first.json()['id']}/withdraw", headers=bearer(candidate["token"])
     )
     assert withdrawn.json()["status"] == "withdrawn"
+    board = (await client.get(BOARD, headers=bearer(candidate["token"]))).json()["items"]
+    assert all(v["respond_blocked"] is None for v in board)
     await client.post(
         f"/api/v1/employer/vacancies/{vacancy_id}/close", headers=bearer(employer["token"])
     )

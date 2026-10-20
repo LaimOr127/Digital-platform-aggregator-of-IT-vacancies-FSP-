@@ -28,7 +28,7 @@ from app.schemas.catalog import CandidateCardOut
 from app.services.access import Action, Principal, policy
 from app.services.catalog import build_cards
 from app.services.profile_import import grade_for_experience
-from app.services.specializations import EDUCATION, ROLES, SPECIALIZATIONS
+from app.services.specializations import EDUCATION, ROLES, SPECIALIZATIONS, specialization_for
 
 AiResolved = tuple[AiClient, str] | None
 MAX_REVIEW = 10
@@ -146,19 +146,18 @@ def rule_suggestion(profile: CandidateProfile) -> SuggestionOut:
     """Без модели: специализация с наибольшим пересечением стека,
     грейд — заявленный или по стажу."""
     stack = {s.slug for s in profile.skills} | {n.lower() for n in profile.custom_skills or []}
-    overlap = {spec: len(stack & set(info.skills)) for spec, info in SPECIALIZATIONS.items()}
-    best = max(overlap, key=lambda spec: overlap[spec])
-    specialization = best if overlap[best] else profile.specialization
+    best, matches = specialization_for(stack)
+    specialization = best or profile.specialization
     grade = profile.grade or grade_for_experience(profile.experience_years)
     if specialization is None:
         reason = "Добавьте в профиль стек — по нему подскажем специализацию."
-    else:
+    elif best:
         reason = (
-            f"По стеку профиля ближе всего «{SPECIALIZATIONS[specialization].title}»"
-            f" ({overlap[best]} совпадений с типичным стеком)."
-            if overlap[best]
-            else "Специализация из прошлого опроса."
+            f"По стеку профиля ближе всего «{SPECIALIZATIONS[best].title}»"
+            f" ({matches} совпадений с типичным стеком)."
         )
+    else:
+        reason = "Специализация из прошлого опроса."
     return SuggestionOut(specialization=specialization, grade=grade, reason=reason, source="rules")
 
 

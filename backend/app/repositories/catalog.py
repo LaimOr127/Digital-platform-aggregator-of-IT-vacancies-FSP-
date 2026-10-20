@@ -14,6 +14,7 @@ from app.models import (
     Category,
     FspAchievement,
     Skill,
+    User,
     candidate_categories,
     profile_skills,
 )
@@ -35,10 +36,12 @@ class CatalogFilters:
     fsp_category: str | None = None  # категория достижений ФСП (дисциплина x уровень)
 
 
-# кандидат скрыл профиль или не ищет работу — его нет в каталоге и ему нельзя отправить оффер
+# кандидат скрыл профиль, не ищет работу или заблокирован модератором — его нет в каталоге
+# и ему нельзя отправить оффер
 VISIBLE = (
     CandidateProfile.is_hidden.is_(False),
     CandidateProfile.search_status != SearchStatus.CLOSED,
+    CandidateProfile.user_id.not_in(select(User.id).where(User.is_active.is_(False))),
 )
 
 

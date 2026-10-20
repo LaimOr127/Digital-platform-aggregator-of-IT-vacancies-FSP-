@@ -118,6 +118,14 @@ EDUCATION = {
 }
 
 
+def specialization_for(stack: set[str]) -> tuple[Specialization | None, int]:
+    """Специализация с наибольшим пересечением стека (slug навыков) с типичным стеком и число
+    совпадений; без совпадений — None. Подсказка для опроса, категорию определяет тест."""
+    overlap = {spec: len(stack & set(info.skills)) for spec, info in SPECIALIZATIONS.items()}
+    best = max(overlap, key=lambda spec: overlap[spec])
+    return (best, overlap[best]) if overlap[best] else (None, 0)
+
+
 def known_keys(values: list[str], allowed: dict[str, str], label: str) -> list[str]:
     """Значения из справочника без повторов; неизвестное значение — ошибка валидации."""
     unknown = [v for v in values if v not in allowed]

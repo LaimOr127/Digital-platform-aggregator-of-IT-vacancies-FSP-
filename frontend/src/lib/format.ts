@@ -26,11 +26,24 @@ const dateTime = new Intl.DateTimeFormat("ru-RU", {
 });
 const DAY_MS = 86_400_000;
 
+/** Все суммы в сервисе — до вычета налогов (вакансии, приглашения, офферы, ожидания). */
+export const SALARY_NOTE = "до вычета налогов";
+
 export function formatSalaryRange(min?: number | null, max?: number | null): string {
   if (min && max) return `${money.format(min)} – ${money.format(max)} ₽`;
   if (min) return `от ${money.format(min)} ₽`;
   if (max) return `до ${money.format(max)} ₽`;
   return "Не указана";
+}
+
+/** Стаж: «3,4 года», «1 год», «5 лет» (дробное — всегда «года»). */
+export function formatYears(years: number): string {
+  if (!Number.isInteger(years)) return `${String(years).replace(".", ",")} года`;
+  const last = years % 10;
+  const lastTwo = years % 100;
+  const word =
+    last === 1 && lastTwo !== 11 ? "год" : last >= 2 && last <= 4 && (lastTwo < 12 || lastTwo > 14) ? "года" : "лет";
+  return `${years} ${word}`;
 }
 
 export function formatDate(iso: string): string {

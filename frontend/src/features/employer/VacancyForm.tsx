@@ -53,7 +53,7 @@ export function VacancyForm({ vacancy, skills, onDone }: Props) {
       <Field label="Формат работы" error={errors.work_format?.message} className="sm:col-span-2">
         <Select options={options(labels.workFormat)} {...register("work_format")} />
       </Field>
-      <Field label="Зарплата от, ₽" error={errors.salary_min?.message} hint="Вилка обязательна">
+      <Field label="Зарплата от, ₽" error={errors.salary_min?.message} hint="Вилка обязательна, до вычета налогов">
         <MoneyInput {...register("salary_min")} />
       </Field>
       <Field label="Зарплата до, ₽" error={errors.salary_max?.message}>

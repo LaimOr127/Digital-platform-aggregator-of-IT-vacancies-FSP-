@@ -85,8 +85,8 @@ function InterviewRow({ interview, onCancel, onComplete, onOffer }: RowProps) {
   const passed = interview.status === "completed" && interview.result === "passed";
   return (
     <article className="flex flex-col gap-4 rounded-2xl border border-line bg-surface p-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
           <p className="text-xs text-muted">
             Кандидат #{interview.candidate?.anon_id.slice(0, 6).toUpperCase() ?? "скрыт"} · {interview.vacancy_title}
           </p>

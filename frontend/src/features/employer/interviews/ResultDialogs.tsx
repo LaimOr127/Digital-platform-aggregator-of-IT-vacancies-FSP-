@@ -96,7 +96,7 @@ function OfferForm({ interview, onDone }: { interview: EmployerInterview; onDone
           <Alert>{error}</Alert>
         </div>
       )}
-      <Field label="Зарплата от, ₽" error={errors.salary_min?.message}>
+      <Field label="Зарплата от, ₽" error={errors.salary_min?.message} hint="До вычета налогов">
         <MoneyInput {...form.register("salary_min")} />
       </Field>
       <Field label="Зарплата до, ₽" error={errors.salary_max?.message}>

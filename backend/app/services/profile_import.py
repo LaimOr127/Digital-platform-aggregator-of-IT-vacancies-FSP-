@@ -20,6 +20,7 @@ from app.services.access import Action, Principal, policy
 from app.services.categorization import TIERS, describe_anonymous, result_tier
 from app.services.fsp_sync import to_evidence
 from app.services.skill_matching import SkillDictionary
+from app.services.specializations import specialization_for
 
 # название должности по дисциплине — если в анкете специализация не указана
 DISCIPLINE_TITLES = {
@@ -32,7 +33,7 @@ DISCIPLINE_TITLES = {
 _TOP_ACHIEVEMENTS = 3
 
 
-def grade_for_experience(years: int | None) -> Grade | None:
+def grade_for_experience(years: float | None) -> Grade | None:
     """Ориентир по стажу; кандидат может поправить грейд перед сохранением."""
     if years is None:
         return None
@@ -97,6 +98,8 @@ def build_fsp_draft(
         title=title,
         about=_about(q, best),
         grade=grade,
+        specialization=specialization_for(set(matched.slugs))[0],
+        experience_years=q.experience_years,
         city=q.city or region,
         contacts=Contacts(email=q.email, phone=q.phone, telegram=q.telegram),
         skills=skills_out(dictionary, matched.slugs),

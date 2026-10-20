@@ -10,7 +10,7 @@ from typing import Any
 from pydantic import BaseModel, Field, ValidationError
 
 from app.integrations.ai.base import AiClient, AiUnavailableError
-from app.models.enums import Grade, WorkFormat
+from app.models.enums import Education, Grade, WorkFormat
 from app.services.specializations import ROLES, SOFT_SKILLS
 
 _SYSTEM = (
@@ -27,9 +27,10 @@ class AiProfile(BaseModel):
     full_name: str | None = Field(default=None, max_length=120)
     title: str | None = Field(default=None, max_length=120)
     grade: Grade | None = None
-    experience_years: int | None = Field(default=None, ge=0, le=60)
+    experience_years: float | None = Field(default=None, ge=0, le=60)
     city: str | None = Field(default=None, max_length=100)
-    work_format: WorkFormat | None = None
+    work_formats: list[WorkFormat] = Field(default_factory=list, max_length=3)
+    education: Education | None = None
     salary_min: int | None = Field(default=None, ge=0, le=10_000_000)
     skills: list[str] = Field(default_factory=list, max_length=50)
     about: str | None = Field(default=None, max_length=1500)
@@ -48,9 +49,16 @@ def _schema() -> dict[str, Any]:
             "full_name": nullable("string", description="Имя и фамилия"),
             "title": nullable("string", description="Желаемая должность"),
             "grade": nullable("string", enum=[*(g.value for g in Grade), None]),
-            "experience_years": nullable("integer", description="Полных лет опыта в ИТ"),
+            "experience_years": nullable(
+                "number", description="Опыт в ИТ в годах с одной десятой: 3 года 5 месяцев = 3.4"
+            ),
             "city": nullable("string"),
-            "work_format": nullable("string", enum=[*(f.value for f in WorkFormat), None]),
+            "work_formats": {
+                "type": "array",
+                "items": {"type": "string", "enum": [f.value for f in WorkFormat]},
+                "description": "все упомянутые: офис (на месте работодателя), гибрид, удалённо",
+            },
+            "education": nullable("string", enum=[*(e.value for e in Education), None]),
             "salary_min": nullable("integer", description="Желаемая зарплата, ₽ в месяц"),
             "skills": {"type": "array", "items": {"type": "string"}, "maxItems": 50},
             "about": nullable("string"),

@@ -135,6 +135,21 @@ async def test_time_limit_is_enforced(client: AsyncClient, db):
     assert late.status_code == 409
     after = await state(client, token)
     assert after["active"] is None and after["history"][0]["status"] == "expired"
+    # брошенный тест — как проваленный: этот грейд и выше закрыты, ниже — открыт
+    assert after["history"][0]["result"] == "failed"
+    assert not option(after, "middle")["allowed"] and option(after, "junior")["allowed"]
+
+
+async def test_failure_locks_grade_in_every_specialization(client: AsyncClient, db):
+    token = await register_candidate(client)
+    await survey(client, token, grade="middle")
+    await take_test(client, db, token, "middle", correct=0)
+    # сменил специализацию — провал всё равно действует
+    after = await survey(
+        client, token, specialization="frontend", grade="middle", skills=("react",)
+    )
+    assert not option(after, "middle")["allowed"] and not option(after, "senior")["allowed"]
+    assert option(after, "junior")["allowed"]
 
 
 async def test_foreign_attempt_is_invisible(client: AsyncClient, db):
@@ -184,3 +199,16 @@ async def test_employer_sees_how_tasks_follow_the_vacancy(client: AsyncClient, d
 async def test_dictionaries_are_public(client: AsyncClient):
     body = (await client.get("/api/v1/public/dictionaries")).json()
     assert len(body["specializations"]) == 7 and body["industries"] and body["roles"]
+
+
+async def test_focus_losses_are_a_signal_not_a_failure(client: AsyncClient, db):
+    token = await register_candidate(client)
+    await survey(client, token)
+    attempt = (
+        await client.post(f"{ASSESSMENT}/attempts", json={"grade": "middle"}, headers=bearer(token))
+    ).json()
+    body = {"responses": await responses(db, attempt["id"]), "focus_losses": 3}
+    r = await client.post(
+        f"{ASSESSMENT}/attempts/{attempt['id']}/submit", json=body, headers=bearer(token)
+    )
+    assert r.json()["focus_losses"] == 3 and r.json()["result"] == "passed"

@@ -3,6 +3,7 @@
 
 import uuid
 from dataclasses import asdict
+from datetime import UTC, datetime
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,6 +12,7 @@ from app.core.cache import TtlCache
 from app.core.errors import ConflictError, NotFoundError
 from app.core.timeutil import as_aware
 from app.models import Application, CandidateProfile, EmployerCompany, Vacancy, VacancyComplaint
+from app.models.enums import ApplicationDirection
 from app.repositories.applications import CandidateApplicationRepository
 from app.repositories.candidates import CandidateProfileRepository
 from app.repositories.catalog import CatalogRepository
@@ -50,11 +52,16 @@ class VacancyBoardService:
         # снятые с публикации после расчёта рейтинга вакансии не показываются
         published = await self.vacancies.by_ids([vacancy_id for vacancy_id, _ in page])
         shown = [(published[vid], result) for vid, result in page if vid in published]
-        applied = await CandidateApplicationRepository(self.session, profile.id).by_vacancies(
-            [v.id for v, _ in shown]
+        repo = CandidateApplicationRepository(self.session, profile.id)
+        applied = await repo.by_vacancies([v.id for v, _ in shown])
+        busy = await repo.open_by_companies(
+            list({v.company_id for v, _ in shown}), datetime.now(UTC)
         )
         found = await companies(self.session, {v.company_id for v, _ in shown})
-        items = [_out(v, result, found.get(v.company_id), applied.get(v.id)) for v, result in shown]
+        items = [
+            _out(v, result, found.get(v.company_id), applied.get(v.id), busy.get(v.company_id))
+            for v, result in shown
+        ]
         return items, next_offset(offset, limit, len(ranked), _PREFIX)
 
     async def _rank(
@@ -74,11 +81,17 @@ class VacancyBoardService:
             raise NotFoundError("вакансия не найдена или снята с публикации")
         categories = await CatalogRepository(self.session).categories_for([profile.id])
         result = match(vacancy, Candidate(profile, categories.get(profile.id, [])))
-        applied = await CandidateApplicationRepository(self.session, profile.id).by_vacancies(
-            [vacancy.id]
-        )
+        repo = CandidateApplicationRepository(self.session, profile.id)
+        applied = await repo.by_vacancies([vacancy.id])
+        busy = await repo.open_by_companies([vacancy.company_id], datetime.now(UTC))
         found = await companies(self.session, {vacancy.company_id})
-        return _out(vacancy, result, found.get(vacancy.company_id), applied.get(vacancy.id))
+        return _out(
+            vacancy,
+            result,
+            found.get(vacancy.company_id),
+            applied.get(vacancy.id),
+            busy.get(vacancy.company_id),
+        )
 
     async def complain(self, vacancy_id: uuid.UUID, data: ComplaintIn) -> None:
         """Жалоба на опубликованную вакансию: одна от кандидата, видна модератору."""
@@ -105,6 +118,7 @@ def _out(
     result: MatchResult,
     company: EmployerCompany | None,
     application: Application | None,
+    open_with_company: Application | None = None,
 ) -> BoardVacancyOut:
     return BoardVacancyOut(
         id=vacancy.id,
@@ -123,4 +137,14 @@ def _out(
             score=result.score, factors=[MatchFactorOut(**asdict(f)) for f in result.factors]
         ),
         application_status=effective_status(application) if application else None,
+        respond_blocked=_blocked(open_with_company),
     )
+
+
+def _blocked(open_with_company: Application | None) -> str | None:
+    """С компанией допускается одно открытое обращение — объясняем, почему отклик недоступен."""
+    if open_with_company is None:
+        return None
+    if open_with_company.direction == ApplicationDirection.INVITATION:
+        return "У вас есть приглашение от этой компании — ответьте на него в «Приглашениях»"
+    return "Вы уже откликнулись в эту компанию — дождитесь ответа"

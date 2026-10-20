@@ -18,7 +18,7 @@ from app.services.resume import rules
 from app.services.resume.extract import extract_text
 from app.services.resume.llm import AiProfile, AiResumeParser
 from app.services.skill_matching import SkillDictionary
-from app.services.specializations import ROLES, SOFT_SKILLS
+from app.services.specializations import ROLES, SOFT_SKILLS, specialization_for
 
 _EXTRACT_TIMEOUT = 15  # секунд: «тяжёлый» PDF не держит запрос бесконечно
 
@@ -38,7 +38,8 @@ class ResumeImportService:
         except TimeoutError as exc:
             raise ServiceUnavailableError("файл обрабатывается слишком долго") from exc
         dictionary = await SkillDictionary.load(self.session)
-        draft = build_resume_draft(rules.parse(text), dictionary.find_in_text(text), dictionary)
+        parsed = rules.parse(text)
+        draft = build_resume_draft(parsed, dictionary.find_in_text(text), dictionary)
         ai_used = False
         if use_ai and self.ai is not None:
             try:
@@ -61,20 +62,27 @@ def build_resume_draft(
     notes = ["Поля заполнены алгоритмом по тексту резюме — проверьте перед сохранением"]
     if parsed.grade is None and grade:
         notes.append(f"Грейд предложен по стажу ({parsed.experience_years} г.)")
+    # строка «стек: …» — навыки из справочника, остальное станет своими навыками
+    labeled = dictionary.match_names(parsed.stack)
+    skills = list(dict.fromkeys([*labeled.slugs, *slugs]))
     return ProfileDraftOut(
         source="resume",
         full_name=parsed.full_name,
         title=parsed.title,
         about=parsed.about,
         grade=grade,
-        work_format=parsed.work_format,
+        specialization=specialization_for(set(skills))[0],
+        work_formats=parsed.work_formats,
+        relocation=parsed.relocation,
+        education=parsed.education,
         city=parsed.city,
         salary_min=parsed.salary_min,
         experience_years=parsed.experience_years,
         roles=parsed.roles,
-        soft_skills=parsed.soft_skills,
+        soft_skills=[*parsed.soft_skills, *parsed.extra_soft_skills],
         contacts=Contacts(email=parsed.email, phone=parsed.phone, telegram=parsed.telegram),
-        skills=skills_out(dictionary, slugs),
+        skills=skills_out(dictionary, skills),
+        unknown_skills=labeled.unknown,
         notes=notes,
     )
 
@@ -88,7 +96,8 @@ def merge_ai(
         "title",
         "about",
         "city",
-        "work_format",
+        "work_formats",
+        "education",
         "salary_min",
         "experience_years",
     )
@@ -105,7 +114,8 @@ def merge_ai(
     matched = dictionary.match_names(ai.skills)
     known = [s.slug for s in draft.skills]
     draft.skills = skills_out(dictionary, known + [s for s in matched.slugs if s not in known])
-    draft.unknown_skills = matched.unknown
+    draft.unknown_skills = list(dict.fromkeys([*draft.unknown_skills, *matched.unknown]))
+    draft.specialization = specialization_for({s.slug for s in draft.skills})[0]
     draft.notes = [
         f"Поля заполнены ИИ ({label}) — проверьте перед сохранением",
         "Контакты найдены на сервере и в ИИ-сервис не передавались",

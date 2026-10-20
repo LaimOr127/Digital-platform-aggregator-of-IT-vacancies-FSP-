@@ -77,8 +77,8 @@ export function TasksPage({ company }: { company: Company | undefined }) {
 function TaskRow({ task, onAnswers, onClose }: { task: EmployerTask; onAnswers: () => void; onClose: () => void }) {
   return (
     <article className="rounded-2xl border border-line bg-surface p-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
           <h3 className="font-semibold">{task.title}</h3>
           <p className="mt-1 text-sm text-muted">
             {labels.specialization[task.specialization]} · {task.grade ? labels.grade[task.grade] : "любой грейд"} ·{" "}

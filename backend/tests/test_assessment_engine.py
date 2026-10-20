@@ -168,3 +168,17 @@ def test_confident_result_opens_next_grade_right_away():
     assert not decide(Grade.LEAD, Grade.MIDDLE, confirmed_at, history, NOW).allowed
     late = NOW + timedelta(days=20)
     assert not decide(Grade.SENIOR, Grade.MIDDLE, confirmed_at, history, late).allowed
+
+
+def test_random_answers_rarely_pass_intern_test():
+    """Порог верных ответов для стажёра: наугад сдают реже 5 % (без порога — около 43 %)."""
+    rng = random.Random(3)
+    passed = 0
+    for _ in range(400):
+        items = assemble("backend", 1, rng)
+        guesses = [
+            str(rng.randrange(len(i.options))) if i.kind == "choice" else str(rng.randint(0, 100))
+            for i in items
+        ]
+        passed += evaluate(items, guesses, 1).passed
+    assert passed / 400 < 0.05

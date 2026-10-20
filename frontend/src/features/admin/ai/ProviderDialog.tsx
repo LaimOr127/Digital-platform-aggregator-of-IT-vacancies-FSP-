@@ -16,7 +16,13 @@ const schema = z.object({
   name: z.string().trim().min(2, "Минимум 2 символа").max(80),
   kind: z.enum(["openai", "anthropic"]),
   base_url: z.string().trim().min(8, "Укажите адрес API").max(300),
-  model: z.string().trim().min(1, "Укажите модель").max(120),
+  model: z
+    .string()
+    .trim()
+    .min(1, "Укажите модель")
+    .max(120)
+    // шаблон YandexGPT подставляет gpt://<folder_id>/... — заглушку легко оставить, а сервис ответит 400
+    .refine((v) => !/[<>]/.test(v), "Замените <folder_id> на ID каталога Yandex Cloud (консоль → каталог → ID)"),
   api_key: z.string().trim().max(512),
 });
 type Form = z.infer<typeof schema>;

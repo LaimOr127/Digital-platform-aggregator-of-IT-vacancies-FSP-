@@ -7,7 +7,7 @@ from sqlalchemy import Select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import Assessment
-from app.models.enums import AssessmentStatus, Specialization
+from app.models.enums import AssessmentStatus
 from app.repositories.base import BaseRepository
 
 
@@ -34,12 +34,13 @@ class AssessmentRepository(BaseRepository[Assessment]):
         )
         return list((await self.session.execute(stmt)).scalars())
 
-    async def finished_for(self, specialization: Specialization) -> list[Assessment]:
+    async def finished(self) -> list[Assessment]:
+        """Завершённые и брошенные попытки во всех специализациях: провал закрывает грейд и выше
+        независимо от того, сменил ли кандидат специализацию."""
         stmt = (
             self._select()
             .where(
-                Assessment.specialization == specialization,
-                Assessment.status == AssessmentStatus.COMPLETED,
+                Assessment.status.in_((AssessmentStatus.COMPLETED, AssessmentStatus.EXPIRED)),
             )
             .order_by(Assessment.finished_at.desc())
         )

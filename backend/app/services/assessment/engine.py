@@ -35,6 +35,10 @@ ITEMS_TOTAL = 15
 DISCRIMINATION = 1.7
 GUESS: dict[Kind, float] = {"choice": 0.25, "number": 0.02}
 PASS_MARGIN = 0.5
+# минимум верных ответов для стажёра: ниже его уровня шкала не опускается, и одна оценка уровня
+# пропускала случайные ответы примерно в половине попыток. 6 из 15 оставляют угадыванию ~1.3 %
+# (5 из 15 — 6.3 %, выше допустимых 5 %); расчёт — docs/validation.md («Случайные ответы»)
+MIN_CORRECT = {1: 6}
 SCORE_SPAN = 2.0  # баллы 0..100 внутри категории покрывают уровни [g - 0.5, g + 1.5]
 _GRID = [i / 50 for i in range(0, 301)]  # theta от 0 до 6
 _PRIOR_MEAN, _PRIOR_SD = 3.0, 1.5
@@ -92,6 +96,16 @@ def levels_for(target: int) -> list[int]:
     return [start, start + 1, start + 2]
 
 
+def level_counts(target: int) -> list[tuple[int, int]]:
+    """Сколько заданий каждого уровня. У стажёра уровня ниже нет, и в окне 1-2-3 треть заданий —
+    уровня Middle: на них стажёр отвечает почти наугад. Поэтому у него больше заданий своего уровня
+    (все 6 шаблонов банка) и меньше Middle: 6/6/3 вместо 5/5/5 (docs/validation.md)."""
+    if target == 1:
+        return [(1, 6), (2, 6), (3, 3)]
+    levels = levels_for(target)
+    return list(zip(levels, _split(ITEMS_TOTAL, len(levels)), strict=True))
+
+
 def pool(specialization: str, level: int) -> list[Template]:
     return [
         t
@@ -105,10 +119,8 @@ def assemble(
 ) -> list[GeneratedItem]:
     """Задания уровней target-1..target+1: выбор шаблонов случайный, с весом за специализацию
     и за навыки из focus (стек кандидата или навыки вакансии); каждое задание — новый вариант."""
-    levels = levels_for(target)
-    counts = _split(ITEMS_TOTAL, len(levels))
     items: list[GeneratedItem] = []
-    for level, count in zip(levels, counts, strict=True):
+    for level, count in level_counts(target):
         chosen = _weighted_sample(pool(specialization, level), count, rng, specialization, focus)
         items.extend(_instance(t, rng) for t in chosen)
     return items
@@ -231,7 +243,7 @@ def evaluate(items: list[GeneratedItem], responses: list[str | None], target: in
         for skill in item.skills:
             per_skill[skill][0] += int(mark)
             per_skill[skill][1] += 1
-    passed = theta >= target - PASS_MARGIN
+    passed = theta >= target - PASS_MARGIN and sum(marks) >= MIN_CORRECT.get(target, 0)
     confident = target < 5 and theta >= target + PASS_MARGIN
     score = round(100 * min(1.0, max(0.0, (theta - (target - PASS_MARGIN)) / SCORE_SPAN)))
     skills = tuple(sorted(s for s, (ok, n) in per_skill.items() if ok and ok * 2 >= n))

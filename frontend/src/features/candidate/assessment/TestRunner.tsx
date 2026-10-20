@@ -4,7 +4,7 @@ import { Clock, Send } from "lucide-react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import type { Attempt, AttemptResult, Question } from "../../../api/types";
 import { errorMessage } from "../../../api/errors";
-import { useContentGuard } from "../../../lib/contentGuard";
+import { useContentGuard, useFocusGuard } from "../../../lib/contentGuard";
 import { labels } from "../../../lib/format";
 import { Badge } from "../../../ui/Badge";
 import { Button } from "../../../ui/Button";
@@ -12,6 +12,8 @@ import { Card } from "../../../ui/Card";
 import { ConfirmDialog } from "../../../ui/ConfirmDialog";
 import { Input } from "../../../ui/form";
 import { useToast } from "../../../ui/Toast";
+import { Watermark } from "../../../ui/Watermark";
+import { useProfile } from "../hooks";
 import { useReportViolation, useSubmitAttempt } from "./hooks";
 
 type Props = { attempt: Attempt; onFinished: (result: AttemptResult) => void };
@@ -22,7 +24,9 @@ export function TestRunner({ attempt, onFinished }: Props) {
   const submit = useSubmitAttempt();
   const violation = useReportViolation();
   const notify = useToast();
-  // снимок экрана — тест не засчитан (сервер завершает попытку как проваленную)
+  const focus = useFocusGuard();
+  const anonId = useProfile().data?.anon_id;
+  // PrintScreen — тест не засчитан (сервер завершает попытку как проваленную)
   const guard = useContentGuard<HTMLDivElement>(() => {
     violation.mutate(attempt.id, {
       onSuccess: onFinished,
@@ -35,11 +39,17 @@ export function TestRunner({ attempt, onFinished }: Props) {
   const send = useCallback(async () => {
     setConfirming(false);
     try {
-      onFinished(await submit.mutateAsync({ id: attempt.id, responses: answers.map((a) => (a === "" ? null : a)) }));
+      onFinished(
+        await submit.mutateAsync({
+          id: attempt.id,
+          responses: answers.map((a) => (a === "" ? null : a)),
+          focusLosses: focus.leaves,
+        }),
+      );
     } catch (err) {
       notify(errorMessage(err), "error");
     }
-  }, [answers, attempt.id, notify, onFinished, submit]);
+  }, [answers, attempt.id, focus.leaves, notify, onFinished, submit]);
 
   const seconds = useCountdown(attempt.deadline_at);
   // время вышло — отправляем то, что успели ответить (сервер примет в течение минуты)
@@ -57,7 +67,8 @@ export function TestRunner({ attempt, onFinished }: Props) {
   return (
     <div ref={guard} className="no-print flex select-none flex-col gap-5">
       <p className="rounded-xl border border-warn/40 bg-warn/10 px-4 py-3 text-sm">
-        Копирование заданий отключено. Снимок экрана во время теста — тест не засчитывается.
+        Копирование заданий отключено, на заданиях — ваш идентификатор. Задания скрываются, пока окно
+        неактивно; число уходов со вкладки видно в результате. PrintScreen — тест не засчитывается.
       </p>
       <div className="sticky top-28 z-20 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-line bg-surface/95 px-5 py-3 backdrop-blur">
         <div>
@@ -75,13 +86,23 @@ export function TestRunner({ attempt, onFinished }: Props) {
           </span>
         </Badge>
       </div>
-      <ol className="flex flex-col gap-4">
-        {attempt.questions.map((q) => (
-          <li key={q.index}>
-            <QuestionCard question={q} value={answers[q.index]} onChange={(v) => setAnswer(q.index, v)} />
-          </li>
-        ))}
-      </ol>
+      <div className="relative">
+        {anonId && <Watermark text={`IT Match · #${anonId.slice(0, 8).toUpperCase()}`} />}
+        {focus.hidden && (
+          <div className="absolute inset-0 z-20 flex items-start justify-center rounded-2xl bg-bg/95 p-10 text-center">
+            <p className="max-w-md text-sm">
+              Задания скрыты, пока окно теста неактивно. Вернитесь на вкладку — время теста идёт.
+            </p>
+          </div>
+        )}
+        <ol className={`flex flex-col gap-4 ${focus.hidden ? "invisible" : ""}`}>
+          {attempt.questions.map((q) => (
+            <li key={q.index}>
+              <QuestionCard question={q} value={answers[q.index]} onChange={(v) => setAnswer(q.index, v)} />
+            </li>
+          ))}
+        </ol>
+      </div>
       <div className="flex justify-end">
         <Button size="lg" loading={submit.isPending} onClick={() => (answered < total ? setConfirming(true) : void send())}>
           <Send className="size-4" aria-hidden />

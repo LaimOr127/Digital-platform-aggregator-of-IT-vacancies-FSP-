@@ -1,14 +1,17 @@
 import { Link } from "react-router";
+import star from "../assets/fsp-star.svg";
+import starLight from "../assets/fsp-star-light.svg";
 
+/** Знак ФСП (брендбук) и название сервиса — «IT» только в названии. На экране — вариант для
+ * тёмного фона, при печати PDF-профиля — для светлого (белые элементы знака не пропадают). */
 export function Logo({ to = "/" }: { to?: string }) {
   return (
-    <Link to={to} className="flex items-center gap-2 font-semibold tracking-tight" aria-label="IT Match — на главную">
-      <span aria-hidden className="grid size-7 place-items-center rounded-lg bg-accent text-sm font-bold text-on-accent">
-        IT
-      </span>
-      <span>
-        IT Match <span className="text-muted">· ФСП</span>
-      </span>
+    <Link to={to} className="flex shrink-0 items-center gap-2.5 whitespace-nowrap" aria-label="IT Match · ФСП — на главную">
+      <img src={star} alt="" aria-hidden className="size-8 print:hidden" />
+      <img src={starLight} alt="" aria-hidden className="hidden size-8 print:block" />
+      <span className="font-accent text-lg leading-none tracking-wide">IT Match</span>
+      {/* на узком экране «· ФСП» не помещается рядом с кнопками шапки — знак ФСП остаётся */}
+      <span className="hidden font-display text-sm text-muted sm:inline">· ФСП</span>
     </Link>
   );
 }

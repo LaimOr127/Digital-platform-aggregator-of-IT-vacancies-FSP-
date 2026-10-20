@@ -23,6 +23,11 @@ export function ResultCard({ result }: { result: AttemptResult }) {
         {passed && <Stat label="Место в категории" value={`${result.score ?? 0} из 100`} />}
       </dl>
       {result.theta !== null && <LevelScale theta={result.theta} target={result.grade} />}
+      {result.focus_losses > 0 && (
+        <p className="mt-4 text-sm text-muted">
+          Уходов со вкладки во время теста: {result.focus_losses}. Это сигнал для вас, на результат не влияет.
+        </p>
+      )}
       {result.topics.length > 0 && (
         <section className="mt-6">
           <h3 className="text-sm font-semibold">Результаты по темам</h3>
@@ -44,7 +49,7 @@ export function ResultCard({ result }: { result: AttemptResult }) {
 
 function verdict(result: AttemptResult): string {
   if (result.violation === "screenshot") {
-    return "Тест не засчитан: во время теста был сделан снимок экрана. Этот грейд и грейды выше — через 14 дней, грейд ниже — сразу.";
+    return "Тест не засчитан: во время теста нажата клавиша снимка экрана. Этот грейд и грейды выше — через 14 дней, грейд ниже — сразу.";
   }
   if (result.result === "failed") {
     return "Грейд не понижается: можно сразу пройти тест на грейд ниже, а этот и грейды выше — через 14 дней.";

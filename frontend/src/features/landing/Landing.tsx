@@ -6,6 +6,7 @@ import { useAuth } from "../../auth/AuthProvider";
 import { portalPath } from "../../auth/portal";
 import { Badge } from "../../ui/Badge";
 import { Logo } from "../../ui/Logo";
+import { CookieBanner } from "./CookieBanner";
 
 const primaryLink =
   "inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-accent px-6 font-medium text-on-accent transition-colors hover:bg-accent-strong";
@@ -139,6 +140,7 @@ export function Landing() {
           </a>
         </div>
       </footer>
+      <CookieBanner />
     </div>
   );
 }

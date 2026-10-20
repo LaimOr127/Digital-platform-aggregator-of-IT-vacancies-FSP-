@@ -9,6 +9,7 @@ import html
 import io
 import re
 import zipfile
+from typing import Any
 
 from pypdf import PdfReader
 from pypdf.errors import PdfReadError
@@ -51,11 +52,22 @@ def _pdf_text(data: bytes) -> str:
         if reader.is_encrypted:
             raise UnsupportedResumeError("PDF защищён паролем")
         pages = reader.pages[:MAX_PAGES]
-        return "\n".join(page.extract_text() or "" for page in pages)
+        return "\n".join(_notes(page) + (page.extract_text() or "") for page in pages)
     except UnsupportedResumeError:
         raise
     except (PdfReadError, ValueError, KeyError, TypeError) as exc:
         raise UnsupportedResumeError("не удалось прочитать PDF") from exc
+
+
+def _notes(page: Any) -> str:
+    """Текстовые блоки-аннотации (FreeText): так в PDF-редакторах дописывают должность, стек и
+    роли поверх резюме; extract_text их не видит. Ставятся в начало страницы — как шапка."""
+    notes = []
+    for ref in page.get("/Annots") or []:
+        annot = ref.get_object()
+        if annot.get("/Subtype") == "/FreeText" and annot.get("/Contents"):
+            notes.append(str(annot["/Contents"]))
+    return "".join(f"{note}\n" for note in notes)
 
 
 def _docx_text(data: bytes) -> str:

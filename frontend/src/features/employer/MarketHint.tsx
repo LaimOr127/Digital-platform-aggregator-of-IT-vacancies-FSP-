@@ -3,7 +3,7 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useWatch, type Control } from "react-hook-form";
 import { insightsApi } from "../../api/endpoints";
 import type { Grade } from "../../api/types";
-import { formatSalaryRange, labels } from "../../lib/format";
+import { SALARY_NOTE, formatSalaryRange, labels } from "../../lib/format";
 import { useDebounced } from "../../lib/useDebounced";
 import { Badge } from "../../ui/Badge";
 import { positionLabel, positionOf, positionTone, type Position } from "../insights/position";
@@ -70,7 +70,7 @@ export function MarketHint({ control }: { control: Control<VacancyFormInput> }) 
     <section aria-label="Рынок зарплат" className="rounded-xl border border-line bg-surface-2/40 p-4 sm:col-span-2">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm">
-          Рынок для {scope}: обычно {formatSalaryRange(reference.p25, reference.p75)}, медиана{" "}
+          Рынок для {scope}: обычно {formatSalaryRange(reference.p25, reference.p75)} {SALARY_NOTE}, медиана{" "}
           {compactMoney(reference.median)} ₽
         </p>
         {position && <Badge tone={positionTone[position]}>{positionLabel[position]}</Badge>}
