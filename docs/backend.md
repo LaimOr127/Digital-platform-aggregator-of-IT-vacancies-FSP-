@@ -35,11 +35,11 @@ PostgreSQL: Row Level Security — вторая линия, если фильт�
 | `app/main.py` | фабрика приложения: роутеры, обработчики ошибок, лимиты, клиенты интеграций в `app.state` |
 | `app/cli.py` | служебные команды: `create-admin`, `reset-2fa`, `confirm-email`, `seed-demo` |
 | `app/api/deps.py` | DI: сессия БД, `Principal` из access-токена (+ контекст RLS), `require(action)`, клиенты |
-| `app/api/v1/*.py` | роутеры: `auth`, `account` (почта, пароль), `candidate`, `profile_import`, `fsp`, `candidate_interviews`, `candidate_offers`, `employer`, `employer_interviews`, `catalog`, `insights`, `admin`, `admin_ai`, `public`, `health` |
+| `app/api/v1/*.py` | роутеры: `auth`, `account` (почта, пароль), `candidate`, `assessment` (опрос, тест, пример теста вакансии), `applications` (приглашения, отклики, лента вакансий), `tasks`, `updates` (точки «есть новое»), `profile_import`, `fsp`, `candidate_interviews`, `candidate_offers`, `employer`, `employer_interviews`, `catalog`, `ai_assist` (подсказка категории, второе мнение в подборе), `insights`, `admin`, `admin_ai`, `public`, `health` |
 | `app/core/` | `config`, `errors`, `security` (argon2, JWT), `crypto` (AES-GCM), `signing` (Ed25519), `totp`, `ratelimit` (+`ratelimit_pg`), `cache` (TTL-кэш), `validation` (русские сообщения), `logging`, `timeutil` |
-| `app/db/` | `session` (движок, `set_rls_context`, `system_scope`), `provision` (роль приложения и права), `demo` (демо-данные) |
+| `app/db/` | `session` (движок, `set_rls_context`, `system_scope`), `provision` (роль приложения и права), `demo` (демо-данные), `demo_logins` (именные аккаунты для показа во всех состояниях модерации), `demo_moderation` (жалобы) |
 | `app/models/` | таблицы и перечисления (`enums.py`) |
-| `app/repositories/` | `base` + по одному на агрегат: `users`, `candidates`, `companies`, `vacancies`, `catalog`, `offers`, `interviews`, `fsp`, `passports`, `audit`, `admin`, `insights` (агрегаты для радара) |
+| `app/repositories/` | `base` + по одному на агрегат: `users`, `candidates`, `companies`, `vacancies`, `catalog`, `offers`, `interviews`, `fsp`, `passports`, `audit`, `admin`, `insights` (агрегаты для радара), `applications`, `assessments`, `tasks` |
 | `app/services/` | сценарии; подпапки `matching/` (факторы соответствия), `interviews/` (общая часть, сторона компании, сторона кандидата), `resume/` (извлечение текста, правила, ИИ) |
 | `app/integrations/` | внешние системы за интерфейсами: `fsp.py` (`FspClient`), `notifier.py` (`Notifier`), `ai/` (`AiClient`, проверка адресов) |
 | `app/worker/` | `__main__` (цикл задач), `jobs.py` (задачи) |
@@ -52,9 +52,11 @@ PostgreSQL: Row Level Security — вторая линия, если фильт�
 |---|---|
 | Вход и сессии | `auth.py` (вход, refresh с ротацией, выход, создание администратора), `mfa.py`, `enrollment.py` (коды подключения 2FA) |
 | Аккаунт и почта | `account.py` (регистрация без раскрытия занятого адреса, подтверждение, сброс пароля, удаление кандидата), `email_tokens.py`, `emails.py` (шаблоны), `outbox.py` (очередь) |
-| Кандидат | `candidates.py` (профиль), `profile_import.py` (черновик из ФСП и резюме), `resume/` |
+| Кандидат | `candidates.py` (профиль), `profile_import.py` (черновик из ФСП и резюме), `resume/`, `cities.py` (справочник городов) |
+| Тест и категории | `assessment/` (банк шаблонов, сборка теста, IRT, правила повторов, пример теста), `specializations.py` (специализации, грейды, категории), `ai_assist.py` (подсказка категории и второе мнение в подборе) |
+| Выход на контакт | `applications/` (приглашения и отклики, статусы, контакты после согласия), `vacancy_board.py` (лента вакансий кандидата, жалобы), `tasks.py` (задачи от работодателей), `updates.py` (точки «есть новое») |
 | ФСП | `fsp.py` (привязка кодом), `fsp_sync.py` (достижения), `categorization.py` (категории, Strategy `CategoryRule`), `passport.py` (паспорт навыков) |
-| Работодатель | `employer.py` (компания, вакансии), `catalog.py` (каталог, сортировка по соответствию с кэшем), `matching/` |
+| Работодатель | `employer.py` (компания, вакансии), `catalog.py` (каталог: без вакансии — сила профиля, под вакансию — категория, затем тест и ФСП; кэш рейтинга), `matching/` |
 | Найм | `interviews/`, `offers.py` (оффер, раскрытие контактов) |
 | Аналитика | `insights.py` (радар зарплат, путь роста, k-анонимность) |
 | Модерация | `admin.py`, `moderation.py`, `ai_providers.py` |
@@ -102,8 +104,10 @@ PostgreSQL: Row Level Security — вторая линия, если фильт�
 ## Как добавить фактор подбора или правило категории
 
 - Фактор соответствия: класс-наследник `Factor` в `services/matching/factors.py` (`key`, `label`, `weight`,
-  метод `score` возвращает долю 0..1 и объяснение), добавить в кортеж `FACTORS`. Итог нормируется
-  по сумме весов, фронт покажет новый фактор в «Почему» без изменений.
+  метод `score` возвращает долю 0..1 и объяснение). Куда добавить: `STRENGTH_FACTORS` — влияет на место
+  в каталоге (сейчас только тест, ФСП, актуальность); `NEED_FACTORS` с весом 0 — пояснение под
+  вакансию без влияния на порядок; `FACTORS` — соответствие в ленте вакансий кандидата. Итог нормируется
+  по сумме весов, фронт покажет новый фактор в «Почему» без изменений (с нулевым весом — «для сведения»).
 - Правило категории ФСП: наследник `CategoryRule` в `services/categorization.py`, добавить в `RULES`.
 
 ## Как добавить фоновую задачу
@@ -115,7 +119,7 @@ PostgreSQL: Row Level Security — вторая линия, если фильт�
 ## Тесты
 
 - `make test-backend` — ruff, затем pytest дважды: на SQLite (быстро, без RLS) и на одноразовом
-  PostgreSQL с RLS и ролями (`scripts/test-backend.sh`). Порог покрытия — 80 % (сейчас ~95 %).
+  PostgreSQL с RLS и ролями (`scripts/test-backend.sh`). Порог покрытия — 80 % (сейчас 96 %).
 - Внешние системы подменены: `FakeFspClient`, `MemoryNotifier`, `httpx.MockTransport` для моделей ИИ.
 - Готовые сценарии в `tests/flows.py`: `approved_employer`, `verified_candidate`, `send` (приглашение →
   собеседование → оффер) — используйте их, а не собирайте шаги заново.

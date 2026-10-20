@@ -184,6 +184,10 @@ Amazon SES. Для доставки в «Входящие», а не в спам
   - `openai` — любой OpenAI-совместимый `POST {base_url}/chat/completions` (OpenAI, DeepSeek, OpenRouter,
     YandexGPT через совместимый шлюз, Ollama, vLLM, LM Studio). Сначала с `response_format: json_object`,
     при отказе сервера — повтор без него; JSON достаётся и из блока ```json.
+    Для YandexGPT модель — `gpt://<ID каталога>/yandexgpt/latest`: незаменённый `<folder_id>` форма и
+    сервер не сохранят; ключ — API-ключ сервисного аккаунта с ролью `ai.languageModels.user`. OpenAI,
+    Anthropic и OpenRouter отвечают 403 на запросы с российских адресов — «Проверить» в `/admin/ai`
+    называет эту причину; со стенда в России работает YandexGPT.
   - `anthropic` — Messages API с инструментом `respond` (ответ строго по JSON-схеме).
 - Использование сейчас:
   - разбор резюме (`services/resume/llm.py`) — только с согласия кандидата и **без контактов** (e-mail,
