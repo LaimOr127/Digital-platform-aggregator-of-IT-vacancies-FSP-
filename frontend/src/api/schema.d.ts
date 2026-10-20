@@ -3400,7 +3400,7 @@ export interface components {
         };
         /**
          * PreviewQuestionOut
-         * @description Пример задания для работодателя (вариант генерируется заново, поэтому с ответом).
+         * @description Пример задания для работодателя: как и в тесте, без правильного ответа.
          */
         PreviewQuestionOut: {
             /** Index */
@@ -3422,8 +3422,6 @@ export interface components {
             options: string[];
             /** Skills */
             skills: string[];
-            /** Answer */
-            answer: string;
         };
         /** ProfileDraftOut */
         ProfileDraftOut: {

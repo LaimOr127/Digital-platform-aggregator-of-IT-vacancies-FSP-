@@ -190,7 +190,9 @@ async def test_employer_sees_how_tasks_follow_the_vacancy(client: AsyncClient, d
     employer = await approved_employer(client, db, app)
     url = f"/api/v1/employer/vacancies/{employer['vacancy']['id']}/assessment-preview"
     preview = (await client.get(url, headers=bearer(employer["token"]))).json()
-    assert len(preview) == 15 and all(q["answer"] for q in preview)
+    assert len(preview) == 15
+    # эксперты 20.10: правильный ответ не уходит ни в API, ни в интерфейс
+    assert all("answer" not in q for q in preview)
     assert {q["level"] for q in preview} == {2, 3, 4}  # вакансия middle
     candidate = await register_candidate(client)
     assert (await client.get(url, headers=bearer(candidate))).status_code == 403
