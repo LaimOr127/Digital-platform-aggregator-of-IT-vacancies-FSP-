@@ -38,13 +38,33 @@ afterEach(() => vi.unstubAllGlobals());
 describe("match panel", () => {
   it("explains the score by factors on demand", async () => {
     renderWithApp(
-      <MatchPanel match={{ score: 82, factors: [{ key: "skills", label: "Навыки", weight: 40, share: 0.75, detail: "3 из 4" }] }} />,
+      <MatchPanel match={{ score: 82, summary: "", factors: [{ key: "skills", label: "Навыки", weight: 40, share: 0.75, detail: "3 из 4" }] }} />,
     );
     expect(screen.getByText("82%")).toBeInTheDocument();
     expect(screen.queryByText("3 из 4")).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: /Почему/ }));
     expect(screen.getByText("30 из 40")).toBeInTheDocument();
     expect(screen.getByText("3 из 4")).toBeInTheDocument();
+  });
+
+  it("under a vacancy shows why this place and what does not affect it", async () => {
+    const factor = (key: string, weight: number, detail: string) => ({ key, label: key, weight, share: 1, detail });
+    renderWithApp(
+      <MatchPanel
+        kind="need"
+        match={{
+          score: 70,
+          summary: "Грейд Middle подтверждён тестом и совпадает с вакансией",
+          factors: [factor("category", 0, "совпадает"), factor("assessment", 60, "тест"), factor("skills", 0, "Python")],
+        }}
+      />,
+    );
+    expect(screen.getByText(/под вакансию/)).toBeInTheDocument();
+    expect(screen.getByText("Грейд Middle подтверждён тестом и совпадает с вакансией")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: /Почему/ }));
+    expect(screen.getByText(/группа в выдаче/)).toBeInTheDocument();
+    expect(screen.getByText(/на место в выдаче не влияет/)).toBeInTheDocument();
+    expect(screen.getByText("Python")).toBeInTheDocument();
   });
 });
 

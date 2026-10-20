@@ -2,7 +2,6 @@
 когда приглашений пока нет. Вакансии упорядочены по соответствию профилю кандидата."""
 
 import uuid
-from dataclasses import asdict
 from datetime import UTC, datetime
 
 from sqlalchemy.exc import IntegrityError
@@ -18,9 +17,9 @@ from app.repositories.candidates import CandidateProfileRepository
 from app.repositories.catalog import CatalogRepository
 from app.repositories.vacancies import BoardFilters, PublishedVacancyRepository
 from app.schemas.applications import BoardVacancyOut, ComplaintIn
-from app.schemas.catalog import MatchFactorOut, MatchOut
 from app.services.access import Action, Principal, policy
 from app.services.applications.common import brief, companies, effective_status
+from app.services.catalog import explain
 from app.services.common import next_offset, parse_offset
 from app.services.matching.factors import Candidate
 from app.services.matching.scorer import MatchResult, match
@@ -133,9 +132,7 @@ def _out(
         skills=sorted(s.name for s in vacancy.skills),
         expires_at=as_aware(vacancy.expires_at) if vacancy.expires_at else None,
         company=brief(company, ""),
-        match=MatchOut(
-            score=result.score, factors=[MatchFactorOut(**asdict(f)) for f in result.factors]
-        ),
+        match=explain(result),
         application_status=effective_status(application) if application else None,
         respond_blocked=_blocked(open_with_company),
     )

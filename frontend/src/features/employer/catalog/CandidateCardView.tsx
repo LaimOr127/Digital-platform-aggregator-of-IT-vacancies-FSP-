@@ -51,7 +51,7 @@ export function CandidateCardView({ card, action, className, aiReview }: Props) 
       </div>
 
       <CategoryLine card={card} />
-      {card.match && <MatchPanel match={card.match} kind="match" />}
+      {card.match && <MatchPanel match={card.match} kind="need" />}
       {!card.match && card.strength && <MatchPanel match={card.strength} kind="strength" />}
       {aiReview && <AiReviewNote review={aiReview} />}
 

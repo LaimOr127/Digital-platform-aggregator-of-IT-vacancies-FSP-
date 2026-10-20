@@ -91,9 +91,13 @@ _STOP = frozenset(
 )
 
 
-def keywords(text: str) -> set[str]:
+def _words(text: str) -> list[str]:
     words = re.findall(r"[a-zа-яё0-9+#]+", text.lower().replace("ё", "е"))
-    return {word[:_STEM] for word in words if len(word) >= _MIN_WORD and word not in _STOP}
+    return [word for word in words if len(word) >= _MIN_WORD and word not in _STOP]
+
+
+def keywords(text: str) -> set[str]:
+    return {word[:_STEM] for word in _words(text)}
 
 
 def overlap(vacancy_text: str, candidate_text: str) -> tuple[float, list[str]]:
@@ -101,13 +105,17 @@ def overlap(vacancy_text: str, candidate_text: str) -> tuple[float, list[str]]:
 
 
 def overlap_with(wanted: frozenset[str], candidate_text: str) -> tuple[float, list[str]]:
-    """Доля ключевых слов вакансии, встречающихся у кандидата, и примеры общих слов.
+    """Доля ключевых слов вакансии, встречающихся у кандидата, и примеры общих слов — целыми
+    словами из профиля кандидата (основы вида «разраб» работодателю непонятны).
 
     Насыщение на 25%: описания разной длины, полного совпадения слов не бывает.
     Ключевые слова вакансии считаются один раз на весь рейтинг (VacancyContext).
     """
     if not wanted:
         return 0.0, []
-    common = wanted & keywords(candidate_text)
-    share = len(common) / len(wanted)
-    return min(1.0, share / 0.25), sorted(common)[:5]
+    examples: dict[str, str] = {}  # основа -> первое слово кандидата с ней
+    for word in _words(candidate_text):
+        if word[:_STEM] in wanted:
+            examples.setdefault(word[:_STEM], word)
+    share = len(examples) / len(wanted)
+    return min(1.0, share / 0.25), sorted(examples.values())[:5]

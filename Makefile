@@ -11,7 +11,7 @@ MODE  ?= dev
 COMPOSE_FILES = -f deploy/compose.base.yml $(foreach s,$(ALL),-f deploy/compose.$(s).yml) -f deploy/compose.$(MODE).yml
 DC = docker compose --env-file .env $(COMPOSE_FILES)
 
-.PHONY: env up down stop logs logs-dump ps build dev prod test test-backend test-fsp-mock test-frontend smoke check-db verify config secrets-check clean migrate create-admin reset-admin-2fa confirm-email check-dupes seed-demo load evaluate docs-docx fix-net
+.PHONY: env up down stop logs logs-dump ps build dev prod test test-backend test-fsp-mock test-frontend smoke check-db verify config secrets-check clean migrate create-admin reset-admin-2fa smtp confirm-email check-dupes seed-demo load evaluate docs-docx fix-net
 
 env:            ## создать .env со случайными секретами
 	@./scripts/gen-env.sh
@@ -94,8 +94,9 @@ load:           ## нагрузочный тест (k6): make load EMP=<токе
 	docker run --rm --network itmatch_edge -v "$$PWD/scripts/load:/load:ro" \
 	  -e EMP="$(EMP)" -e CAND="$(CAND)" -e VAC="$(VAC)" grafana/k6:2.3.0 run --quiet /load/catalog.js
 
-seed-demo:      ## демо-данные: make seed-demo N=500 C=6; на стенде жюри (prod) — STAND=1, пароль входов — DEMO_PASSWORD=...
-	$(DC) exec -e DEMO_PASSWORD="$(DEMO_PASSWORD)" api python -m app.cli seed-demo --candidates "$(or $(N),500)" --companies "$(or $(C),6)" $(if $(STAND),--stand,)
+seed-demo:      ## демо-данные: make seed-demo N=500 C=6; стенд жюри — MODE=prod STAND=1, пароль входов — export DEMO_PASSWORD
+	@# пароль передаётся по имени переменной: его значение не попадает в эхо команды и логи
+	@$(DC) exec -e DEMO_PASSWORD api python -m app.cli seed-demo --candidates "$(or $(N),500)" --companies "$(or $(C),6)" $(if $(STAND),--stand,)
 
 check-dupes:    ## копии файлов от iCloud/Finder ("file 2.py") ломают сборку — проверяем заранее
 	@./scripts/check-dupes.sh
@@ -103,6 +104,10 @@ check-dupes:    ## копии файлов от iCloud/Finder ("file 2.py") ло
 reset-admin-2fa: ## сбросить 2FA администратора (потерян телефон): make reset-admin-2fa EMAIL=...
 	@test -n "$(EMAIL)" || { echo "укажите EMAIL=..."; exit 1; }
 	$(DC) exec api python -m app.cli reset-2fa --email "$(EMAIL)"
+
+smtp:           ## почта на сервере: make smtp MODE=prod — спросит ящик и пароль приложения, проверит вход, перезапустит worker
+	@python3 scripts/set-smtp.py
+	$(DC) up -d worker
 
 confirm-email:  ## письмо не дошло (стенд без SMTP): make confirm-email EMAIL=... — подтвердить адрес вручную
 	@test -n "$(EMAIL)" || { echo "укажите EMAIL=..."; exit 1; }

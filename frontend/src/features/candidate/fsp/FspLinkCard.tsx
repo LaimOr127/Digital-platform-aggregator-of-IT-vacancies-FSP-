@@ -123,7 +123,9 @@ function CodeStep({ athleteId, started, onChangeId }: CodeStepProps) {
       </p>
       {started?.demo_code && (
         <Alert tone="info">
-          Демо-режим: письма не отправляются, код — <span className="font-mono font-semibold">{started.demo_code}</span>.{" "}
+          Демо-стенд: код показан здесь вместо письма —{" "}
+          <span className="font-mono font-semibold">{started.demo_code}</span>. В рабочей системе код приходит только по
+          каналу ФСП, на почту аккаунта.{" "}
           <button type="button" className="font-medium underline" onClick={() => form.setValue("code", started.demo_code ?? "")}>
             Подставить
           </button>

@@ -54,10 +54,9 @@ class QuestionOut(BaseModel):
 
 
 class PreviewQuestionOut(QuestionOut):
-    """Пример задания для работодателя (вариант генерируется заново, поэтому с ответом)."""
+    """Пример задания для работодателя: как и в тесте, без правильного ответа."""
 
     skills: list[str]
-    answer: str
 
 
 class AttemptOut(BaseModel):

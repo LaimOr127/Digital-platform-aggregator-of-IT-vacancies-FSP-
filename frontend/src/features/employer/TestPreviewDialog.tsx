@@ -1,7 +1,8 @@
 // Как система формирует задания под вакансию: пример теста по её специализации, грейду и стеку.
-// Каждый показ — новый вариант (параметры заданий меняются), поэтому ответы видны.
+// Каждый показ — новый вариант (параметры заданий меняются); правильные ответы, как и в самом
+// тесте, остаются на сервере и сюда не приходят.
 import { useQuery } from "@tanstack/react-query";
-import { Check, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { employerApi } from "../../api/endpoints";
 import { errorMessage } from "../../api/errors";
 import type { Vacancy } from "../../api/types";
@@ -41,16 +42,13 @@ export function TestPreviewDialog({ vacancy, onClose }: { vacancy: Vacancy | nul
                   </pre>
                 )}
                 {q.options.length > 0 && (
-                  <ul className="mt-2 flex flex-col gap-1">
+                  <ul className="mt-2 flex list-disc flex-col gap-1 pl-5 text-muted">
                     {q.options.map((o) => (
-                      <li key={o} className={o === q.answer ? "flex gap-1.5 text-accent" : "pl-5 text-muted"}>
-                        {o === q.answer && <Check className="mt-0.5 size-3.5 shrink-0" aria-label="верный ответ" />}
-                        {o}
-                      </li>
+                      <li key={o}>{o}</li>
                     ))}
                   </ul>
                 )}
-                {q.kind === "number" && <p className="mt-2 text-accent">Ответ: {q.answer}</p>}
+                {q.kind === "number" && <p className="mt-2 text-muted">Ответ — число</p>}
               </li>
             ))}
           </ol>

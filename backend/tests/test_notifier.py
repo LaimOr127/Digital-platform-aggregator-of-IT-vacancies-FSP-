@@ -1,5 +1,6 @@
 """SMTP-канал: письмо собирается корректно, STARTTLS и вход — только когда настроены."""
 
+import ssl
 from typing import ClassVar
 
 from pydantic import SecretStr
@@ -23,8 +24,10 @@ class FakeSmtp:
     def __exit__(self, *_: object) -> None:
         self.calls.append("quit")
 
-    def starttls(self) -> None:
-        self.calls.append("starttls")
+    def starttls(self, context=None) -> None:
+        # сертификат почтового сервера проверяется: без контекста smtplib шифрует без проверки
+        verified = context is not None and context.verify_mode == ssl.CERT_REQUIRED
+        self.calls.append("starttls" if verified else "starttls-unverified")
 
     def login(self, user: str, password: str) -> None:
         self.calls.append(f"login:{user}:{len(password)}")

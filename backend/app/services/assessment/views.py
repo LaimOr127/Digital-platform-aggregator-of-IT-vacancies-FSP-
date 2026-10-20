@@ -31,9 +31,7 @@ def question(index: int, item: GeneratedItem) -> QuestionOut:
 
 
 def preview_question(index: int, item: GeneratedItem) -> PreviewQuestionOut:
-    return PreviewQuestionOut(
-        **question(index, item).model_dump(), skills=list(item.skills), answer=item.answer
-    )
+    return PreviewQuestionOut(**question(index, item).model_dump(), skills=list(item.skills))
 
 
 def attempt(row: Assessment) -> AttemptOut:

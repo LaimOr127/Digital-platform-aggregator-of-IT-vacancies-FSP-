@@ -16,7 +16,7 @@ from app.services.matching.factors import (
     SalaryFactor,
     SkillsFactor,
 )
-from app.services.matching.scorer import VacancyContext, match, strength
+from app.services.matching.scorer import VacancyContext, for_need, match, rank_key, strength
 from app.services.matching.text import keywords, overlap
 from tests.assessment_flow import confirm
 from tests.flows import CATALOG, approved_employer
@@ -80,7 +80,9 @@ def test_category_is_specialization_and_confirmed_grade():
 def test_skills_confirmed_by_test_count_fully():
     result = SkillsFactor().score(ctx(vacancy()), candidate())
     assert result.share == round((1 + 0.5) / 3, 3)
-    assert result.detail == "подтверждены тестом: Python; заявлены: Postgresql; нет 1 из 3"
+    assert result.detail == (
+        "Стек вакансии: подтверждены тестом: Python; указаны в профиле: Postgresql; нет 1 из 3"
+    )
 
 
 def test_assessment_and_freshness():
@@ -109,11 +111,11 @@ def test_assessment_fits_vacancy_grade():
 
 
 def test_format_city_and_salary():
-    assert FormatFactor().score(ctx(vacancy()), candidate()).detail == "тот же город: Казань"
+    assert FormatFactor().score(ctx(vacancy()), candidate()).detail == "Тот же город: Казань"
     remote_wanted = candidate(city="Пермь", work_formats=[WorkFormat.REMOTE])
     assert FormatFactor().score(ctx(vacancy()), remote_wanted).share == 0.0
     movable = candidate(city="Пермь", work_formats=[WorkFormat.OFFICE], relocation=True)
-    assert FormatFactor().score(ctx(vacancy()), movable).detail == "готов к переезду"
+    assert FormatFactor().score(ctx(vacancy()), movable).detail == "Готов к переезду"
     assert SalaryFactor().score(ctx(vacancy()), candidate()).share == 1.0
     assert SalaryFactor().score(ctx(vacancy()), candidate(salary_min=360_000)).share == 0.6
 
@@ -123,7 +125,7 @@ def test_description_overlap_uses_word_stems():
     share, common = overlap(
         "разработка высоконагруженных сервисов", "разработчик высоконагруженного API"
     )
-    assert share == 1.0 and "разраб" in common
+    assert share == 1.0 and "разработчик" in common  # целое слово кандидата, а не основа
     empty = candidate(about=None, title=None, skills=[])
     assert DescriptionFactor().score(ctx(vacancy()), empty).share == 0
 
@@ -139,6 +141,36 @@ def test_tested_candidate_beats_self_described():
     )
     assert match(vacancy(), tested).score > match(vacancy(), claims).score
     assert sum(f.weight for f in match(vacancy(), tested).factors) == 100
+
+
+def test_need_orders_by_category_then_test_and_fsp_not_stack():
+    """Эксперты 20.10: под потребность место внутри категории дают тест и ФСП; стек — фильтр
+    каталога и строка пояснения, на порядок не влияет."""
+    stack = [skill("python"), skill("postgresql"), skill("kafka")]
+    no_stack = candidate(skills=[], confirmed_skills=[])
+    full_stack = candidate(skills=stack, confirmed_skills=["python", "postgresql", "kafka"])
+    assert rank_key(for_need(vacancy(), no_stack)) == rank_key(for_need(vacancy(), full_stack))
+    # внутри категории тест: уровень точно в грейде вакансии выше, чем заметно выше него
+    at_grade = candidate(assessment_score=25, skills=[], confirmed_skills=[])
+    above = candidate(assessment_score=100, skills=stack, confirmed_skills=["python", "kafka"])
+    assert rank_key(for_need(vacancy(), at_grade)) > rank_key(for_need(vacancy(), above))
+    with_fsp = candidate(verification_tier=VerificationTier.VERIFIED_FSP)
+    assert rank_key(for_need(vacancy(), with_fsp)) > rank_key(for_need(vacancy(), candidate()))
+    # категория раньше силы: точный грейд со слабым тестом выше сильного соседнего грейда
+    neighbor = candidate(confirmed_grade=Grade.SENIOR, assessment_score=100)
+    exact = candidate(assessment_score=10)
+    assert rank_key(for_need(vacancy(), exact)) > rank_key(for_need(vacancy(), neighbor))
+    # стек, формат, город, зарплата — пояснения с нулевым весом
+    info = {f.key: f for f in for_need(vacancy(), full_stack).factors if f.weight == 0}
+    assert {"category", "skills", "format", "salary", "description"} <= set(info)
+    assert "Python" in info["skills"].detail
+
+
+def test_need_summary_says_why_this_place():
+    result = for_need(vacancy(), candidate(verification_tier=VerificationTier.VERIFIED_FSP))
+    assert result.summary.startswith("Грейд Middle подтверждён тестом и совпадает с вакансией")
+    assert "Уровень по тесту" in result.summary and "ФСП" in result.summary
+    assert "Python" not in result.summary  # стек — не причина места в выдаче
 
 
 def test_strength_ranks_by_test_and_fsp():
@@ -168,7 +200,8 @@ async def test_catalog_ranks_categories_and_explains(client: AsyncClient, db, ap
         )
     ).json()["items"]
     assert by_vacancy[0]["category"]["slug"] == "backend:middle"
-    assert by_vacancy[0]["match"]["score"] > by_vacancy[1]["match"]["score"]
+    assert by_vacancy[1]["category"] is None  # грейд не подтверждён — ниже подтверждённых
+    assert by_vacancy[0]["match"]["summary"].startswith("Грейд Middle подтверждён тестом")
     assert {f["key"] for f in by_vacancy[0]["match"]["factors"]} >= {"category", "assessment"}
 
     # без вакансии — по силе профиля, тоже с объяснением
