@@ -2,8 +2,10 @@
 
 Выдача строится от категорий (специализация x грейд, подтверждённый тестом) и результатов
 теста, а не от самоописания. Без вакансии кандидаты упорядочены по силе подтверждённого
-профиля; с вакансией (описанием потребности) — по соответствию ей. У каждой позиции —
-объяснение по факторам. Фильтры уточняют выдачу, не меняя порядка внутри неё.
+профиля (тест и ФСП); с вакансией (описанием потребности) — сначала категория относительно
+грейда вакансии, внутри неё та же сила профиля; стек, формат, город и зарплата поясняют выбор,
+но порядок не меняют. У каждой позиции — строка «почему» и объяснение по факторам. Фильтры
+уточняют выдачу, не меняя порядка внутри неё.
 
 Карточка не раскрывает личность: нет имени, контактов, ID ФСП, названий соревнований.
 """
@@ -34,7 +36,13 @@ from app.services.categorization import TIERS, describe_anonymous
 from app.services.common import next_offset, parse_offset
 from app.services.fsp_sync import to_evidence
 from app.services.matching.factors import Candidate
-from app.services.matching.scorer import MatchResult, VacancyContext, match, strength
+from app.services.matching.scorer import (
+    MatchResult,
+    VacancyContext,
+    for_need,
+    rank_key,
+    strength,
+)
 from app.services.specializations import (
     GRADE_ORDER,
     SPECIALIZATIONS,
@@ -107,9 +115,7 @@ class CatalogService:
         shown = [(visible[pid], result) for pid, result in page if pid in visible]
         cards = await build_cards(self.catalog, [p for p, _ in shown])
         for card, (_, result) in zip(cards, shown, strict=True):
-            explained = MatchOut(
-                score=result.score, factors=[MatchFactorOut(**asdict(f)) for f in result.factors]
-            )
+            explained = explain(result)
             if vacancy:
                 card.match = explained
             else:
@@ -130,11 +136,11 @@ class CatalogService:
         scored = []
         for p in profiles:
             candidate = Candidate(p, categories.get(p.id, []))
-            result = match(vacancy, candidate, context=context) if vacancy else strength(candidate)
+            result = for_need(vacancy, candidate, context) if vacancy else strength(candidate)
             scored.append((p.confirmed_grade is not None, p.id, result))
         # без подтверждённого тестом грейда — ниже всех подтверждённых (рекомендация организаторов):
         # выдача строится на категориях по итогам теста, а не на самоописании
-        scored.sort(key=lambda row: (row[0], row[2].score), reverse=True)  # устойчиво: порядок SQL
+        scored.sort(key=lambda row: (row[0], *rank_key(row[2])), reverse=True)  # устойчиво
         return [(pid, result) for _, pid, result in scored]
 
     async def candidate(self, anon_id: uuid.UUID) -> CandidateCardOut:
@@ -143,11 +149,13 @@ class CatalogService:
             raise NotFoundError("кандидат не найден или скрыл профиль")
         (card,) = await build_cards(self.catalog, [profile])
         categories = await self.catalog.categories_for([profile.id])
-        result = strength(Candidate(profile, categories.get(profile.id, [])))
-        card.strength = MatchOut(
-            score=result.score, factors=[MatchFactorOut(**asdict(f)) for f in result.factors]
-        )
+        card.strength = explain(strength(Candidate(profile, categories.get(profile.id, []))))
         return card
+
+
+def explain(result: MatchResult) -> MatchOut:
+    factors = [MatchFactorOut(**asdict(f)) for f in result.factors]
+    return MatchOut(score=result.score, summary=result.summary, factors=factors)
 
 
 async def cards_by_profile(

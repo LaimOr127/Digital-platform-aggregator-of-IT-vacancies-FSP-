@@ -60,7 +60,7 @@ export function FiltersPanel({ filters, fspCategories, onChange, onReset }: Prop
           />
         </Field>
       </div>
-      <FieldGroup label="Стек" hint="Кандидаты со всеми выбранными навыками">
+      <FieldGroup label="Стек" hint="Оставляет кандидатов со всеми выбранными навыками; на порядок выдачи не влияет">
         <SkillPicker
           skills={skills.data ?? []}
           value={filters.skill ?? []}

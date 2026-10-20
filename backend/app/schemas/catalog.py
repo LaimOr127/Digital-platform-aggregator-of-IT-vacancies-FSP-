@@ -58,6 +58,7 @@ class MatchOut(BaseModel):
     """Оценка с объяснением: соответствие вакансии или сила профиля внутри категории."""
 
     score: int = Field(ge=0, le=100)
+    summary: str = Field(default="", description="одна строка: почему кандидат на этом месте")
     factors: list[MatchFactorOut]
 
 

@@ -3006,6 +3006,12 @@ export interface components {
         MatchOut: {
             /** Score */
             score: number;
+            /**
+             * Summary
+             * @description одна строка: почему кандидат на этом месте
+             * @default
+             */
+            summary: string;
             /** Factors */
             factors: components["schemas"]["MatchFactorOut"][];
         };

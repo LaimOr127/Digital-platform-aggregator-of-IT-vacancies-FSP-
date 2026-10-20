@@ -5,9 +5,9 @@
 - 1 «близко»: грейд соседний при нужной технологии или точный грейд без неё;
 - 0 — остальные.
 
-Сравниваются три выдачи: IT Match (категория по тесту, результат теста, подтверждённые
-навыки, ФСП — app/services/matching), «классическая» по самоописанию (заявленные грейд и
-навыки, как на универсальных площадках) и случайный порядок.
+Сравниваются три выдачи: IT Match (как в каталоге под потребность: стек вакансии — фильтр,
+затем категория по тесту, внутри неё тест и ФСП — app/services/matching), «классическая» по
+самоописанию (заявленные грейд и навыки, как на универсальных площадках) и случайный порядок.
 """
 
 import math
@@ -22,11 +22,11 @@ from app.evaluation.testing import confirmed_level
 from app.models import CandidateProfile, Category, Skill, Vacancy
 from app.models.enums import VerificationTier
 from app.services.matching.factors import Candidate
-from app.services.matching.scorer import match
+from app.services.matching.scorer import for_need, rank_key
 from app.services.specializations import GRADE_ORDER
 
 K = 10
-Scorer = Callable[[Opening, Vacancy, Person, Candidate], float]
+Scorer = Callable[[Opening, Vacancy, Person, Candidate], tuple[float, ...]]
 
 
 @dataclass(frozen=True)
@@ -51,9 +51,9 @@ def run(seed: int = 2026, vacancies: int = 40, candidates: int = 1000) -> Matchi
     profiles = [_candidate(person, rng) for person in population]
     jobs = [(opening, _vacancy(opening)) for opening in openings(rng, vacancies)]
     systems: dict[str, Scorer] = {
-        "IT Match": lambda _o, vacancy, _p, candidate: match(vacancy, candidate).score,
-        "По резюме (заявленное)": lambda opening, _v, person, _c: _resume_score(opening, person),
-        "Случайный порядок": lambda *_: rng.random(),
+        "IT Match": _it_match,
+        "По резюме (заявленное)": lambda opening, _v, person, _c: (_resume_score(opening, person),),
+        "Случайный порядок": lambda *_: (rng.random(),),
     }
     scores = {
         name: _evaluate(scorer, jobs, population, profiles, rng) for name, scorer in systems.items()
@@ -72,6 +72,15 @@ def _relevance(opening: Opening, person: Person) -> int:
     if gap == 0 and has_stack:
         return 2
     return 1 if (gap == 1 and has_stack) or (gap == 0 and not has_stack) else 0
+
+
+def _it_match(_o: Opening, vacancy: Vacancy, _p: Person, candidate: Candidate) -> tuple[float, ...]:
+    """Работодатель фильтрует каталог по стеку вакансии (любая из технологий в профиле), порядок
+    внутри — как в каталоге: категория, затем тест и ФСП."""
+    profile = candidate.profile
+    known = {s.slug for s in profile.skills} | set(profile.confirmed_skills or [])
+    has_stack = bool(known & {s.slug for s in vacancy.skills})
+    return (float(has_stack), *rank_key(for_need(vacancy, candidate)))
 
 
 def _resume_score(opening: Opening, person: Person) -> float:
