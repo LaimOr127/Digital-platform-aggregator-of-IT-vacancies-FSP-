@@ -107,8 +107,9 @@ REST поверх HTTPS, JSON, префикс `/api/v1`. Живая схема �
 |---|---|
 | `GET/PATCH profile` | свой профиль: стек и свои навыки (`custom_skills`), грейд, стаж, образование, роли, софт-скиллы (из справочника или свои), форматы работы (`work_formats`, можно несколько), город из справочника и готовность к переезду, вилка, контакты, статус поиска, приватность (`show_fsp`, `show_salary`, `show_about`), скрытие |
 | `GET assessment`, `PUT assessment/survey`, `POST assessment/attempts {grade}`, `POST assessment/attempts/{id}/submit` | опрос, тест на грейд, категория, история, доступные грейды |
+| `POST assessment/suggestion` | подсказка специализации и грейда по профилю (модель ИИ, без неё — правила); категорию по-прежнему подтверждает тест |
 | `POST assessment/attempts/{id}/violation`, `POST tasks/{id}/violation` | нажат PrintScreen: тест не засчитан (как неудача), задача закрыта для кандидата; `submit` принимает `focus_losses` — уходы со вкладки как сигнал |
-| `GET updates` | время последнего события по разделам — для точек «есть новое» |
+| `GET updates`, `POST updates/seen {section}` | время последнего события по разделам и отметка «просмотрено» (хранится на сервере, одинакова на всех устройствах) — для точек «есть новое» |
 | `GET applications`, `POST applications/{id}/accept`, `POST applications/{id}/decline {reason}`, `POST applications/{id}/withdraw` | приглашения компаний и свои отклики; принятие передаёт компании имя и контакты |
 | `GET vacancies`, `GET vacancies/{id}`, `POST vacancies/{id}/respond {message}` | опубликованные вакансии по соответствию профилю, отклик |
 | `POST vacancies/{id}/complaint {reason, comment}` | жалоба на вакансию (одна от кандидата) — её видит модератор |
@@ -127,10 +128,11 @@ REST поверх HTTPS, JSON, префикс `/api/v1`. Живая схема �
 |---|---|
 | `GET/PATCH company` | профиль компании: описание, направление, сайт, контакты (меняет владелец) |
 | `GET/POST vacancies`, `GET/PATCH/DELETE vacancies/{id}`, `POST vacancies/{id}/publish`, `POST vacancies/{id}/close` | вакансии; публикация — на 14 дней |
-| `GET vacancies/{id}/assessment-preview` | пример теста, который система соберёт по специализации, грейду и навыкам вакансии |
+| `GET vacancies/{id}/assessment-preview` | пример теста, который система соберёт по специализации, грейду и навыкам вакансии; как и в самом тесте, без правильных ответов |
 | `GET insights/salary?grade=&skills=` | рынок зарплат для формы вакансии |
-| `GET catalog/categories`, `GET catalog/candidates`, `GET catalog/candidates/{anon_id}` | анонимный каталог; `vacancy_id` — сортировка по соответствию с процентом и факторами; `city` — живёт в городе или готов к переезду |
-| `GET updates` | новое по разделам и число вакансий, которые пора продлить |
+| `GET catalog/categories`, `GET catalog/fsp-categories`, `GET catalog/candidates`, `GET catalog/candidates/{anon_id}` | анонимный каталог; без `vacancy_id` — по силе профиля (тест, ФСП), с `vacancy_id` — сначала категория относительно грейда вакансии, внутри неё тест и ФСП; в ответе `summary` (почему кандидат на этом месте) и факторы, стек и формат — с нулевым весом; `grade` — только подтверждённый тестом; `skill` — фильтр стека; `city` — живёт в городе или готов к переезду |
+| `POST catalog/ai-review {vacancy_id, anon_ids}`, `GET catalog/ai-status` | второе мнение модели ИИ о первых 10 кандидатах под вакансию (по анонимным карточкам), доступность модели |
+| `GET updates`, `POST updates/seen {section}` | новое по разделам и число вакансий, которые пора продлить; отметка «просмотрено» |
 | `GET/POST applications`, `POST applications/{id}/accept {contact_method}`, `POST applications/{id}/decline`, `POST applications/{id}/withdraw`, `GET applications/{id}/contacts` | приглашения на контакт (вакансия не обязательна) и отклики; контакты — после согласия кандидата |
 | `GET/POST tasks`, `POST tasks/{id}/close`, `GET tasks/{id}/answers`, `POST tasks/{id}/answers/{answer_id}/rate {rating}` | регулярные короткие задачи и анонимные ответы |
 | `GET/POST interviews`, `POST interviews/{id}/cancel`, `POST interviews/{id}/complete` | собеседования по принятому приглашению или отклику |
@@ -174,8 +176,9 @@ REST поверх HTTPS, JSON, префикс `/api/v1`. Живая схема �
 `contact_reveals`) или `declined` (повтор от компании — через 30 дней); компания может `withdrawn`;
 без ответа — `expired`.
 
-**Кандидат в каталоге**: виден, если профиль не скрыт и статус поиска не `closed`; анонимен (`anon_id`
-не связан с id пользователя) до принятия приглашения или собственного отклика.
+**Кандидат в каталоге**: виден, если профиль не скрыт, статус поиска не `closed` и аккаунт не
+заблокирован модератором; анонимен (`anon_id` не связан с id пользователя) до принятия приглашения или
+собственного отклика. До согласия кандидат видит компанию и вилку, а компания — анонимную карточку.
 
 ## Пример: от регистрации до оффера (curl)
 

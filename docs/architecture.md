@@ -86,6 +86,12 @@ flowchart TB
 | ФСП и паспорт навыков | `services/fsp*.py`, `services/passport.py`, `integrations/fsp.py` | [integrations.md](integrations.md) |
 | Резюме и автозаполнение | `services/resume/`, `services/profile_import.py` | [integrations.md](integrations.md) |
 | Собеседования и офферы | `services/interviews/`, `services/offers.py` | [api.md](api.md) |
+| Категории и уровень ФСП | `services/categorization.py` | [integrations.md](integrations.md) |
+| Рост и зарплаты (радар, путь роста) | `services/insights.py` | корневой README |
+| ИИ: разбор резюме, подсказка категории, второе мнение в подборе | `services/ai_assist.py`, `services/ai_providers.py`, `integrations/ai/` | [integrations.md](integrations.md) |
+| Модерация и аудит | `services/moderation.py`, `services/admin.py` | [api.md](api.md) |
+| Почта и уведомления | `services/outbox.py`, `services/emails.py`, `integrations/notifier.py` | [integrations.md](integrations.md) |
+| Индикаторы «есть новое» | `services/updates.py` | [api.md](api.md) |
 | Процедура оценки | `app/evaluation/` (`make evaluate`) | [validation.md](validation.md) |
 
 Каждый сервис компоуза запускается отдельно (`make up S="db api"`), api и worker — один образ.
