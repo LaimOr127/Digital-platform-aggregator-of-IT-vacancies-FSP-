@@ -87,20 +87,24 @@ async def seed_demo(count: int, companies: int, vacancies_each: int, stand: bool
         sys.exit("в prod демо-данные заливаются только явно: --stand (make seed-demo STAND=1)")
     if not 0 <= count <= 20_000 or not 0 <= companies <= 200 or not 0 <= vacancies_each <= 50:
         sys.exit("лимиты: --candidates до 20000, --companies до 200, --vacancies до 50")
+    # пароль демо-входов: DEMO_PASSWORD (оператор передаёт его жюри сам, не в репозитории) или
+    # случайный
+    given = os.environ.get("DEMO_PASSWORD") or None
     db = get_database()
     try:
         async with db.sessionmaker() as session:
             cipher = FieldCipher(settings.secret("field_encryption_key"))
             created = await seed_candidates(session, cipher, count) if count else 0
             vacancies = await seed_market(session, companies, vacancies_each) if companies else 0
-            # пароль демо-входов: DEMO_PASSWORD (чтобы вписать в памятку жюри) или случайный
-            logins = await seed_logins(session, cipher, os.environ.get("DEMO_PASSWORD") or None)
+            logins = await seed_logins(session, cipher, given)
     finally:
         await db.dispose()
     sys.stdout.write(f"demo candidates: {created}, demo vacancies: {vacancies}\n")
-    # пароль показывается один раз — как код подключения 2FA у create-admin
+    # заданный пароль оператор знает — в вывод он не попадает; случайный показывается один раз,
+    # как код подключения 2FA у create-admin
     for email, password in logins.items():
-        sys.stdout.write(f"demo login: {email} / {password}\n")
+        shown = "пароль из DEMO_PASSWORD" if given else password
+        sys.stdout.write(f"demo login: {email} / {shown}\n")
 
 
 def _validate_email(email: str) -> str:

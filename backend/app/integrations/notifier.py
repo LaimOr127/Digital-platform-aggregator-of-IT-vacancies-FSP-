@@ -3,6 +3,7 @@
 
 import asyncio
 import smtplib
+import ssl
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from email.message import EmailMessage
@@ -51,7 +52,8 @@ class SmtpNotifier(Notifier):
     def _send_sync(self, message: EmailMessage) -> None:
         with smtplib.SMTP(self._host, self._port, timeout=_TIMEOUT_SECONDS) as smtp:
             if self._starttls:
-                smtp.starttls()
+                # без контекста smtplib шифрует, но не проверяет сертификат сервера (MITM)
+                smtp.starttls(context=ssl.create_default_context())
             if self._user:
                 smtp.login(self._user, self._password)
             smtp.send_message(message)
