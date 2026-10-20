@@ -26,7 +26,7 @@ from app.repositories.base import BaseRepository
 class CatalogFilters:
     category: tuple[Specialization, Grade] | None = None  # категория: специализация x грейд
     specialization: Specialization | None = None
-    grade: Grade | None = None  # подтверждённый тестом (если теста нет — заявленный)
+    grade: Grade | None = None  # только подтверждённый тестом: заявленный уровень не подмешивается
     work_format: WorkFormat | None = None  # среди форматов, подходящих кандидату
     city: str | None = None  # живёт в городе или готов к переезду
     skills: tuple[str, ...] = ()  # все выбранные навыки
@@ -148,7 +148,7 @@ def _conditions(filters: CatalogFilters) -> list[Any]:
     if filters.specialization:
         conditions.append(profile.specialization == filters.specialization)
     if filters.grade:
-        conditions.append(func.coalesce(profile.confirmed_grade, profile.grade) == filters.grade)
+        conditions.append(profile.confirmed_grade == filters.grade)
     if filters.confirmed_only:
         conditions.append(profile.confirmed_grade.is_not(None))
     if filters.fsp_only:

@@ -41,7 +41,7 @@ async def test_catalog_filters_and_hidden_profiles(client: AsyncClient, db, app)
     candidate = await verified_candidate(client)
     token = bearer(employer["token"])
     for params, expected in (
-        ({"grade": "middle"}, 1),
+        ({"grade": "middle"}, 0),  # грейд только заявлен — фильтр по подтверждённому его не берёт
         ({"grade": "senior"}, 0),
         ({"skill": "go"}, 0),
         ({"skill": "python"}, 1),
@@ -88,3 +88,19 @@ async def test_blocked_candidate_leaves_the_catalog(client: AsyncClient, db, app
     assert (await client.get(f"{CATALOG}/candidates", headers=token)).json()["items"] == []
     card = await client.get(f"{CATALOG}/candidates/{candidate['anon_id']}", headers=token)
     assert card.status_code == 404
+
+
+async def test_grade_filter_shows_only_confirmed_grade(client: AsyncClient, db, app):
+    """Эксперты 20.10: фильтр грейда без «Только с категорией» не подмешивает заявленный уровень —
+    подпись «подтверждённый грейд» совпадает с тем, кто в выдаче."""
+    employer = await approved_employer(client, db, app)
+    claimed = await verified_candidate(client)  # заявил Middle, теста нет
+    tested = await verified_candidate(client, "FSP-2")
+    await confirm(client, db, tested["token"], "backend", "middle")
+    page = (
+        await client.get(
+            f"{CATALOG}/candidates", params={"grade": "middle"}, headers=bearer(employer["token"])
+        )
+    ).json()
+    assert [c["anon_id"] for c in page["items"]] == [tested["anon_id"]]
+    assert claimed["anon_id"] not in str(page)
