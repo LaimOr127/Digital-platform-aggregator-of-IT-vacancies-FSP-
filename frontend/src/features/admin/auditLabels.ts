@@ -3,7 +3,7 @@ import { labels } from "../../lib/format";
 
 const STATUS_LABELS: Record<string, string> = { ...labels.vacancyStatus, ...labels.companyStatus };
 const statusLabel = (status: string) => STATUS_LABELS[status] ?? status;
-export const AUDIT_ACTIONS: Record<string, string> = {
+const AUDIT_ACTIONS: Record<string, string> = {
   "auth.register": "Регистрация",
   "auth.login": "Вход",
   "auth.mfa_challenge": "Запрошен второй фактор",

@@ -3,7 +3,7 @@ import { motion } from "motion/react";
 import type { ReactNode } from "react";
 import { Logo } from "../../ui/Logo";
 
-export type Audience = "candidate" | "employer";
+type Audience = "candidate" | "employer";
 
 /** Обещание сервиса — своё для каждой стороны: кандидату и работодателю важно разное. */
 const PITCH: Record<Audience, { title: [string, string]; points: { icon: typeof Scale; text: string }[] }> = {

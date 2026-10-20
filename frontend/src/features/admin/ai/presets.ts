@@ -2,7 +2,7 @@
 // у провайдера). Любой сервис с OpenAI-совместимым API подключается как «Другой».
 import type { AiProviderKind } from "../../../api/types";
 
-export type Preset = { id: string; label: string; kind: AiProviderKind; base_url: string; model: string; hint?: string };
+type Preset = { id: string; label: string; kind: AiProviderKind; base_url: string; model: string; hint?: string };
 
 export const PRESETS: Preset[] = [
   // российская модель первой: организаторы ждут её из-за передачи персональных данных
