@@ -88,6 +88,48 @@ label,
   font-variant-numeric: tabular-nums;
 }
 
+/* Windows показывает полосы прокрутки всегда — светлые, с кнопками-стрелками; на macOS они
+   скрыты. Тонкие тёмные полосы без стрелок — одинаково на обеих системах. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--surface-2) transparent;
+}
+
+/* Chrome и Edge (на Windows — белый системный список) рисуют раскрытый <select> средствами
+   страницы: тёмное окно в стиле сайта. Safari и Firefox показывают системный список. */
+@supports (appearance: base-select) {
+  select,
+  ::picker(select) {
+    appearance: base-select;
+  }
+  select {
+    align-items: center;
+  }
+  select::picker-icon {
+    display: none;
+  }
+  ::picker(select) {
+    margin-block: 4px;
+    max-height: 20rem;
+    padding: 4px;
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    background: var(--surface);
+    color: var(--text);
+  }
+  option {
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.5rem;
+  }
+  option:hover,
+  option:focus-visible {
+    background: var(--surface-2);
+  }
+  option:checked {
+    color: var(--accent-text);
+  }
+}
+
 /* Печать / сохранение в PDF (паспорт навыков): светлая тема, без элементов управления */
 @media print {
   :root {
