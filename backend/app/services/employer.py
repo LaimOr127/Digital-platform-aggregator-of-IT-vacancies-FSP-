@@ -20,7 +20,15 @@ from app.services.access import Action, Principal, policy
 from app.services.common import apply_fields, apply_salary, resolve_skills
 
 VACANCY_TTL = timedelta(days=14)
-_PLAIN_FIELDS = ("title", "description", "grade", "specialization", "work_format", "city")
+_PLAIN_FIELDS = (
+    "title",
+    "description",
+    "grade",
+    "specialization",
+    "work_format",
+    "work_formats",
+    "city",
+)
 
 
 class EmployerService:
@@ -65,10 +73,13 @@ class EmployerService:
 
     async def create_vacancy(self, data: VacancyCreateIn) -> Vacancy:
         policy.ensure(self.principal, Action.VACANCY_WRITE)
+        formats = data.work_formats or ([data.work_format] if data.work_format else [])
         vacancy = Vacancy(
             company_id=self.company_id,
             created_by=self.principal.user_id,
-            **data.model_dump(exclude={"skills"}),
+            **data.model_dump(exclude={"skills", "work_format", "work_formats"}),
+            work_format=formats[0],
+            work_formats=[format.value for format in formats],
         )
         vacancy.skills = await resolve_skills(self.skills, data.skills or [])
         await self.vacancies.add(vacancy)
@@ -78,6 +89,9 @@ class EmployerService:
     async def update_vacancy(self, vacancy_id: uuid.UUID, data: VacancyUpdateIn) -> Vacancy:
         vacancy = await self._writable(vacancy_id)
         changes = data.model_dump(exclude_unset=True)
+        if "work_formats" in changes:
+            changes["work_formats"] = [format.value for format in changes["work_formats"]]
+            changes["work_format"] = changes["work_formats"][0]
         apply_fields(vacancy, changes, _PLAIN_FIELDS)
         apply_salary(vacancy, changes)
         if data.skills is not None:

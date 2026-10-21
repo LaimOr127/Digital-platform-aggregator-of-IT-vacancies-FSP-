@@ -59,6 +59,14 @@ export function FiltersPanel({ filters, fspCategories, onChange, onReset }: Prop
             onChange={(e) => onChange({ search_status: pick<SearchStatus>(e.target.value) })}
           />
         </Field>
+        <Field label="Сортировка">
+          <Select
+            options={[{ value: "experience_desc", label: "Сначала с большим стажем" }]}
+            placeholder="По релевантности"
+            value={filters.sort ?? ""}
+            onChange={(e) => onChange({ sort: (e.target.value || undefined) as CatalogFilters["sort"] })}
+          />
+        </Field>
       </div>
       <FieldGroup label="Стек" hint="Оставляет кандидатов со всеми выбранными навыками; на порядок выдачи не влияет">
         <SkillPicker

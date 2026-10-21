@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, EmailStr, Field, HttpUrl
+from pydantic import BaseModel, EmailStr, Field, HttpUrl, model_validator
 
 from app.models.enums import CompanyStatus, Grade, Specialization, VacancyStatus, WorkFormat
 from app.schemas.candidate import SkillSlug
@@ -41,6 +41,7 @@ class VacancyUpdateIn(SalaryRangeMixin):
     grade: Grade | None = None
     specialization: Specialization | None = None
     work_format: WorkFormat | None = None
+    work_formats: list[WorkFormat] | None = Field(default=None, min_length=1, max_length=3)
     city: City | None = None
     skills: list[SkillSlug] | None = Field(default=None, max_length=30)
 
@@ -51,7 +52,15 @@ class VacancyCreateIn(VacancyUpdateIn):
     title: str = Field(min_length=3, max_length=160)
     grade: Grade
     specialization: Specialization = Field(description="по ней и грейду строится подборка")
-    work_format: WorkFormat
+    work_format: WorkFormat | None = None
+    work_formats: list[WorkFormat] | None = Field(default=None, min_length=1, max_length=3)
+
+    @model_validator(mode="after")
+    def require_work_format(self) -> "VacancyCreateIn":
+        if not self.work_formats and self.work_format is None:
+            raise ValueError("Выберите хотя бы один формат работы")
+        return self
+
     salary_min: int = Field(gt=0, le=10_000_000)
     salary_max: int = Field(gt=0, le=10_000_000)
 
@@ -64,6 +73,7 @@ class VacancyOut(ORMModel):
     grade: Grade
     specialization: Specialization | None
     work_format: WorkFormat
+    work_formats: list[WorkFormat]
     city: str | None
     salary_min: int
     salary_max: int

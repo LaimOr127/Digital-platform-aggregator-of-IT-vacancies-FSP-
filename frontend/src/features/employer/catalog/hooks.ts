@@ -10,7 +10,7 @@ const OFFERS = ["employer-offers"] as const;
 const DEFAULT_FILTERS: CatalogFilters = { confirmed_only: true };
 const FILTER_KEYS = [
   "category", "specialization", "grade", "work_format", "city", "skill", "search_status", "confirmed_only", "fsp_only",
-  "fsp_category",
+  "fsp_category", "sort",
 ] as const;
 const FLAGS: readonly string[] = ["confirmed_only", "fsp_only"];
 /** выбранная потребность: id вакансии, "" — явно без вакансии, нет параметра — первая вакансия */

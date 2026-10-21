@@ -2,6 +2,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import (
+    JSON,
     CheckConstraint,
     Column,
     DateTime,
@@ -48,6 +49,7 @@ class Vacancy(IdMixin, TimestampMixin, Base):
         str_enum(Specialization, "specialization"), default=None, index=True
     )
     work_format: Mapped[WorkFormat] = mapped_column(str_enum(WorkFormat, "work_format"))
+    work_formats: Mapped[list[str]] = mapped_column(JSON, default=list)
     city: Mapped[str | None] = mapped_column(String(100), default=None)
     salary_min: Mapped[int] = mapped_column(Integer)
     salary_max: Mapped[int] = mapped_column(Integer)

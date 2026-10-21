@@ -140,7 +140,18 @@ class CatalogService:
             scored.append((p.confirmed_grade is not None, p.id, result))
         # без подтверждённого тестом грейда — ниже всех подтверждённых (рекомендация организаторов):
         # выдача строится на категориях по итогам теста, а не на самоописании
-        scored.sort(key=lambda row: (row[0], *rank_key(row[2])), reverse=True)  # устойчиво
+        if filters.sort == "experience_desc":
+            experience = {p.id: p.experience_years for p in profiles}
+            scored.sort(
+                key=lambda row: (
+                    experience[row[1]] is not None,
+                    experience[row[1]] or -1,
+                    str(row[1]),
+                ),
+                reverse=True,
+            )
+        else:
+            scored.sort(key=lambda row: (row[0], *rank_key(row[2])), reverse=True)  # устойчиво
         return [(pid, result) for _, pid, result in scored]
 
     async def candidate(self, anon_id: uuid.UUID) -> CandidateCardOut:

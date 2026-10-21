@@ -3935,7 +3935,8 @@ export interface components {
             grade: components["schemas"]["Grade"];
             /** @description по ней и грейду строится подборка */
             specialization: components["schemas"]["Specialization"];
-            work_format: components["schemas"]["WorkFormat"];
+            work_format?: components["schemas"]["WorkFormat"];
+            work_formats?: components["schemas"]["WorkFormat"][] | null;
             /** City */
             city?: string | null;
             /** Skills */
@@ -3960,6 +3961,7 @@ export interface components {
             grade: components["schemas"]["Grade"];
             specialization: components["schemas"]["Specialization"] | null;
             work_format: components["schemas"]["WorkFormat"];
+            work_formats: components["schemas"]["WorkFormat"][];
             /** City */
             city: string | null;
             /** Salary Min */
@@ -3995,6 +3997,7 @@ export interface components {
             grade?: components["schemas"]["Grade"] | null;
             specialization?: components["schemas"]["Specialization"] | null;
             work_format?: components["schemas"]["WorkFormat"] | null;
+            work_formats?: components["schemas"]["WorkFormat"][] | null;
             /** City */
             city?: string | null;
             /** Skills */

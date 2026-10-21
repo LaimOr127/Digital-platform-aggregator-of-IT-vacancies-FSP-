@@ -62,6 +62,7 @@ export type CatalogFilters = {
   fsp_category?: string;
   /** сортировать по соответствию этой вакансии */
   vacancy_id?: string;
+  sort?: "experience_desc";
 };
 
 /** Содержимое паспорта (подписанный JSON, версия 2). */

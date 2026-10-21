@@ -6,13 +6,14 @@ import { applyServerErrors } from "../../lib/forms";
 import { Button } from "../../ui/Button";
 import { Field, FieldGroup, Input, MoneyInput, Select, Textarea } from "../../ui/form";
 import { CitySelect } from "../../ui/CitySelect";
+import { ChipGroup } from "../../ui/ChipGroup";
 import { SkillPicker } from "../../ui/SkillPicker";
 import { useToast } from "../../ui/Toast";
 import { useCreateVacancy, useUpdateVacancy } from "./hooks";
 import { MarketHint } from "./MarketHint";
 import { emptyVacancy, vacancySchema, vacancyToForm, type VacancyFormInput, type VacancyFormOutput } from "./schemas";
 
-const FIELDS = ["title", "description", "specialization", "grade", "work_format", "city", "salary_min", "salary_max", "skills"];
+const FIELDS = ["title", "description", "specialization", "grade", "work_formats", "city", "salary_min", "salary_max", "skills"];
 
 type Props = { vacancy: Vacancy | null; skills: Skill[]; onDone: () => void };
 
@@ -50,9 +51,13 @@ export function VacancyForm({ vacancy, skills, onDone }: Props) {
       <Field label="Грейд" error={errors.grade?.message}>
         <Select options={options(labels.grade)} {...register("grade")} />
       </Field>
-      <Field label="Формат работы" error={errors.work_format?.message} className="sm:col-span-2">
-        <Select options={options(labels.workFormat)} {...register("work_format")} />
-      </Field>
+      <FieldGroup label="Формат работы" error={errors.work_formats?.message} hint="Можно выбрать несколько вариантов" className="sm:col-span-2">
+        <Controller
+          control={control}
+          name="work_formats"
+          render={({ field }) => <ChipGroup options={options(labels.workFormat)} value={field.value} onChange={field.onChange} />}
+        />
+      </FieldGroup>
       <Field label="Зарплата от, ₽" error={errors.salary_min?.message} hint="Вилка обязательна, до вычета налогов">
         <MoneyInput {...register("salary_min")} />
       </Field>
