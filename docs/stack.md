@@ -80,7 +80,7 @@ PostgreSQL (`UNLOGGED`-таблица, `FOR UPDATE SKIP LOCKED`). Меньше �
 | PyJWT | 2.15.1 | MIT |
 | cryptography | 50.0.2 | Apache-2.0 / BSD |
 | httpx | 0.28.1 | BSD-3 |
-| pypdf | 6.19.0 | BSD-3 |
+| pypdf | 6.20.1 | BSD-3 |
 | python-multipart | 0.0.32 | Apache-2.0 |
 | pytest / pytest-asyncio / pytest-cov / aiosqlite | 9.1.1 / 1.4.0 / 7.1.0 / 0.22.1 | MIT / Apache-2.0 / MIT / MIT |
 | ruff | 0.16.9 | MIT |
