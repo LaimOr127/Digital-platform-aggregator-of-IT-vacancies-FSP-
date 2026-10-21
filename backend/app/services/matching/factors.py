@@ -212,7 +212,8 @@ class FormatFactor(VacancyFactor):
 
     def compare(self, context: VacancyContext, candidate: Candidate) -> tuple[float, str]:
         profile, vacancy = candidate.profile, context.vacancy
-        if vacancy.work_format == WorkFormat.REMOTE:
+        vacancy_formats = [WorkFormat(value) for value in (vacancy.work_formats or [vacancy.work_format])]
+        if WorkFormat.REMOTE in vacancy_formats:
             return 1.0, "Удалённая работа — город не важен"
         same_city = bool(
             profile.city and vacancy.city and profile.city.strip().lower() == vacancy.city.lower()

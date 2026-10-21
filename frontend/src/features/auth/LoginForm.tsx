@@ -1,5 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState } from "react";
+import { useState, type InputHTMLAttributes } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { Link } from "react-router";
 import { authApi } from "../../api/endpoints";
@@ -56,7 +57,7 @@ function PasswordStep({ onChallenge }: { onChallenge: (challenge: MfaChallenge) 
         <Input type="email" autoComplete="email" {...register("email")} />
       </Field>
       <Field label="Пароль" error={errors.password?.message}>
-        <Input type="password" autoComplete="current-password" {...register("password")} />
+        <PasswordInput autoComplete="current-password" {...register("password")} />
       </Field>
       <Link to="/forgot-password" className="-mt-2 self-end text-sm text-accent hover:underline">
         Забыли пароль?
@@ -65,5 +66,22 @@ function PasswordStep({ onChallenge }: { onChallenge: (challenge: MfaChallenge) 
         Войти
       </Button>
     </form>
+  );
+}
+
+function PasswordInput({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) {
+  const [visible, setVisible] = useState(false);
+  return (
+    <div className="relative">
+      <Input {...props} type={visible ? "text" : "password"} className={`pr-10 ${className ?? ""}`} />
+      <button
+        type="button"
+        className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-muted hover:text-fg"
+        onClick={() => setVisible((value) => !value)}
+        aria-label={visible ? "Скрыть пароль" : "Показать пароль"}
+      >
+        {visible ? <EyeOff className="size-4" aria-hidden /> : <Eye className="size-4" aria-hidden />}
+      </button>
+    </div>
   );
 }

@@ -34,6 +34,7 @@ class CatalogFilters:
     confirmed_only: bool = False  # только с категорией, подтверждённой тестом
     fsp_only: bool = False  # только с подтверждёнными достижениями ФСП
     fsp_category: str | None = None  # категория достижений ФСП (дисциплина x уровень)
+    sort: str | None = None
 
 
 # кандидат скрыл профиль, не ищет работу или заблокирован модератором — его нет в каталоге
@@ -66,12 +67,20 @@ class CatalogRepository(BaseRepository[CandidateProfile]):
         stmt = (
             self._select()
             .where(*_conditions(filters))
-            .order_by(
-                CandidateProfile.confirmed_grade.is_(None),
-                CandidateProfile.assessment_score.desc().nulls_last(),
-                CandidateProfile.created_at.desc(),
-                CandidateProfile.id.desc(),
-            )
+            .order_by(*(
+                (
+                    CandidateProfile.experience_years.desc().nulls_last(),
+                    CandidateProfile.created_at.desc(),
+                    CandidateProfile.id.desc(),
+                )
+                if filters.sort == "experience_desc"
+                else (
+                    CandidateProfile.confirmed_grade.is_(None),
+                    CandidateProfile.assessment_score.desc().nulls_last(),
+                    CandidateProfile.created_at.desc(),
+                    CandidateProfile.id.desc(),
+                )
+            ))
             .limit(limit)
         )
         return list((await self.session.execute(stmt)).scalars())

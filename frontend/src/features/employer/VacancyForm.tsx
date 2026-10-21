@@ -12,7 +12,7 @@ import { useCreateVacancy, useUpdateVacancy } from "./hooks";
 import { MarketHint } from "./MarketHint";
 import { emptyVacancy, vacancySchema, vacancyToForm, type VacancyFormInput, type VacancyFormOutput } from "./schemas";
 
-const FIELDS = ["title", "description", "specialization", "grade", "work_format", "city", "salary_min", "salary_max", "skills"];
+const FIELDS = ["title", "description", "specialization", "grade", "work_formats", "city", "salary_min", "salary_max", "skills"];
 
 type Props = { vacancy: Vacancy | null; skills: Skill[]; onDone: () => void };
 
@@ -50,9 +50,30 @@ export function VacancyForm({ vacancy, skills, onDone }: Props) {
       <Field label="Грейд" error={errors.grade?.message}>
         <Select options={options(labels.grade)} {...register("grade")} />
       </Field>
-      <Field label="Формат работы" error={errors.work_format?.message} className="sm:col-span-2">
-        <Select options={options(labels.workFormat)} {...register("work_format")} />
-      </Field>
+      <FieldGroup label="Формат работы" error={errors.work_formats?.message} hint="Можно выбрать несколько вариантов" className="sm:col-span-2">
+        <Controller
+          control={control}
+          name="work_formats"
+          render={({ field }) => (
+            <div className="flex flex-wrap gap-3">
+              {options(labels.workFormat).map((option) => (
+                <label key={option.value} className="flex cursor-pointer items-center gap-2 rounded-lg border border-line px-3 py-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={field.value.includes(option.value as (typeof field.value)[number])}
+                    onChange={(event) => field.onChange(
+                      event.target.checked
+                        ? [...field.value, option.value]
+                        : field.value.filter((value) => value !== option.value),
+                    )}
+                  />
+                  {option.label}
+                </label>
+              ))}
+            </div>
+          )}
+        />
+      </FieldGroup>
       <Field label="Зарплата от, ₽" error={errors.salary_min?.message} hint="Вилка обязательна, до вычета налогов">
         <MoneyInput {...register("salary_min")} />
       </Field>
