@@ -6,6 +6,7 @@ import { applyServerErrors } from "../../lib/forms";
 import { Button } from "../../ui/Button";
 import { Field, FieldGroup, Input, MoneyInput, Select, Textarea } from "../../ui/form";
 import { CitySelect } from "../../ui/CitySelect";
+import { ChipGroup } from "../../ui/ChipGroup";
 import { SkillPicker } from "../../ui/SkillPicker";
 import { useToast } from "../../ui/Toast";
 import { useCreateVacancy, useUpdateVacancy } from "./hooks";
@@ -54,24 +55,7 @@ export function VacancyForm({ vacancy, skills, onDone }: Props) {
         <Controller
           control={control}
           name="work_formats"
-          render={({ field }) => (
-            <div className="flex flex-wrap gap-3">
-              {options(labels.workFormat).map((option) => (
-                <label key={option.value} className="flex cursor-pointer items-center gap-2 rounded-lg border border-line px-3 py-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={field.value.includes(option.value as (typeof field.value)[number])}
-                    onChange={(event) => field.onChange(
-                      event.target.checked
-                        ? [...field.value, option.value]
-                        : field.value.filter((value) => value !== option.value),
-                    )}
-                  />
-                  {option.label}
-                </label>
-              ))}
-            </div>
-          )}
+          render={({ field }) => <ChipGroup options={options(labels.workFormat)} value={field.value} onChange={field.onChange} />}
         />
       </FieldGroup>
       <Field label="Зарплата от, ₽" error={errors.salary_min?.message} hint="Вилка обязательна, до вычета налогов">
