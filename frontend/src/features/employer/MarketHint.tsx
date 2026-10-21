@@ -7,6 +7,8 @@ import { SALARY_NOTE, formatSalaryRange, labels } from "../../lib/format";
 import { useDebounced } from "../../lib/useDebounced";
 import { Badge } from "../../ui/Badge";
 import { positionLabel, positionOf, positionTone, type Position } from "../insights/position";
+import { marketRows } from "../insights/marketRows";
+import { RangeChart } from "../insights/RangeChart";
 import { compactMoney } from "../insights/scale";
 import type { VacancyFormInput } from "./schemas";
 
@@ -74,6 +76,14 @@ export function MarketHint({ control }: { control: Control<VacancyFormInput> }) 
         {position && <Badge tone={positionTone[position]}>{positionLabel[position]}</Badge>}
       </div>
       {position && <p className="mt-1 text-sm text-muted">{ADVICE[position]}</p>}
+      <div className="mt-4">
+        <RangeChart
+          rows={marketRows(radar, false)}
+          marker={middle ? { value: middle, label: `середина вашей вилки: ${compactMoney(middle)} ₽` } : null}
+          caption="Рынок зарплат для вакансии"
+          minGroup={radar.min_group}
+        />
+      </div>
     </section>
   );
 }

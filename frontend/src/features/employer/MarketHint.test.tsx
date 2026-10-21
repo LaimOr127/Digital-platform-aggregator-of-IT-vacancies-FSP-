@@ -29,6 +29,7 @@ describe("MarketHint", () => {
     renderWithApp(<Form values={{ grade: "senior", skills: ["python", "go"], salary_min: 200_000, salary_max: 260_000 }} />);
     expect(await screen.findByText("Ниже рынка")).toBeInTheDocument();
     expect(screen.getByText(/Рынок для Senior с этим стеком: обычно 300/)).toBeInTheDocument();
+    expect(screen.getByText("середина вашей вилки: 230 тыс ₽")).toBeInTheDocument();
     // навыки — в порядке, не зависящем от порядка выбора (один ключ кэша)
     expect(String(fetchMock.mock.calls[0][0])).toBe("/api/v1/employer/insights/salary?grade=senior&skills=go&skills=python");
   });
