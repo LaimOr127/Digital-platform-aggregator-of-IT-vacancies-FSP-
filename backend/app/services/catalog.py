@@ -143,7 +143,11 @@ class CatalogService:
         if filters.sort == "experience_desc":
             experience = {p.id: p.experience_years for p in profiles}
             scored.sort(
-                key=lambda row: (experience[row[1]] is not None, experience[row[1]] or -1, str(row[1])),
+                key=lambda row: (
+                    experience[row[1]] is not None,
+                    experience[row[1]] or -1,
+                    str(row[1]),
+                ),
                 reverse=True,
             )
         else:
