@@ -34,7 +34,7 @@ export function Dialog({ open, title, onClose, children, wide, busy }: Props) {
         close();
       }}
       aria-labelledby={titleId}
-      className={`m-auto w-[calc(100%-2rem)] ${wide ? "max-w-2xl" : "max-w-md"} rounded-2xl border border-line bg-surface p-0 text-fg backdrop:bg-black/70 backdrop:backdrop-blur-sm`}
+      className={`m-auto max-h-[90dvh] w-[calc(100%-2rem)] overflow-hidden ${wide ? "max-w-2xl" : "max-w-md"} rounded-2xl border border-line bg-surface p-0 text-fg backdrop:bg-black/70 backdrop:backdrop-blur-sm`}
     >
       {open && (
         <div className="flex max-h-[85dvh] flex-col">
