@@ -270,3 +270,20 @@ async def test_board_shows_new_vacancy_despite_cache(client: AsyncClient, db, ap
     )
     second = (await client.get(BOARD, headers=bearer(candidate["token"]))).json()["items"]
     assert len(second) == len(first) + 1
+
+
+async def test_board_filters_by_any_of_vacancy_work_formats(client: AsyncClient, db, app):
+    """Вакансия «офис + удалёнка» находится и по второму формату и показывает оба."""
+    employer = await approved_employer(client, db, app)
+    candidate = await verified_candidate(client)
+    vacancy = await create_vacancy(
+        client, employer["token"], work_format=None, work_formats=["office", "remote"]
+    )
+    await client.post(
+        f"/api/v1/employer/vacancies/{vacancy['id']}/publish", headers=bearer(employer["token"])
+    )
+    board = await client.get(
+        BOARD, params={"work_format": "remote"}, headers=bearer(candidate["token"])
+    )
+    found = [v for v in board.json()["items"] if v["id"] == vacancy["id"]]
+    assert found and found[0]["work_formats"] == ["office", "remote"]

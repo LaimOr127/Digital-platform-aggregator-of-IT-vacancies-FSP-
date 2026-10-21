@@ -61,7 +61,7 @@ export function FiltersPanel({ filters, fspCategories, onChange, onReset }: Prop
         </Field>
         <Field label="Сортировка">
           <Select
-            options={[{ value: "experience_desc", label: "Сначала с большим стажем" }]}
+            options={[{ value: "experience_desc", label: "Сначала с большим стажем (подтверждённые тестом — выше)" }]}
             placeholder="По релевантности"
             value={filters.sort ?? ""}
             onChange={(e) => onChange({ sort: (e.target.value || undefined) as CatalogFilters["sort"] })}

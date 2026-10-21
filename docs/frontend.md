@@ -34,7 +34,7 @@ api/          клиент и контракт
 auth/         AuthProvider (сессия), RequireRole, portal (пути порталов)
 features/     экраны по доменам: auth, landing, candidate, employer, admin, interviews, passport, insights
 lib/          форматирование (labels, деньги, даты), общие поля zod, тона бейджей, хуки
-ui/           UI-kit: Button, Card, Dialog, ConfirmDialog, form (Field, Input, Select, Switch), Badge,
+ui/           UI-kit: Button, Card, Dialog, ConfirmDialog, form (Field, Input, PasswordInput, Select, Switch), Badge,
               Alert, Toast, Segmented, SkillPicker, CursorListView, EmptyState, AppShell, Spinner, QrCode
 test/         render.tsx (renderWithApp, serveRoutes, json, bodyOf), setup.ts
 styles.css    дизайн-токены (цвета) — единственное место с цветами

@@ -1,6 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState, type InputHTMLAttributes } from "react";
-import { Eye, EyeOff } from "lucide-react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link } from "react-router";
 import { authApi } from "../../api/endpoints";
@@ -10,7 +9,7 @@ import { useAuth } from "../../auth/AuthProvider";
 import { applyServerErrors } from "../../lib/forms";
 import { Alert } from "../../ui/Alert";
 import { Button } from "../../ui/Button";
-import { Field, Input } from "../../ui/form";
+import { Field, Input, PasswordInput } from "../../ui/form";
 import { ResendButton } from "./CheckEmail";
 import { MfaStep } from "./MfaStep";
 import { loginSchema, type LoginForm as Values } from "./schemas";
@@ -66,22 +65,5 @@ function PasswordStep({ onChallenge }: { onChallenge: (challenge: MfaChallenge) 
         Войти
       </Button>
     </form>
-  );
-}
-
-function PasswordInput({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) {
-  const [visible, setVisible] = useState(false);
-  return (
-    <div className="relative">
-      <Input {...props} type={visible ? "text" : "password"} className={`pr-10 ${className ?? ""}`} />
-      <button
-        type="button"
-        className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-muted hover:text-fg"
-        onClick={() => setVisible((value) => !value)}
-        aria-label={visible ? "Скрыть пароль" : "Показать пароль"}
-      >
-        {visible ? <EyeOff className="size-4" aria-hidden /> : <Eye className="size-4" aria-hidden />}
-      </button>
-    </div>
   );
 }

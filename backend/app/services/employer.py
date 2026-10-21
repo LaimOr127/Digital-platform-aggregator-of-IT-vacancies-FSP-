@@ -89,9 +89,12 @@ class EmployerService:
     async def update_vacancy(self, vacancy_id: uuid.UUID, data: VacancyUpdateIn) -> Vacancy:
         vacancy = await self._writable(vacancy_id)
         changes = data.model_dump(exclude_unset=True)
-        if "work_formats" in changes:
-            changes["work_formats"] = [format.value for format in changes["work_formats"]]
-            changes["work_format"] = changes["work_formats"][0]
+        # старое одиночное поле обновляет и список; явный null дойдёт до apply_fields — 422
+        formats = changes.get("work_formats") or (
+            [changes["work_format"]] if changes.get("work_format") else None
+        )
+        if formats:
+            changes["work_format"], changes["work_formats"] = formats[0], [f.value for f in formats]
         apply_fields(vacancy, changes, _PLAIN_FIELDS)
         apply_salary(vacancy, changes)
         if data.skills is not None:

@@ -100,6 +100,7 @@ class BoardVacancyOut(BaseModel):
     specialization: Specialization | None
     grade: Grade
     work_format: WorkFormat
+    work_formats: list[WorkFormat]
     city: str | None
     salary_min: int
     salary_max: int

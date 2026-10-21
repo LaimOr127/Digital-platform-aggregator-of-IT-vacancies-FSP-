@@ -36,6 +36,7 @@ def vacancy(**overrides):
         "grade": Grade.MIDDLE,
         "specialization": Specialization.BACKEND,
         "work_format": WorkFormat.OFFICE,
+        "work_formats": [],
         "city": "Казань",
         "salary_min": 200_000,
         "salary_max": 300_000,

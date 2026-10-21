@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import Select, String, cast, func, or_, select
+from sqlalchemy import Select, func, or_, select
 
 from app.models import (
     CandidateProfile,
@@ -19,7 +19,7 @@ from app.models import (
     profile_skills,
 )
 from app.models.enums import Grade, SearchStatus, Specialization, VerificationTier, WorkFormat
-from app.repositories.base import BaseRepository
+from app.repositories.base import BaseRepository, json_list_has
 
 
 @dataclass(frozen=True)
@@ -34,7 +34,7 @@ class CatalogFilters:
     confirmed_only: bool = False  # только с категорией, подтверждённой тестом
     fsp_only: bool = False  # только с подтверждёнными достижениями ФСП
     fsp_category: str | None = None  # категория достижений ФСП (дисциплина x уровень)
-    sort: str | None = None
+    sort: str | None = None  # experience_desc — по стажу внутри подтверждённых и неподтверждённых
 
 
 # кандидат скрыл профиль, не ищет работу или заблокирован модератором — его нет в каталоге
@@ -68,20 +68,10 @@ class CatalogRepository(BaseRepository[CandidateProfile]):
             self._select()
             .where(*_conditions(filters))
             .order_by(
-                *(
-                    (
-                        CandidateProfile.experience_years.desc().nulls_last(),
-                        CandidateProfile.created_at.desc(),
-                        CandidateProfile.id.desc(),
-                    )
-                    if filters.sort == "experience_desc"
-                    else (
-                        CandidateProfile.confirmed_grade.is_(None),
-                        CandidateProfile.assessment_score.desc().nulls_last(),
-                        CandidateProfile.created_at.desc(),
-                        CandidateProfile.id.desc(),
-                    )
-                )
+                CandidateProfile.confirmed_grade.is_(None),
+                CandidateProfile.assessment_score.desc().nulls_last(),
+                CandidateProfile.created_at.desc(),
+                CandidateProfile.id.desc(),
             )
             .limit(limit)
         )
@@ -167,10 +157,7 @@ def _conditions(filters: CatalogFilters) -> list[Any]:
     if filters.search_status:
         conditions.append(profile.search_status == filters.search_status)
     if filters.work_format:
-        # список форматов хранится JSON-массивом: поиск по тексту одинаково работает в PostgreSQL
-        # и SQLite; значения — из перечисления, поэтому совпадение в кавычках точное
-        formats = cast(profile.work_formats, String)
-        conditions.append(formats.like(f'%"{filters.work_format.value}"%'))
+        conditions.append(json_list_has(profile.work_formats, filters.work_format))
     if filters.city:
         conditions.append(or_(profile.city == filters.city, profile.relocation.is_(True)))
     if filters.fsp_category:

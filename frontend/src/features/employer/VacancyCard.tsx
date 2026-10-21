@@ -58,7 +58,7 @@ export function VacancyCard({ vacancy: v, canPublish, onEdit, onDelete, onPrevie
           <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
             {v.specialization && <span>{labels.specialization[v.specialization]}</span>}
             <span>{labels.grade[v.grade]}</span>
-            <span>{(v.work_formats ?? [v.work_format]).map((format) => labels.workFormat[format]).join(", ")}</span>
+            <span>{v.work_formats.map((format) => labels.workFormat[format]).join(", ")}</span>
             {v.city && (
               <span className="inline-flex items-center gap-1">
                 <MapPin className="size-3.5" aria-hidden />

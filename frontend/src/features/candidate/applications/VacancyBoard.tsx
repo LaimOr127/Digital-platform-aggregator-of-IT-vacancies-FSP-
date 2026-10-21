@@ -88,7 +88,7 @@ function VacancyRow({ vacancy: v, onRespond, onComplain }: RowProps) {
       <p className="text-lg font-semibold tabular"><Salary min={v.salary_min} max={v.salary_max} /></p>
       <p className="text-sm text-muted">
         {v.specialization && `${labels.specialization[v.specialization]} · `}
-        {labels.grade[v.grade]} · {labels.workFormat[v.work_format]}
+        {labels.grade[v.grade]} · {v.work_formats.map((format) => labels.workFormat[format]).join(", ")}
         {v.city && ` · ${v.city}`}
       </p>
       <MatchPanel match={v.match} />

@@ -2125,6 +2125,8 @@ export interface components {
             specialization: components["schemas"]["Specialization"] | null;
             grade: components["schemas"]["Grade"];
             work_format: components["schemas"]["WorkFormat"];
+            /** Work Formats */
+            work_formats: components["schemas"]["WorkFormat"][];
             /** City */
             city: string | null;
             /** Salary Min */
@@ -3935,7 +3937,8 @@ export interface components {
             grade: components["schemas"]["Grade"];
             /** @description по ней и грейду строится подборка */
             specialization: components["schemas"]["Specialization"];
-            work_format?: components["schemas"]["WorkFormat"];
+            work_format?: components["schemas"]["WorkFormat"] | null;
+            /** Work Formats */
             work_formats?: components["schemas"]["WorkFormat"][] | null;
             /** City */
             city?: string | null;
@@ -3961,6 +3964,7 @@ export interface components {
             grade: components["schemas"]["Grade"];
             specialization: components["schemas"]["Specialization"] | null;
             work_format: components["schemas"]["WorkFormat"];
+            /** Work Formats */
             work_formats: components["schemas"]["WorkFormat"][];
             /** City */
             city: string | null;
@@ -3997,6 +4001,7 @@ export interface components {
             grade?: components["schemas"]["Grade"] | null;
             specialization?: components["schemas"]["Specialization"] | null;
             work_format?: components["schemas"]["WorkFormat"] | null;
+            /** Work Formats */
             work_formats?: components["schemas"]["WorkFormat"][] | null;
             /** City */
             city?: string | null;
@@ -10247,6 +10252,7 @@ export interface operations {
                 confirmed_only?: boolean;
                 fsp_only?: boolean;
                 fsp_category?: string | null;
+                sort?: string | null;
                 /** @description сортировать по соответствию этой вакансии */
                 vacancy_id?: string | null;
                 cursor?: string | null;
