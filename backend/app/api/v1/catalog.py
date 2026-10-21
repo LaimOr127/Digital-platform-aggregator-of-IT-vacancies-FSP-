@@ -82,6 +82,7 @@ async def catalog_candidates(
     confirmed_only: bool = False,
     fsp_only: bool = False,
     fsp_category: Slug = None,
+    sort: Annotated[str | None, Query(pattern=r"^experience_desc$")] = None,
     vacancy_id: Annotated[
         uuid.UUID | None, Query(description="сортировать по соответствию этой вакансии")
     ] = None,
@@ -102,6 +103,7 @@ async def catalog_candidates(
         confirmed_only=confirmed_only,
         fsp_only=fsp_only,
         fsp_category=fsp_category,
+        sort=sort,
     )
     items, next_cursor = await service.candidates(filters, cursor, limit, vacancy_id)
     return PageOut(items=items, next_cursor=next_cursor)

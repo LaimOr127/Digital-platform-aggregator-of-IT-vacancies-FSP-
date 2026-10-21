@@ -1,4 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Eye, EyeOff } from "lucide-react";
 import { useState, type InputHTMLAttributes, type ReactNode } from "react";
 import { useForm, type FieldValues, type UseFormRegisterReturn, type UseFormSetError } from "react-hook-form";
 import { authApi } from "../../api/endpoints";
@@ -127,10 +128,27 @@ function CredentialFields({ emailLabel, email, password, consent, errors }: Cred
         <Input type="email" autoComplete="email" {...email} />
       </Field>
       <Field label="Пароль" error={errors.password?.message} hint={PASSWORD_HINT}>
-        <Input type="password" autoComplete="new-password" {...password} />
+        <PasswordInput autoComplete="new-password" {...password} />
       </Field>
       <Consent error={errors.consent?.message} {...consent} />
     </>
+  );
+}
+
+function PasswordInput({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) {
+  const [visible, setVisible] = useState(false);
+  return (
+    <div className="relative">
+      <Input {...props} type={visible ? "text" : "password"} className={`pr-10 ${className ?? ""}`} />
+      <button
+        type="button"
+        className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-muted hover:text-fg"
+        onClick={() => setVisible((value) => !value)}
+        aria-label={visible ? "Скрыть пароль" : "Показать пароль"}
+      >
+        {visible ? <EyeOff className="size-4" aria-hidden /> : <Eye className="size-4" aria-hidden />}
+      </button>
+    </div>
   );
 }
 
