@@ -60,6 +60,7 @@ class VacancyCreateIn(VacancyUpdateIn):
         if not self.work_formats and self.work_format is None:
             raise ValueError("Выберите хотя бы один формат работы")
         return self
+
     salary_min: int = Field(gt=0, le=10_000_000)
     salary_max: int = Field(gt=0, le=10_000_000)
 
