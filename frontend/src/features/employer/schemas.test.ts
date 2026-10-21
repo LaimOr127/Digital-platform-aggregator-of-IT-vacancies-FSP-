@@ -32,6 +32,7 @@ describe("vacancyToForm", () => {
       grade: "senior",
       specialization: "qa",
       work_format: "office",
+      work_formats: ["office"],
       city: null,
       salary_min: 1,
       salary_max: 2,
