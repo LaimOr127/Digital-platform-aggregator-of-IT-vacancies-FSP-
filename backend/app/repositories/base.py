@@ -8,15 +8,23 @@ import base64
 import uuid
 from dataclasses import dataclass
 from datetime import datetime
+from enum import StrEnum
 from typing import Any
 
-from sqlalchemy import Select, and_, or_, select
+from sqlalchemy import Select, String, and_, cast, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.sql.elements import ColumnElement
 
 from app.core.errors import AppError, NotFoundError
 from app.models.base import Base
 
 MAX_PAGE = 100
+
+
+def json_list_has(column: Any, value: StrEnum) -> ColumnElement[bool]:
+    """Значение в списке, хранящемся JSON-массивом: поиск по тексту одинаково работает в PostgreSQL
+    и SQLite; значения — из перечисления, поэтому совпадение в кавычках точное."""
+    return cast(column, String).like(f'%"{value.value}"%')
 
 
 class InvalidCursorError(AppError):

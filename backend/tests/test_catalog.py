@@ -104,3 +104,27 @@ async def test_grade_filter_shows_only_confirmed_grade(client: AsyncClient, db, 
     ).json()
     assert [c["anon_id"] for c in page["items"]] == [tested["anon_id"]]
     assert claimed["anon_id"] not in str(page)
+
+
+async def test_experience_sort_keeps_confirmed_candidates_first(client: AsyncClient, db, app):
+    """Сортировка по стажу — внутри подтверждённых и неподтверждённых: стаж указан кандидатом
+    и не поднимает его выше тех, чей грейд подтверждён тестом."""
+    employer = await approved_employer(client, db, app)
+    claimed = await verified_candidate(client)
+    tested = await verified_candidate(client, "FSP-2")
+    await confirm(client, db, tested["token"], "backend", "middle")
+    for who, years in ((claimed, 15), (tested, 1)):
+        await client.patch(
+            "/api/v1/candidate/profile",
+            json={"experience_years": years},
+            headers=bearer(who["token"]),
+        )
+    page = (
+        await client.get(
+            f"{CATALOG}/candidates",
+            params={"sort": "experience_desc"},
+            headers=bearer(employer["token"]),
+        )
+    ).json()
+    order = [c["anon_id"] for c in page["items"]]
+    assert order.index(tested["anon_id"]) < order.index(claimed["anon_id"])

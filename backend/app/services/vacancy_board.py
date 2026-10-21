@@ -126,6 +126,7 @@ def _out(
         specialization=vacancy.specialization,
         grade=vacancy.grade,
         work_format=vacancy.work_format,
+        work_formats=vacancy.work_formats or [vacancy.work_format],
         city=vacancy.city,
         salary_min=vacancy.salary_min,
         salary_max=vacancy.salary_max,

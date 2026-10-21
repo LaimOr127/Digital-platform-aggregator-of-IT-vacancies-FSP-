@@ -111,7 +111,7 @@ REST поверх HTTPS, JSON, префикс `/api/v1`. Живая схема �
 | `POST assessment/attempts/{id}/violation`, `POST tasks/{id}/violation` | нажат PrintScreen: тест не засчитан (как неудача), задача закрыта для кандидата; `submit` принимает `focus_losses` — уходы со вкладки как сигнал |
 | `GET updates`, `POST updates/seen {section}` | время последнего события по разделам и отметка «просмотрено» (хранится на сервере, одинакова на всех устройствах) — для точек «есть новое» |
 | `GET applications`, `POST applications/{id}/accept`, `POST applications/{id}/decline {reason}`, `POST applications/{id}/withdraw` | приглашения компаний и свои отклики; принятие передаёт компании имя и контакты |
-| `GET vacancies`, `GET vacancies/{id}`, `POST vacancies/{id}/respond {message}` | опубликованные вакансии по соответствию профилю, отклик |
+| `GET vacancies`, `GET vacancies/{id}`, `POST vacancies/{id}/respond {message}` | опубликованные вакансии по соответствию профилю, отклик; `work_format` — находит вакансию по любому из её форматов |
 | `POST vacancies/{id}/complaint {reason, comment}` | жалоба на вакансию (одна от кандидата) — её видит модератор |
 | `GET tasks/current`, `POST tasks/{id}/answers {answer}`, `GET tasks/answers` | задача недели от работодателя, ответ, свои ответы и оценки |
 | `POST account/delete {password}` | удалить аккаунт и все данные (152-ФЗ) |
@@ -127,10 +127,10 @@ REST поверх HTTPS, JSON, префикс `/api/v1`. Живая схема �
 | Метод и путь | Что делает |
 |---|---|
 | `GET/PATCH company` | профиль компании: описание, направление, сайт, контакты (меняет владелец) |
-| `GET/POST vacancies`, `GET/PATCH/DELETE vacancies/{id}`, `POST vacancies/{id}/publish`, `POST vacancies/{id}/close` | вакансии; публикация — на 14 дней |
+| `GET/POST vacancies`, `GET/PATCH/DELETE vacancies/{id}`, `POST vacancies/{id}/publish`, `POST vacancies/{id}/close` | вакансии; публикация — на 14 дней; `work_formats` — один или несколько форматов (старое поле `work_format` тоже принимается и обновляет список) |
 | `GET vacancies/{id}/assessment-preview` | пример теста, который система соберёт по специализации, грейду и навыкам вакансии; как и в самом тесте, без правильных ответов |
 | `GET insights/salary?grade=&skills=` | рынок зарплат для формы вакансии |
-| `GET catalog/categories`, `GET catalog/fsp-categories`, `GET catalog/candidates`, `GET catalog/candidates/{anon_id}` | анонимный каталог; без `vacancy_id` — по силе профиля (тест, ФСП), с `vacancy_id` — сначала категория относительно грейда вакансии, внутри неё тест и ФСП; в ответе `summary` (почему кандидат на этом месте) и факторы, стек и формат — с нулевым весом; `grade` — только подтверждённый тестом; `skill` — фильтр стека; `city` — живёт в городе или готов к переезду |
+| `GET catalog/categories`, `GET catalog/fsp-categories`, `GET catalog/candidates`, `GET catalog/candidates/{anon_id}` | анонимный каталог; без `vacancy_id` — по силе профиля (тест, ФСП), с `vacancy_id` — сначала категория относительно грейда вакансии, внутри неё тест и ФСП; в ответе `summary` (почему кандидат на этом месте) и факторы, стек и формат — с нулевым весом; `grade` — только подтверждённый тестом; `skill` — фильтр стека; `city` — живёт в городе или готов к переезду; `sort=experience_desc` — по стажу внутри подтверждённых и неподтверждённых (стаж указан кандидатом) |
 | `POST catalog/ai-review {vacancy_id, anon_ids}`, `GET catalog/ai-status` | второе мнение модели ИИ о первых 10 кандидатах под вакансию (по анонимным карточкам), доступность модели |
 | `GET updates`, `POST updates/seen {section}` | новое по разделам и число вакансий, которые пора продлить; отметка «просмотрено» |
 | `GET/POST applications`, `POST applications/{id}/accept {contact_method}`, `POST applications/{id}/decline`, `POST applications/{id}/withdraw`, `GET applications/{id}/contacts` | приглашения на контакт (вакансия не обязательна) и отклики; контакты — после согласия кандидата |

@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import Skill, Vacancy, vacancy_skills
 from app.models.enums import Grade, Specialization, VacancyStatus, WorkFormat
-from app.repositories.base import BaseRepository
+from app.repositories.base import BaseRepository, json_list_has
 from app.repositories.companies import approved_company_ids
 
 
@@ -84,7 +84,7 @@ def _board_conditions(filters: BoardFilters) -> list[Any]:
     if filters.grade:
         conditions.append(Vacancy.grade == filters.grade)
     if filters.work_format:
-        conditions.append(Vacancy.work_format == filters.work_format)
+        conditions.append(json_list_has(Vacancy.work_formats, filters.work_format))
     if filters.query:
         conditions.append(func.lower(Vacancy.title).contains(filters.query.lower()))
     if filters.skill:

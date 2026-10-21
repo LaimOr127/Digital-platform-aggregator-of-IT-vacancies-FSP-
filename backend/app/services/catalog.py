@@ -141,15 +141,9 @@ class CatalogService:
         # без подтверждённого тестом грейда — ниже всех подтверждённых (рекомендация организаторов):
         # выдача строится на категориях по итогам теста, а не на самоописании
         if filters.sort == "experience_desc":
-            experience = {p.id: p.experience_years for p in profiles}
-            scored.sort(
-                key=lambda row: (
-                    experience[row[1]] is not None,
-                    experience[row[1]] or -1,
-                    str(row[1]),
-                ),
-                reverse=True,
-            )
+            # стаж указан кандидатом, поэтому подтверждённые тестом всё равно выше
+            years = {p.id: p.experience_years or -1 for p in profiles}
+            scored.sort(key=lambda row: (row[0], years[row[1]]), reverse=True)  # устойчиво
         else:
             scored.sort(key=lambda row: (row[0], *rank_key(row[2])), reverse=True)  # устойчиво
         return [(pid, result) for _, pid, result in scored]

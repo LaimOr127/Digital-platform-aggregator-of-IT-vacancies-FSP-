@@ -34,13 +34,14 @@ const vacancy = {
   specialization: "qa",
   grade: "junior",
   work_format: "office",
+  work_formats: ["office"],
   city: "Казань",
   salary_min: 100000,
   salary_max: 150000,
   skills: ["Автотесты"],
   expires_at: null,
   company,
-  match: { score: 64, factors: [] },
+  match: { score: 64, summary: "", factors: [] },
   application_status: null,
 };
 

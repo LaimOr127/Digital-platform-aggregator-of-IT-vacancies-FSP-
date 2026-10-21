@@ -160,3 +160,16 @@ async def test_owner_edits_company_profile(client: AsyncClient):
         "/api/v1/employer/company", json={"contact_email": "nope"}, headers=bearer(token)
     )
     assert bad.status_code == 422
+
+
+async def test_vacancy_offers_several_work_formats(client: AsyncClient):
+    """Несколько форматов работы; старое одиночное поле обновляет и список, null — 422, а не 500."""
+    token = await register_employer(client)
+    formats = ["office", "remote"]
+    vacancy = await create_vacancy(client, token, work_format=None, work_formats=formats)
+    assert vacancy["work_formats"] == ["office", "remote"] and vacancy["work_format"] == "office"
+    url = f"{VACANCIES}/{vacancy['id']}"
+    legacy = (await client.patch(url, json={"work_format": "hybrid"}, headers=bearer(token))).json()
+    assert legacy["work_formats"] == ["hybrid"] and legacy["work_format"] == "hybrid"
+    for body in ({"work_formats": None}, {"work_format": None}):
+        assert (await client.patch(url, json=body, headers=bearer(token))).status_code == 422

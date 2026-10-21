@@ -37,7 +37,7 @@ export function vacancyToForm(v: Vacancy): VacancyFormInput {
     description: v.description,
     grade: v.grade,
     specialization: v.specialization ?? "backend",
-    work_formats: v.work_formats ?? [v.work_format],
+    work_formats: v.work_formats,
     city: v.city ?? "",
     salary_min: v.salary_min,
     salary_max: v.salary_max,
