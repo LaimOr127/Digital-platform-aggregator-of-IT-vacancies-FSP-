@@ -67,20 +67,22 @@ class CatalogRepository(BaseRepository[CandidateProfile]):
         stmt = (
             self._select()
             .where(*_conditions(filters))
-            .order_by(*(
-                (
-                    CandidateProfile.experience_years.desc().nulls_last(),
-                    CandidateProfile.created_at.desc(),
-                    CandidateProfile.id.desc(),
+            .order_by(
+                *(
+                    (
+                        CandidateProfile.experience_years.desc().nulls_last(),
+                        CandidateProfile.created_at.desc(),
+                        CandidateProfile.id.desc(),
+                    )
+                    if filters.sort == "experience_desc"
+                    else (
+                        CandidateProfile.confirmed_grade.is_(None),
+                        CandidateProfile.assessment_score.desc().nulls_last(),
+                        CandidateProfile.created_at.desc(),
+                        CandidateProfile.id.desc(),
+                    )
                 )
-                if filters.sort == "experience_desc"
-                else (
-                    CandidateProfile.confirmed_grade.is_(None),
-                    CandidateProfile.assessment_score.desc().nulls_last(),
-                    CandidateProfile.created_at.desc(),
-                    CandidateProfile.id.desc(),
-                )
-            ))
+            )
             .limit(limit)
         )
         return list((await self.session.execute(stmt)).scalars())
